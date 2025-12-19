@@ -4,10 +4,9 @@ using ITSM.Datos;
 using ITSM.Negocio;
 using ITSM.WEB.Components;
 using Microsoft.AspNetCore.Components;
-// 1. AGREGA ESTOS NAMESPACES
-using ITSM.WEB.Client.Servicios; // <--- NUEVO
-using ITSM.WEB.Client.Auth;      // <--- NUEVO
-using Microsoft.AspNetCore.Components.Authorization; // <--- NUEVO
+using ITSM.WEB.Client.Servicios;
+using ITSM.WEB.Client.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("ConexionOracle");
 builder.Services.AddDbContext<ContextoBD>(options => options.UseOracle(connectionString));
 
-// --- SERVICIOS DE NEGOCIO ---
+// --- SERVICIOS DE NEGOCIO (Lógica Backend) ---
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 
@@ -27,18 +26,21 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 
-// --- HTTP CLIENT (Para el servidor) ---
+// --- HTTP CLIENT (Para el servidor durante el Prerenderizado) ---
 builder.Services.AddScoped(sp =>
 {
     var navigation = sp.GetRequiredService<NavigationManager>();
     return new HttpClient { BaseAddress = new Uri(navigation.BaseUri) };
 });
 
-// --- SEGURIDAD Y SESIÓN (FALTABA ESTO EN EL SERVIDOR) ---
-// Registramos los mismos servicios que en el cliente para que el pre-renderizado funcione
-builder.Services.AddScoped<ServicioSesion>(); // <--- NUEVO
-builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>(); // <--- NUEVO
-builder.Services.AddAuthorizationCore(); // <--- NUEVO
+// --- SERVICIOS CLIENTE REUTILIZADOS EN EL SERVIDOR ---
+// Necesario para que Blazor Server (Prerender) pueda resolver las dependencias
+builder.Services.AddScoped<TicketServicio>(); // <--- AGREGADO: CRITICO PARA QUE NO FALLE LA CARGA
+
+// --- SEGURIDAD Y SESIÓN ---
+builder.Services.AddScoped<ServicioSesion>();
+builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
+builder.Services.AddAuthorizationCore();
 
 var app = builder.Build();
 

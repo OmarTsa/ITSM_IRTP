@@ -15,22 +15,25 @@ namespace ITSM.WEB.Controllers
             _usuarioNegocio = usuarioNegocio;
         }
 
-        [HttpPost("ingresar")]
-        public async Task<IActionResult> Ingresar([FromBody] SolicitudAcceso solicitud)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            // Validamos contra la base de datos
-            var usuario = await _usuarioNegocio.ValidarAccesoReal(solicitud.NombreUsuario, solicitud.Clave);
+            // CORRECCIÓN: Usamos 'LoginAsync' que es el que existe en tu Negocio
+            var usuario = await _usuarioNegocio.LoginAsync(request.Usuario, request.Clave);
 
-            if (usuario != null)
+            if (usuario == null)
             {
-                // Login exitoso: devolvemos los datos del usuario
-                return Ok(usuario);
-            }
-            else
-            {
-                // Login fallido
                 return Unauthorized(new { mensaje = "Credenciales incorrectas" });
             }
+
+            return Ok(usuario);
+        }
+
+        // Clase auxiliar para recibir los datos del JSON
+        public class LoginRequest
+        {
+            public string Usuario { get; set; } = string.Empty;
+            public string Clave { get; set; } = string.Empty;
         }
     }
 }

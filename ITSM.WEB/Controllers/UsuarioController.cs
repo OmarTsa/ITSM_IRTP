@@ -22,7 +22,7 @@ namespace ITSM.WEB.Controllers
         {
             try
             {
-                var lista = await _usuarioNegocio.ListarUsuarios();
+                var lista = await _usuarioNegocio.ListarUsuariosAsync();
                 return Ok(lista);
             }
             catch (Exception ex)

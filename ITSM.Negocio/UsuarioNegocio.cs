@@ -1,10 +1,13 @@
-﻿using System;
+﻿// 1. REFERENCIAS DE SISTEMA (¡Esto es lo que falta para arreglar List y Task!)
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+
+// 2. REFERENCIAS DE ENTITY FRAMEWORK
 using Microsoft.EntityFrameworkCore;
-using ITSM.Datos;
+
+// 3. REFERENCIAS DE TU PROYECTO
 using ITSM.Entidades;
+using ITSM.Datos;
 
 namespace ITSM.Negocio
 {
@@ -17,22 +20,41 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // Método para validar el login (ya existía)
-        public async Task<Usuario?> ValidarAccesoReal(string username, string password)
+        // Login simple (para Tesis)
+        public async Task<Usuario?> LoginAsync(string usuario, string clave)
         {
             return await _contexto.Usuarios
-                .Where(u => u.NombreUsuario == username && u.Clave == password && u.Estado == 1)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(u => u.NombreUsuario == usuario && u.Clave == clave && u.Estado == 1);
         }
 
-        // --- NUEVO MÉTODO: Listar todos los usuarios ---
-        public async Task<List<Usuario>> ListarUsuarios()
+        // Listar todos los usuarios
+        public async Task<List<Usuario>> ListarUsuariosAsync()
         {
-            // Usamos AsNoTracking para mejorar el rendimiento en consultas de solo lectura
-            return await _contexto.Usuarios
-                .AsNoTracking()
-                .OrderBy(u => u.NombreCompleto)
-                .ToListAsync();
+            return await _contexto.Usuarios.ToListAsync();
+        }
+
+        // Obtener uno por ID
+        public async Task<Usuario?> ObtenerUsuarioPorIdAsync(int id)
+        {
+            return await _contexto.Usuarios.FindAsync(id);
+        }
+
+        // Guardar (Crear o Editar)
+        public async Task<Usuario> GuardarUsuarioAsync(Usuario usuario)
+        {
+            if (usuario.IdUsuario == 0)
+            {
+                // Nuevo
+                _contexto.Usuarios.Add(usuario);
+            }
+            else
+            {
+                // Editar
+                _contexto.Usuarios.Update(usuario);
+            }
+
+            await _contexto.SaveChangesAsync();
+            return usuario;
         }
     }
 }

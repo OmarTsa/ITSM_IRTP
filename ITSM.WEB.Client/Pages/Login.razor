@@ -10,7 +10,6 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject NavigationManager Navegacion
-@inject ServicioSesion SesionService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Iniciar Sesión</PageTitle>
@@ -81,7 +80,7 @@
         procesando = true;
         try
         {
-            var respuesta = await Http.PostAsJsonAsync("api/autenticacion/ingresar", solicitud);
+            var respuesta = await Http.PostAsJsonAsync("api/autenticacion/login", solicitud);
 
             if (respuesta.IsSuccessStatusCode)
             {
@@ -89,12 +88,11 @@
 
                 if (usuario != null)
                 {
-                    await SesionService.GuardarUsuario(usuario);
-                    ((ProveedorAutenticacion)AuthStateProvider).NotificarLogin(usuario);
+                    // CORRECCIÓN: Llamamos directo al proveedor y usamos 'await'
+                    var authProvider = (ProveedorAutenticacion)AuthStateProvider;
+                    await authProvider.NotificarLogin(usuario);
 
                     Snackbar.Add($"¡Bienvenido, {usuario.NombreUsuario}!", Severity.Success);
-
-                    // Redirigir al Dashboard principal
                     Navegacion.NavigateTo("dashboard", true);
                 }
                 else
