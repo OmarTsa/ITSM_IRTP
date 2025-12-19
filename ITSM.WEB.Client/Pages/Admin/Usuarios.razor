@@ -1,0 +1,102 @@
+﻿@page "/admin/usuarios"
+@using Microsoft.AspNetCore.Authorization
+@using ITSM.Entidades
+@attribute [Authorize]
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Administración de Usuarios</PageTitle>
+
+<MudContainer Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Usuarios del Sistema</MudText>
+
+    @* TABLA DE DATOS *@
+    <MudTable Items="@listaUsuarios" Hover="true" Striped="true" Loading="@cargando" Filter="new Func<Usuario, bool>(Filtrar)" Elevation="2">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Listado</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="textoBusqueda" Placeholder="Buscar..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Usuario</MudTh>
+            <MudTh>Nombre Completo</MudTh>
+            <MudTh>Rol</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.IdUsuario</MudTd>
+            <MudTd DataLabel="Usuario">@context.NombreUsuario</MudTd>
+            <MudTd DataLabel="Nombre">@context.NombreCompleto</MudTd>
+            <MudTd DataLabel="Rol">
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small">@context.Rol</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Estado">
+                @if (context.Estado == 1)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Activo</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactivo</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Acciones">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" Title="Editar" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página" />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Usuario> listaUsuarios = new List<Usuario>();
+    private bool cargando = true;
+    private string textoBusqueda = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUsuarios();
+    }
+
+    private async Task CargarUsuarios()
+    {
+        try
+        {
+            // Llamamos a la API que acabamos de crear
+            var respuesta = await Http.GetAsync("api/usuario/listar");
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                listaUsuarios = await respuesta.Content.ReadFromJsonAsync<List<Usuario>>() ?? new List<Usuario>();
+            }
+            else
+            {
+                Snackbar.Add("No se pudieron cargar los usuarios.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error de conexión: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    // Función para el buscador en tiempo real
+    private bool Filtrar(Usuario u)
+    {
+        if (string.IsNullOrWhiteSpace(textoBusqueda)) return true;
+
+        if (u.NombreCompleto != null && u.NombreCompleto.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        if (u.NombreUsuario != null && u.NombreUsuario.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase)) return true;
+
+        return false;
+    }
+}

@@ -1,0 +1,13 @@
+﻿@inherits LayoutComponentBase
+@using MudBlazor
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout Class="d-flex justify-center align-center mud-width-full mud-height-full" Style="background-color: #f5f5f5; min-height: 100vh;">
+    @* Este contenedor centra automáticamente el Login en medio de la pantalla *@
+    <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex justify-center">
+        @Body
+    </MudContainer>
+</MudLayout>

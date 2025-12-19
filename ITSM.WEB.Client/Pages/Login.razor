@@ -1,0 +1,119 @@
+﻿@page "/"
+@page "/login"
+@layout ITSM.WEB.Client.Layout.LoginLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Auth
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject NavigationManager Navegacion
+@inject ServicioSesion SesionService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Iniciar Sesión</PageTitle>
+
+<MudPaper Elevation="4" Class="pa-8" Width="100%" MaxWidth="400px">
+    <MudForm @ref="formulario">
+        <MudStack Spacing="4">
+
+            <div class="d-flex justify-center mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Primary" Size="Size.Large" Style="font-size: 4rem;" />
+            </div>
+
+            <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Class="mb-4">
+                <b>Bienvenido al ITSM</b>
+            </MudText>
+
+            <MudTextField @bind-Value="solicitud.NombreUsuario"
+                          Label="Usuario"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          FullWidth="true"
+                          Required="true"
+                          RequiredError="El usuario es obligatorio" />
+
+            <MudTextField @bind-Value="solicitud.Clave"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          FullWidth="true"
+                          Required="true"
+                          RequiredError="La contraseña es obligatoria" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       OnClick="ProcesarIngreso"
+                       FullWidth="true"
+                       Class="mt-4 py-2"
+                       Disabled="@procesando">
+                @if (procesando)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Verificando...</MudText>
+                }
+                else
+                {
+                    <MudText>INGRESAR</MudText>
+                }
+            </MudButton>
+
+        </MudStack>
+    </MudForm>
+</MudPaper>
+
+@code {
+    private SolicitudAcceso solicitud = new SolicitudAcceso();
+    private bool procesando = false;
+    private MudForm formulario = default!;
+
+    private async Task ProcesarIngreso()
+    {
+        await formulario.Validate();
+        if (!formulario.IsValid) return;
+
+        procesando = true;
+        try
+        {
+            var respuesta = await Http.PostAsJsonAsync("api/autenticacion/ingresar", solicitud);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var usuario = await respuesta.Content.ReadFromJsonAsync<Usuario>();
+
+                if (usuario != null)
+                {
+                    await SesionService.GuardarUsuario(usuario);
+                    ((ProveedorAutenticacion)AuthStateProvider).NotificarLogin(usuario);
+
+                    Snackbar.Add($"¡Bienvenido, {usuario.NombreUsuario}!", Severity.Success);
+
+                    // Redirigir al Dashboard principal
+                    Navegacion.NavigateTo("dashboard", true);
+                }
+                else
+                {
+                    Snackbar.Add("Error al leer datos del usuario.", Severity.Error);
+                }
+            }
+            else
+            {
+                Snackbar.Add("Usuario o contraseña incorrectos.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error de conexión: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}

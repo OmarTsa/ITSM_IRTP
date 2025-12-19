@@ -1,0 +1,112 @@
+﻿@page "/helpdesk/nuevo"
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+@inject TicketServicio TicketService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Nuevo Ticket de Soporte</h3>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Título del Problema</label>
+                        <InputText class="form-control" @bind-Value="nuevoTicket.Titulo" placeholder="Ej: No enciende mi PC, No tengo internet..." />
+                        <ValidationMessage For="@(() => nuevoTicket.Titulo)" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Tipo de Solicitud</label>
+                        <InputSelect class="form-select" @bind-Value="nuevoTicket.TipoTicket">
+                            <option value="Incidente">Incidente (Algo falló)</option>
+                            <option value="Requerimiento">Requerimiento (Necesito algo nuevo)</option>
+                        </InputSelect>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Categoría</label>
+                        <InputSelect class="form-select" @bind-Value="nuevoTicket.IdCategoria">
+                            @foreach (var cat in listaCategorias)
+                            {
+                                <option value="@cat.IdCategoria">@cat.Nombre</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Prioridad / Urgencia</label>
+                        <InputSelect class="form-select" @bind-Value="nuevoTicket.IdPrioridad">
+                            @foreach (var prio in listaPrioridades)
+                            {
+                                <option value="@prio.IdPrioridad">@prio.Nombre</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Código Patrimonial (Opcional)</label>
+                        <InputText class="form-control" @bind-Value="nuevoTicket.CodigoPatrimonial" placeholder="Ej: 74089800..." />
+                        <small class="text-muted">Ingrese el código de la etiqueta del equipo.</small>
+                    </div>
+
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Descripción Detallada</label>
+                        <InputTextArea class="form-control" rows="5" @bind-Value="nuevoTicket.Descripcion" />
+                        <ValidationMessage For="@(() => nuevoTicket.Descripcion)" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="/dashboard" class="btn btn-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-success">Registrar Ticket</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Ticket nuevoTicket = new Ticket();
+    private List<Categoria> listaCategorias = new List<Categoria>();
+    private List<Prioridad> listaPrioridades = new List<Prioridad>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargamos los catálogos al iniciar la página
+        try
+        {
+            listaCategorias = await TicketService.ObtenerCategorias();
+            listaPrioridades = await TicketService.ObtenerPrioridades();
+
+            // Valores por defecto para que los selects no queden vacíos
+            if (listaCategorias.Any()) nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
+            if (listaPrioridades.Any())
+            {
+                // Intentamos seleccionar "Media" por defecto
+                var media = listaPrioridades.FirstOrDefault(p => p.Nombre.Contains("Media") || p.Nombre.Contains("Normal"));
+                nuevoTicket.IdPrioridad = media != null ? media.IdPrioridad : listaPrioridades.First().IdPrioridad;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error cargando catálogos: " + ex.Message);
+        }
+    }
+
+    private async Task Guardar()
+    {
+        // NOTA: Temporalmente asignamos el ID 1 (Admin) para que puedas probar
+        // Más adelante conectaremos esto con el usuario logueado real
+        nuevoTicket.IdSolicitante = 1;
+
+        await TicketService.GuardarTicket(nuevoTicket);
+        Navigation.NavigateTo("/dashboard");
+    }
+}
