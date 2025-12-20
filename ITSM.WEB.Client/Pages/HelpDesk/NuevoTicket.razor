@@ -8,106 +8,65 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 
-<PageTitle>Nuevo Ticket - ITSM</PageTitle>
-
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
     <MudPaper Elevation="3" Class="pa-6">
-
-        <MudText Typo="Typo.h4" Color="Color.Primary" GutterBottom="true" Align="Align.Center">
-            <b>Registrar Incidente / Requerimiento</b>
-        </MudText>
-        <MudText Typo="Typo.body2" Class="mb-6" Align="Align.Center">
-            Complete la información para clasificar correctamente su solicitud según ITIL v4.
-        </MudText>
+        <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" Class="mb-4"><b>Nueva Solicitud de Soporte</b></MudText>
 
         <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
             <DataAnnotationsValidator />
-
             <MudGrid>
-                @* --- SECCIÓN 1: DETALLES BÁSICOS --- *@
                 <MudItem xs="12">
-                    <MudTextField Label="Título del Problema"
-                                  @bind-Value="nuevoTicket.Titulo"
-                                  For="@(() => nuevoTicket.Titulo)"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Title"
-                                  Placeholder="Ej: El servidor de correos no responde..." />
+                    <MudTextField Label="Título / Resumen" @bind-Value="nuevoTicket.Titulo" For="@(() => nuevoTicket.Titulo)" Variant="Variant.Outlined" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem Value="@("Incidente")">Incidente (Algo se rompió)</MudSelectItem>
-                        <MudSelectItem Value="@("Requerimiento")">Requerimiento (Necesito algo nuevo)</MudSelectItem>
+                    <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Incidente")">Incidente (Falla técnica)</MudSelectItem>
+                        <MudSelectItem Value="@("Requerimiento")">Requerimiento (Nueva solicitud)</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                        @foreach (var cat in listaCategorias)
+                    <MudSelect T="int" Label="Categoría ITIL" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined">
+                        @if (listaCategorias != null && listaCategorias.Any())
                         {
-                            <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-
-                @* --- SECCIÓN 2: MATRIZ DE PRIORIZACIÓN ITIL --- *@
-                <MudItem xs="12">
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
-                        <b>Matriz ITIL:</b> La Prioridad se calculará automáticamente basada en el Impacto y la Urgencia seleccionados.
-                    </MudAlert>
-                </MudItem>
-
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Impacto (¿A quién afecta?)" @bind-Value="nuevoTicket.IdImpacto" Variant="Variant.Outlined" HelperText="Alcance del problema">
-                        <MudSelectItem Value="1">Alto (Toda la empresa / Crítico)</MudSelectItem>
-                        <MudSelectItem Value="2">Medio (Un departamento / Grupo)</MudSelectItem>
-                        <MudSelectItem Value="3">Bajo (Solo a mí / Pocos usuarios)</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Urgencia (¿Cuándo se necesita?)" @bind-Value="nuevoTicket.IdUrgencia" Variant="Variant.Outlined" HelperText="Velocidad de respuesta requerida">
-                        <MudSelectItem Value="1">Alta (El negocio está detenido)</MudSelectItem>
-                        <MudSelectItem Value="2">Media (Afecta, pero hay alternativa)</MudSelectItem>
-                        <MudSelectItem Value="3">Baja (Puede esperar / Programado)</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-
-                @* --- SECCIÓN 3: CMDB --- *@
-                <MudItem xs="12">
-                    <MudTextField Label="Código Patrimonial (Opcional)"
-                                  @bind-Value="nuevoTicket.CodigoPatrimonial"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.QrCode"
-                                  HelperText="Escanee o ingrese el código de la etiqueta del activo afectado." />
-                </MudItem>
-
-                <MudItem xs="12">
-                    <MudTextField Label="Descripción Detallada"
-                                  @bind-Value="nuevoTicket.Descripcion"
-                                  For="@(() => nuevoTicket.Descripcion)"
-                                  Variant="Variant.Outlined"
-                                  Lines="5" />
-                </MudItem>
-
-                @* --- BOTONES --- *@
-                <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
-                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo("/dashboard"))">Cancelar</MudButton>
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Disabled="@procesando">
-                        @if (procesando)
-                        {
-                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                            <MudText Class="ms-2">Registrando...</MudText>
+                            @foreach (var cat in listaCategorias)
+                            {
+                                <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                            }
                         }
                         else
                         {
-                            <MudText>Crear Ticket</MudText>
+                            <MudSelectItem Value="0">Cargando categorías...</MudSelectItem>
                         }
-                    </MudButton>
+                    </MudSelect>
                 </MudItem>
 
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="Impacto" @bind-Value="nuevoTicket.IdImpacto" Variant="Variant.Outlined">
+                        <MudSelectItem Value="1">Alto (Crítico)</MudSelectItem>
+                        <MudSelectItem Value="2">Medio (Normal)</MudSelectItem>
+                        <MudSelectItem Value="3">Bajo (Leve)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="Urgencia" @bind-Value="nuevoTicket.IdUrgencia" Variant="Variant.Outlined">
+                        <MudSelectItem Value="1">Alta (Inmediata)</MudSelectItem>
+                        <MudSelectItem Value="2">Media (Pronta)</MudSelectItem>
+                        <MudSelectItem Value="3">Baja (Programada)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField Label="Descripción detallada" @bind-Value="nuevoTicket.Descripcion" For="@(() => nuevoTicket.Descripcion)" Variant="Variant.Outlined" Lines="4" />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Disabled="@procesando">
+                        @(procesando ? "Registrando..." : "Crear Ticket")
+                    </MudButton>
+                </MudItem>
             </MudGrid>
         </EditForm>
     </MudPaper>
@@ -123,16 +82,17 @@
         try
         {
             listaCategorias = await TicketService.ObtenerCategorias();
-
-            // Valores por defecto ITIL
-            nuevoTicket.IdCategoria = listaCategorias.FirstOrDefault()?.IdCategoria ?? 0;
-            nuevoTicket.IdImpacto = 3; // Bajo
-            nuevoTicket.IdUrgencia = 3; // Bajo
+            if (listaCategorias.Any())
+            {
+                nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
+            }
             nuevoTicket.TipoTicket = "Incidente";
+            nuevoTicket.IdImpacto = 3;
+            nuevoTicket.IdUrgencia = 3;
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error cargando categorías: " + ex.Message, Severity.Error);
+            Snackbar.Add("Error al cargar categorías: " + ex.Message, Severity.Error);
         }
     }
 
@@ -141,41 +101,25 @@
         procesando = true;
         try
         {
-            // 1. OBTENER USUARIO LOGUEADO REAL
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
+            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (user.Identity != null && user.Identity.IsAuthenticated)
+            if (int.TryParse(userIdStr, out int userId))
             {
-                // Buscamos el Claim "NameIdentifier" que guardamos en el Login (Controller)
-                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    nuevoTicket.IdSolicitante = userId;
-                }
-                else
-                {
-                    Snackbar.Add("Error: No se pudo identificar su usuario.", Severity.Error);
-                    procesando = false;
-                    return;
-                }
+                nuevoTicket.IdSolicitante = userId;
+                await TicketService.GuardarTicket(nuevoTicket);
+                Snackbar.Add("Ticket creado con éxito", Severity.Success);
+                Navigation.NavigateTo("/helpdesk/mis-tickets");
             }
             else
             {
-                Snackbar.Add("Su sesión ha expirado.", Severity.Warning);
-                Navigation.NavigateTo("/login");
-                return;
+                Snackbar.Add("Sesión no válida", Severity.Error);
             }
-
-            // 2. ENVIAR AL BACKEND
-            await TicketService.GuardarTicket(nuevoTicket);
-
-            Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
-            Navigation.NavigateTo("/dashboard");
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error al guardar: " + ex.Message, Severity.Error);
+            Snackbar.Add("Error: " + ex.Message, Severity.Error);
         }
         finally
         {

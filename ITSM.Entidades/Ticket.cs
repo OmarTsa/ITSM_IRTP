@@ -10,7 +10,6 @@ namespace ITSM.Entidades
         [Column("ID_TICKET")]
         public int IdTicket { get; set; }
 
-        // --- DATOS BÁSICOS ---
         [Column("TITULO")]
         [Required(ErrorMessage = "El título es obligatorio")]
         public string Titulo { get; set; } = string.Empty;
@@ -25,7 +24,6 @@ namespace ITSM.Entidades
         [Column("ORIGEN")]
         public string Origen { get; set; } = "Web";
 
-        // --- MATRIZ ITIL V4 ---
         [Column("ID_IMPACTO")]
         public int IdImpacto { get; set; } = 3;
 
@@ -38,7 +36,6 @@ namespace ITSM.Entidades
         [ForeignKey("IdPrioridad")]
         public Prioridad? Prioridad { get; set; }
 
-        // --- SLA Y FECHAS ---
         [Column("FECHA_CREACION")]
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
@@ -48,35 +45,36 @@ namespace ITSM.Entidades
         [Column("FECHA_CIERRE")]
         public DateTime? FechaCierre { get; set; }
 
-        // --- CIERRE (AQUÍ ESTÁ LO QUE FALTABA) ---
         [Column("CODIGO_CIERRE")]
         public string? CodigoCierre { get; set; }
 
         [Column("NOTAS_CIERRE")]
         public string? NotasCierre { get; set; }
 
-        // --- RELACIONES ---
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
+
         [ForeignKey("IdSolicitante")]
         public Usuario? Solicitante { get; set; }
 
         [Column("ID_ACTIVO_AFECTADO")]
         public int? IdActivo { get; set; }
+
         [ForeignKey("IdActivo")]
         public Activo? ActivoRelacionado { get; set; }
 
         [Column("ID_CATEGORIA")]
         public int IdCategoria { get; set; }
+
         [ForeignKey("IdCategoria")]
         public Categoria? Categoria { get; set; }
 
         [Column("ID_ESTADO")]
         public int IdEstado { get; set; }
+
         [ForeignKey("IdEstado")]
         public EstadoTicket? Estado { get; set; }
 
-        // Propiedad auxiliar (No se guarda en BD)
         [NotMapped]
         public string? CodigoPatrimonial { get; set; }
     }
