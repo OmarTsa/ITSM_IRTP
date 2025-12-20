@@ -2,118 +2,184 @@
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
 @inject TicketServicio TicketService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
 
-<div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white">
-            <h3 class="mb-0">Nuevo Ticket de Soporte</h3>
-        </div>
-        <div class="card-body">
-            <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
-                <DataAnnotationsValidator />
+<PageTitle>Nuevo Ticket - ITSM</PageTitle>
 
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Título del Problema</label>
-                        <InputText class="form-control" @bind-Value="nuevoTicket.Titulo" placeholder="Ej: No enciende mi PC, No tengo internet..." />
-                        <ValidationMessage For="@(() => nuevoTicket.Titulo)" />
-                    </div>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
+    <MudPaper Elevation="3" Class="pa-6">
 
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Tipo de Solicitud</label>
-                        <InputSelect class="form-select" @bind-Value="nuevoTicket.TipoTicket">
-                            <option value="Incidente">Incidente (Algo falló)</option>
-                            <option value="Requerimiento">Requerimiento (Necesito algo nuevo)</option>
-                        </InputSelect>
-                    </div>
+        <MudText Typo="Typo.h4" Color="Color.Primary" GutterBottom="true" Align="Align.Center">
+            <b>Registrar Incidente / Requerimiento</b>
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-6" Align="Align.Center">
+            Complete la información para clasificar correctamente su solicitud según ITIL v4.
+        </MudText>
 
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Categoría</label>
-                        <InputSelect class="form-select" @bind-Value="nuevoTicket.IdCategoria">
-                            @foreach (var cat in listaCategorias)
-                            {
-                                <option value="@cat.IdCategoria">@cat.Nombre</option>
-                            }
-                        </InputSelect>
-                    </div>
+        <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
+            <DataAnnotationsValidator />
 
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Prioridad / Urgencia</label>
-                        <InputSelect class="form-select" @bind-Value="nuevoTicket.IdPrioridad">
-                            @foreach (var prio in listaPrioridades)
-                            {
-                                <option value="@prio.IdPrioridad">@prio.Nombre</option>
-                            }
-                        </InputSelect>
-                    </div>
+            <MudGrid>
+                @* --- SECCIÓN 1: DETALLES BÁSICOS --- *@
+                <MudItem xs="12">
+                    <MudTextField Label="Título del Problema"
+                                  @bind-Value="nuevoTicket.Titulo"
+                                  For="@(() => nuevoTicket.Titulo)"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Title"
+                                  Placeholder="Ej: El servidor de correos no responde..." />
+                </MudItem>
 
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Código Patrimonial (Opcional)</label>
-                        <InputText class="form-control" @bind-Value="nuevoTicket.CodigoPatrimonial" placeholder="Ej: 74089800..." />
-                        <small class="text-muted">Ingrese el código de la etiqueta del equipo.</small>
-                    </div>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@("Incidente")">Incidente (Algo se rompió)</MudSelectItem>
+                        <MudSelectItem Value="@("Requerimiento")">Requerimiento (Necesito algo nuevo)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
 
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label">Descripción Detallada</label>
-                        <InputTextArea class="form-control" rows="5" @bind-Value="nuevoTicket.Descripcion" />
-                        <ValidationMessage For="@(() => nuevoTicket.Descripcion)" />
-                    </div>
-                </div>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var cat in listaCategorias)
+                        {
+                            <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
 
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="/dashboard" class="btn btn-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-success">Registrar Ticket</button>
-                </div>
-            </EditForm>
-        </div>
-    </div>
-</div>
+                @* --- SECCIÓN 2: MATRIZ DE PRIORIZACIÓN ITIL --- *@
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="my-2">
+                        <b>Matriz ITIL:</b> La Prioridad se calculará automáticamente basada en el Impacto y la Urgencia seleccionados.
+                    </MudAlert>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="Impacto (¿A quién afecta?)" @bind-Value="nuevoTicket.IdImpacto" Variant="Variant.Outlined" HelperText="Alcance del problema">
+                        <MudSelectItem Value="1">Alto (Toda la empresa / Crítico)</MudSelectItem>
+                        <MudSelectItem Value="2">Medio (Un departamento / Grupo)</MudSelectItem>
+                        <MudSelectItem Value="3">Bajo (Solo a mí / Pocos usuarios)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Label="Urgencia (¿Cuándo se necesita?)" @bind-Value="nuevoTicket.IdUrgencia" Variant="Variant.Outlined" HelperText="Velocidad de respuesta requerida">
+                        <MudSelectItem Value="1">Alta (El negocio está detenido)</MudSelectItem>
+                        <MudSelectItem Value="2">Media (Afecta, pero hay alternativa)</MudSelectItem>
+                        <MudSelectItem Value="3">Baja (Puede esperar / Programado)</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                @* --- SECCIÓN 3: CMDB --- *@
+                <MudItem xs="12">
+                    <MudTextField Label="Código Patrimonial (Opcional)"
+                                  @bind-Value="nuevoTicket.CodigoPatrimonial"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.QrCode"
+                                  HelperText="Escanee o ingrese el código de la etiqueta del activo afectado." />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField Label="Descripción Detallada"
+                                  @bind-Value="nuevoTicket.Descripcion"
+                                  For="@(() => nuevoTicket.Descripcion)"
+                                  Variant="Variant.Outlined"
+                                  Lines="5" />
+                </MudItem>
+
+                @* --- BOTONES --- *@
+                <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="@(() => Navigation.NavigateTo("/dashboard"))">Cancelar</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Disabled="@procesando">
+                        @if (procesando)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <MudText Class="ms-2">Registrando...</MudText>
+                        }
+                        else
+                        {
+                            <MudText>Crear Ticket</MudText>
+                        }
+                    </MudButton>
+                </MudItem>
+
+            </MudGrid>
+        </EditForm>
+    </MudPaper>
+</MudContainer>
 
 @code {
     private Ticket nuevoTicket = new Ticket();
     private List<Categoria> listaCategorias = new List<Categoria>();
-    private List<Prioridad> listaPrioridades = new List<Prioridad>();
+    private bool procesando = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            // Usamos await para esperar la carga de datos
             listaCategorias = await TicketService.ObtenerCategorias();
-            listaPrioridades = await TicketService.ObtenerPrioridades();
 
-            // Lógica para pre-seleccionar valores y evitar selects vacíos
-            if (listaCategorias.Any())
-            {
-                nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
-            }
-
-            if (listaPrioridades.Any())
-            {
-                var media = listaPrioridades.FirstOrDefault(p => p.Nombre.Contains("Media") || p.Nombre.Contains("Normal"));
-                nuevoTicket.IdPrioridad = media != null ? media.IdPrioridad : listaPrioridades.First().IdPrioridad;
-            }
-
-            // Valor por defecto para tipo
+            // Valores por defecto ITIL
+            nuevoTicket.IdCategoria = listaCategorias.FirstOrDefault()?.IdCategoria ?? 0;
+            nuevoTicket.IdImpacto = 3; // Bajo
+            nuevoTicket.IdUrgencia = 3; // Bajo
             nuevoTicket.TipoTicket = "Incidente";
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error cargando catálogos: " + ex.Message);
+            Snackbar.Add("Error cargando categorías: " + ex.Message, Severity.Error);
         }
     }
 
     private async Task Guardar()
     {
-        // TODO: Obtener ID del usuario real. Temporalmente 1.
-        nuevoTicket.IdSolicitante = 1;
+        procesando = true;
+        try
+        {
+            // 1. OBTENER USUARIO LOGUEADO REAL
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
 
-        // IMPORTANTE: await aquí para esperar que el backend guarde
-        await TicketService.GuardarTicket(nuevoTicket);
+            if (user.Identity != null && user.Identity.IsAuthenticated)
+            {
+                // Buscamos el Claim "NameIdentifier" que guardamos en el Login (Controller)
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    nuevoTicket.IdSolicitante = userId;
+                }
+                else
+                {
+                    Snackbar.Add("Error: No se pudo identificar su usuario.", Severity.Error);
+                    procesando = false;
+                    return;
+                }
+            }
+            else
+            {
+                Snackbar.Add("Su sesión ha expirado.", Severity.Warning);
+                Navigation.NavigateTo("/login");
+                return;
+            }
 
-        Navigation.NavigateTo("/dashboard");
+            // 2. ENVIAR AL BACKEND
+            await TicketService.GuardarTicket(nuevoTicket);
+
+            Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
+            Navigation.NavigateTo("/dashboard");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error al guardar: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            procesando = false;
+        }
     }
 }

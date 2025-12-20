@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ITSM.Entidades;
 
-namespace ITSM.Datos // <--- ESTA LÍNEA ES CRÍTICA
+namespace ITSM.Datos
 {
     public class ContextoBD : DbContext
     {
@@ -16,17 +16,36 @@ namespace ITSM.Datos // <--- ESTA LÍNEA ES CRÍTICA
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasDefaultSchema("OTITO"); // Tu usuario Oracle
+            // Esquema por defecto (Tu usuario de Oracle)
+            // Si el script lo hiciste portable (sin prefijo), esto ayuda a encontrar las tablas.
+            modelBuilder.HasDefaultSchema("OTITO");
 
-            // Mapeo de tablas
-            modelBuilder.Entity<Usuario>().ToTable("USUARIOS");
-            modelBuilder.Entity<Activo>().ToTable("ACTIVOS");
-            modelBuilder.Entity<Ticket>().ToTable("TICKETS");
+            // --- MAPEO DE USUARIOS (CRÍTICO) ---
+            modelBuilder.Entity<Usuario>(entity =>
+            {
+                entity.ToTable("SEG_USUARIOS"); // Nombre REAL de la tabla en Oracle
+
+                entity.HasKey(e => e.IdUsuario);
+
+                // Mapeo Columna Oracle <-> Propiedad C#
+                entity.Property(e => e.IdUsuario).HasColumnName("ID_USUARIO");
+                entity.Property(e => e.Username).HasColumnName("USERNAME");
+                entity.Property(e => e.PasswordHash).HasColumnName("PASSWORD_HASH");
+                entity.Property(e => e.Nombres).HasColumnName("NOMBRES");
+                entity.Property(e => e.Apellidos).HasColumnName("APELLIDOS");
+                entity.Property(e => e.Correo).HasColumnName("CORREO");
+                entity.Property(e => e.IdRol).HasColumnName("ID_ROL");
+                entity.Property(e => e.Estado).HasColumnName("ESTADO");
+            });
+
+            // --- MAPEO DE OTRAS TABLAS (Ajustado a tu Script SQL) ---
+            modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO"); // Antes era ACTIVOS
+            modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");     // Antes era TICKETS
             modelBuilder.Entity<Categoria>().ToTable("CATEGORIAS");
             modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
             modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
 
-            // Datos semilla (opcional, para evitar errores si las tablas están vacías)
+            // Datos semilla (opcional)
             modelBuilder.Entity<Prioridad>().HasData(
                 new Prioridad { IdPrioridad = 1, Nombre = "Alta", HorasSLA = 4 },
                 new Prioridad { IdPrioridad = 2, Nombre = "Media", HorasSLA = 24 }

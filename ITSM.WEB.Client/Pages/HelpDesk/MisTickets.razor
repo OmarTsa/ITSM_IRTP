@@ -1,0 +1,138 @@
+﻿@page "/helpdesk/mis-tickets"
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject TicketServicio TicketService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>Mis Tickets - ITSM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
+    <MudText Typo="Typo.h4" Class="mb-4"><b>Mis Tickets de Soporte</b></MudText>
+
+    @if (cargando)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    }
+    else if (listaTickets.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">No tienes tickets registrados actualmente.</MudAlert>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="@(() => Navigation.NavigateTo("/helpdesk/nuevo"))">
+            Crear Nuevo Ticket
+        </MudButton>
+    }
+    else
+    {
+        <MudDataGrid Items="@listaTickets" Filterable="true" SortMode="SortMode.Multiple" Elevation="3">
+            <Columns>
+                @* ID *@
+                <PropertyColumn Property="x => x.IdTicket" Title="ID" Sortable="true" Filterable="true" />
+
+                @* TÍTULO Y CATEGORÍA *@
+                <TemplateColumn Title="Asunto">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body1"><b>@context.Item.Titulo</b></MudText>
+                        <MudText Typo="Typo.caption">@context.Item.Categoria?.Nombre</MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                @* ESTADO *@
+                <TemplateColumn Title="Estado">
+                    <CellTemplate>
+                        <MudChip T="string" Color="@ObtenerColorEstado(context.Item.IdEstado)" Size="Size.Small">
+                            @(context.Item.Estado?.Nombre ?? "Desconocido")
+                        </MudChip>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                @* PRIORIDAD ITIL (Calculada) *@
+                <TemplateColumn Title="Prioridad">
+                    <CellTemplate>
+                        @* Prioridad 1 (Alta/Critica) en Rojo, 2 Ambar, 3 Verde *@
+                        @{
+                            var color = context.Item.IdPrioridad switch
+                            {
+                                1 => Color.Error,
+                                2 => Color.Warning,
+                                _ => Color.Success
+                            };
+                            var nombre = context.Item.Prioridad?.Nombre ?? "Baja";
+                        }
+                        <MudChip T="string" Variant="Variant.Outlined" Color="@color" Size="Size.Small">
+                            @nombre
+                        </MudChip>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                @* FECHAS *@
+                <PropertyColumn Property="x => x.FechaCreacion" Title="Creado" Format="dd/MM/yyyy HH:mm" />
+
+                <TemplateColumn Title="Vence (SLA)">
+                    <CellTemplate>
+                        @{
+                            var vence = context.Item.FechaLimite;
+                            var esVencido = vence < DateTime.Now && context.Item.IdEstado != 4; // 4=Cerrado
+                        }
+                        <MudText Color="@(esVencido? Color.Error: Color.Inherit)">
+                            @vence?.ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+
+                @* ACCIONES *@
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+
+            <PagerContent>
+                <MudDataGridPager T="Ticket" />
+            </PagerContent>
+        </MudDataGrid>
+    }
+</MudContainer>
+
+@code {
+    private List<Ticket> listaTickets = new List<Ticket>();
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // 1. Obtener ID del usuario logueado
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                // 2. Traer SOLO mis tickets
+                listaTickets = await TicketService.ObtenerMisTickets(userId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private Color ObtenerColorEstado(int idEstado)
+    {
+        return idEstado switch
+        {
+            1 => Color.Info,      // Abierto (Azul)
+            2 => Color.Warning,   // En Proceso (Naranja)
+            4 => Color.Success,   // Resuelto/Cerrado (Verde)
+            _ => Color.Default
+        };
+    }
+}

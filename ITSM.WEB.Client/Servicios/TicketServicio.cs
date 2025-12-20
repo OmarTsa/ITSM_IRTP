@@ -12,10 +12,10 @@ namespace ITSM.WEB.Client.Servicios
             _http = http;
         }
 
-        public async Task<List<Ticket>> ObtenerMisTickets()
+        // MODIFICADO: Ahora pide el ID del usuario
+        public async Task<List<Ticket>> ObtenerMisTickets(int idUsuario)
         {
-            // Más adelante filtraremos por usuario, por ahora trae todos
-            return await _http.GetFromJsonAsync<List<Ticket>>("api/ticket") ?? new List<Ticket>();
+            return await _http.GetFromJsonAsync<List<Ticket>>($"api/ticket/usuario/{idUsuario}") ?? new List<Ticket>();
         }
 
         public async Task<Ticket?> ObtenerTicket(int id)
@@ -28,7 +28,7 @@ namespace ITSM.WEB.Client.Servicios
             await _http.PostAsJsonAsync("api/ticket", ticket);
         }
 
-        // --- Catálogos para los desplegables ---
+        // --- Catálogos ---
 
         public async Task<List<Categoria>> ObtenerCategorias()
         {

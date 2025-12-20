@@ -26,7 +26,8 @@ namespace ITSM.WEB.Client.Auth
             {
                 new Claim(ClaimTypes.Name, usuario.NombreUsuario),
                 new Claim(ClaimTypes.Role, usuario.Rol ?? "Usuario"),
-                new Claim("IdUsuario", usuario.IdUsuario.ToString())
+                // CORRECCIÓN: Usamos NameIdentifier en lugar de "IdUsuario"
+                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
             };
 
             if (!string.IsNullOrEmpty(usuario.NombreCompleto))
@@ -38,24 +39,21 @@ namespace ITSM.WEB.Client.Auth
             return new AuthenticationState(new ClaimsPrincipal(identidad));
         }
 
-        // CORRECCIÓN: Ahora devuelve 'Task' para poder usar 'await'
         public async Task NotificarLogin(Usuario usuario)
         {
-            // 1. Guardamos la sesión (usando el método que acabamos de definir)
             await _servicioSesion.GuardarUsuario(usuario);
 
-            // 2. Construimos la identidad
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.NombreUsuario),
                 new Claim(ClaimTypes.Role, usuario.Rol ?? "Usuario"),
-                new Claim("IdUsuario", usuario.IdUsuario.ToString())
+                // CORRECCIÓN: Aquí también usamos NameIdentifier
+                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
             };
 
             var identidad = new ClaimsIdentity(claims, "JwtAuth");
             var userPrincipal = new ClaimsPrincipal(identidad);
 
-            // 3. Notificamos a Blazor
             NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(userPrincipal)));
         }
 

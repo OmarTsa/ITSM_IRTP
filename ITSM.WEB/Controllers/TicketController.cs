@@ -22,6 +22,14 @@ namespace ITSM.WEB.Controllers
             return Ok(lista);
         }
 
+        // NUEVO ENDPOINT: Mis Tickets
+        [HttpGet("usuario/{idUsuario}")]
+        public async Task<IActionResult> GetPorUsuario(int idUsuario)
+        {
+            var lista = await _ticketNegocio.ListarTicketsPorUsuarioAsync(idUsuario);
+            return Ok(lista);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {

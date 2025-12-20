@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components;
 using ITSM.WEB.Client.Servicios;
 using ITSM.WEB.Client.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies; // <--- 1. IMPORTANTE: Agregar este namespace
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("ConexionOracle");
 builder.Services.AddDbContext<ContextoBD>(options => options.UseOracle(connectionString));
 
-// --- SERVICIOS DE NEGOCIO (Lógica Backend) ---
+// --- SERVICIOS DE NEGOCIO ---
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 
@@ -26,21 +27,31 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 
-// --- HTTP CLIENT (Para el servidor durante el Prerenderizado) ---
+// --- HTTP CLIENT ---
 builder.Services.AddScoped(sp =>
 {
     var navigation = sp.GetRequiredService<NavigationManager>();
     return new HttpClient { BaseAddress = new Uri(navigation.BaseUri) };
 });
 
-// --- SERVICIOS CLIENTE REUTILIZADOS EN EL SERVIDOR ---
-// Necesario para que Blazor Server (Prerender) pueda resolver las dependencias
-builder.Services.AddScoped<TicketServicio>(); // <--- AGREGADO: CRITICO PARA QUE NO FALLE LA CARGA
+// --- SERVICIOS CLIENTE ---
+builder.Services.AddScoped<TicketServicio>();
 
-// --- SEGURIDAD Y SESIÓN ---
+// --- SEGURIDAD Y SESIÓN (AQUÍ ESTÁ LA SOLUCIÓN) ---
 builder.Services.AddScoped<ServicioSesion>();
 builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
-builder.Services.AddAuthorizationCore();
+
+// 2. AGREGAR EL SERVICIO DE AUTENTICACIÓN
+// Esto evita el error "No authenticationScheme was specified"
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login"; // A dónde redirigir si no tiene permiso
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    });
+
+// Nota: AddAuthorizationCore es para WASM, en Server usamos AddAuthorization normal o el default
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -58,6 +69,11 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+// 3. ACTIVAR LOS MIDDLEWARES (EN ESTE ORDEN EXACTO)
+// Deben ir DESPUÉS de UseStaticFiles y ANTES de MapControllers
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

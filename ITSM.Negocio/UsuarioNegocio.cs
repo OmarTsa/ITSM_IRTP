@@ -1,11 +1,6 @@
-﻿// 1. REFERENCIAS DE SISTEMA (¡Esto es lo que falta para arreglar List y Task!)
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-
-// 2. REFERENCIAS DE ENTITY FRAMEWORK
 using Microsoft.EntityFrameworkCore;
-
-// 3. REFERENCIAS DE TU PROYECTO
 using ITSM.Entidades;
 using ITSM.Datos;
 
@@ -20,36 +15,34 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // Login simple (para Tesis)
         public async Task<Usuario?> LoginAsync(string usuario, string clave)
         {
+            // CONSULTA CORREGIDA:
+            // Compara contra las columnas reales de la BD.
             return await _contexto.Usuarios
-                .FirstOrDefaultAsync(u => u.NombreUsuario == usuario && u.Clave == clave && u.Estado == 1);
+                .FirstOrDefaultAsync(u => u.Username == usuario
+                                       && u.PasswordHash == clave
+                                       && u.Estado == 1);
         }
 
-        // Listar todos los usuarios
         public async Task<List<Usuario>> ListarUsuariosAsync()
         {
             return await _contexto.Usuarios.ToListAsync();
         }
 
-        // Obtener uno por ID
         public async Task<Usuario?> ObtenerUsuarioPorIdAsync(int id)
         {
             return await _contexto.Usuarios.FindAsync(id);
         }
 
-        // Guardar (Crear o Editar)
         public async Task<Usuario> GuardarUsuarioAsync(Usuario usuario)
         {
             if (usuario.IdUsuario == 0)
             {
-                // Nuevo
                 _contexto.Usuarios.Add(usuario);
             }
             else
             {
-                // Editar
                 _contexto.Usuarios.Update(usuario);
             }
 

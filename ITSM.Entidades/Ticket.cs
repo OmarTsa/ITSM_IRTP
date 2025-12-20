@@ -3,45 +3,67 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("TICKETS")]
+    [Table("HD_TICKETS")]
     public class Ticket
     {
         [Key]
         [Column("ID_TICKET")]
         public int IdTicket { get; set; }
 
-        // --- Datos Básicos ---
+        // --- INFORMACIÓN PRINCIPAL ---
         [Column("TITULO")]
         [Required(ErrorMessage = "El título es obligatorio")]
-        [StringLength(200)]
         public string Titulo { get; set; } = string.Empty;
 
         [Column("DESCRIPCION")]
         [Required(ErrorMessage = "La descripción es obligatoria")]
-        public string? Descripcion { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
 
-        [Column("TIPO_TICKET")] // 'Incidente' o 'Requerimiento'
-        [StringLength(50)]
+        // ITIL: Diferenciar Incidente (Falla) de Requerimiento (Solicitud)
+        [Column("TIPO_TICKET")]
         public string TipoTicket { get; set; } = "Incidente";
 
+        [Column("ORIGEN")]
+        public string Origen { get; set; } = "Web";
+
+        // --- MATRIZ DE PRIORIZACIÓN ITIL ---
+        // Impacto + Urgencia = Prioridad
+        [Column("ID_IMPACTO")]
+        public int IdImpacto { get; set; } = 3; // 1:Alto, 2:Medio, 3:Bajo
+
+        [Column("ID_URGENCIA")]
+        public int IdUrgencia { get; set; } = 3; // 1:Alto, 2:Medio, 3:Bajo
+
+        [Column("ID_PRIORIDAD")]
+        public int IdPrioridad { get; set; } // Calculada automáticamente
+
+        [ForeignKey("IdPrioridad")]
+        public Prioridad? Prioridad { get; set; }
+
+        // --- GESTIÓN DE TIEMPOS (SLA) ---
         [Column("FECHA_CREACION")]
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
+
+        [Column("FECHA_LIMITE")] // SLA Target
+        public DateTime? FechaLimite { get; set; }
 
         [Column("FECHA_CIERRE")]
         public DateTime? FechaCierre { get; set; }
 
-        // ESTA ES LA PROPIEDAD QUE TE FALTABA EN EL ERROR:
-        [NotMapped] // No se guarda en BD Ticket, sirve para buscar el activo
-        public string? CodigoPatrimonial { get; set; }
+        // --- CIERRE Y RESOLUCIÓN ---
+        [Column("CODIGO_CIERRE")]
+        public string? CodigoCierre { get; set; } // Solucionado, Cancelado, etc.
 
-        // --- Relaciones ---
+        [Column("NOTAS_CIERRE")]
+        public string? NotasCierre { get; set; }
 
+        // --- RELACIONES ---
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
         [ForeignKey("IdSolicitante")]
         public Usuario? Solicitante { get; set; }
 
-        [Column("ID_ACTIVO")]
+        [Column("ID_ACTIVO_AFECTADO")]
         public int? IdActivo { get; set; }
         [ForeignKey("IdActivo")]
         public Activo? ActivoRelacionado { get; set; }
@@ -51,14 +73,13 @@ namespace ITSM.Entidades
         [ForeignKey("IdCategoria")]
         public Categoria? Categoria { get; set; }
 
-        [Column("ID_PRIORIDAD")]
-        public int IdPrioridad { get; set; }
-        [ForeignKey("IdPrioridad")]
-        public Prioridad? Prioridad { get; set; }
-
         [Column("ID_ESTADO")]
         public int IdEstado { get; set; }
         [ForeignKey("IdEstado")]
         public EstadoTicket? Estado { get; set; }
+
+        // --- Propiedades Auxiliares (No BD) ---
+        [NotMapped]
+        public string? CodigoPatrimonial { get; set; }
     }
 }

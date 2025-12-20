@@ -1,11 +1,7 @@
 ﻿@inherits LayoutComponentBase
-@using Microsoft.AspNetCore.Components.Authorization
-@using ITSM.WEB.Client.Servicios
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 @using ITSM.WEB.Client.Auth
-
-@inject NavigationManager Navegacion
-@inject ServicioSesion SesionService
-@inject AuthenticationStateProvider AuthProvider
 
 <MudThemeProvider />
 <MudDialogProvider />
@@ -13,40 +9,21 @@
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary">
-        @* Botón Menú: Usamos MudTooltip *@
-        <AuthorizeView>
-            <Authorized>
-                <MudTooltip Text="Alternar menú">
-                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-                </MudTooltip>
-            </Authorized>
-        </AuthorizeView>
-
-        <MudText Typo="Typo.h5" Class="ml-3">ITSM - IRTP</MudText>
-
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h6" Class="ml-3">ITSM - Mesa de Ayuda</MudText>
         <MudSpacer />
 
-        @* Botón Salir: Usamos MudTooltip *@
-        <AuthorizeView>
-            <Authorized>
-                <MudTooltip Text="Cerrar Sesión">
-                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" />
-                </MudTooltip>
-            </Authorized>
-        </AuthorizeView>
+        @* Botón de Salir *@
+        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" Title="Cerrar Sesión" />
     </MudAppBar>
 
-    @* Panel Lateral *@
-    <AuthorizeView>
-        <Authorized>
-            <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
-                <NavMenu />
-            </MudDrawer>
-        </Authorized>
-    </AuthorizeView>
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        @* Aquí cargamos el menú que creamos en el paso 1 *@
+        <NavMenu />
+    </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -62,12 +39,8 @@
 
     private async Task CerrarSesion()
     {
-        await SesionService.CerrarSesion();
-
-        var auth = (ProveedorAutenticacion)AuthProvider;
-        // CORRECCIÓN: Agregamos 'await' aquí
-        await auth.NotificarLogout();
-
-        Navegacion.NavigateTo("login", true);
+        var authProvider = (ProveedorAutenticacion)AuthStateProvider;
+        await authProvider.NotificarLogout();
+        Navigation.NavigateTo("/login", true);
     }
 }
