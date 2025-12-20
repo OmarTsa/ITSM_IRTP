@@ -16,18 +16,16 @@ namespace ITSM.Datos
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Esquema por defecto (Tu usuario de Oracle)
-            // Si el script lo hiciste portable (sin prefijo), esto ayuda a encontrar las tablas.
+            // Esquema por defecto (Si tu usuario Oracle es OTITO)
+            // Si el script lo corriste sin prefijos, puedes comentar esto.
             modelBuilder.HasDefaultSchema("OTITO");
 
-            // --- MAPEO DE USUARIOS (CRÍTICO) ---
+            // --- 1. USUARIOS (Tabla SEG_USUARIOS) ---
             modelBuilder.Entity<Usuario>(entity =>
             {
-                entity.ToTable("SEG_USUARIOS"); // Nombre REAL de la tabla en Oracle
-
+                entity.ToTable("SEG_USUARIOS");
                 entity.HasKey(e => e.IdUsuario);
 
-                // Mapeo Columna Oracle <-> Propiedad C#
                 entity.Property(e => e.IdUsuario).HasColumnName("ID_USUARIO");
                 entity.Property(e => e.Username).HasColumnName("USERNAME");
                 entity.Property(e => e.PasswordHash).HasColumnName("PASSWORD_HASH");
@@ -38,17 +36,30 @@ namespace ITSM.Datos
                 entity.Property(e => e.Estado).HasColumnName("ESTADO");
             });
 
-            // --- MAPEO DE OTRAS TABLAS (Ajustado a tu Script SQL) ---
-            modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO"); // Antes era ACTIVOS
-            modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");     // Antes era TICKETS
+            // --- 2. TICKETS (Tabla HD_TICKETS) ---
+            modelBuilder.Entity<Ticket>(entity =>
+            {
+                entity.ToTable("HD_TICKETS");
+                // La clave y columnas se mapean en la clase Ticket con [Column]
+            });
+
+            // --- 3. ACTIVOS (Tabla ACT_INVENTARIO) ---
+            modelBuilder.Entity<Activo>(entity =>
+            {
+                entity.ToTable("ACT_INVENTARIO");
+                // Aseguramos que apunte a la tabla correcta
+            });
+
+            // --- 4. TABLAS AUXILIARES ---
             modelBuilder.Entity<Categoria>().ToTable("CATEGORIAS");
             modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
             modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
 
             // Datos semilla (opcional)
             modelBuilder.Entity<Prioridad>().HasData(
-                new Prioridad { IdPrioridad = 1, Nombre = "Alta", HorasSLA = 4 },
-                new Prioridad { IdPrioridad = 2, Nombre = "Media", HorasSLA = 24 }
+                new Prioridad { IdPrioridad = 1, Nombre = "Alta (Crítico)", HorasSLA = 4 },
+                new Prioridad { IdPrioridad = 2, Nombre = "Media (Normal)", HorasSLA = 24 },
+                new Prioridad { IdPrioridad = 3, Nombre = "Baja (Planificado)", HorasSLA = 72 }
             );
         }
     }

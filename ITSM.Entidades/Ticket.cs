@@ -3,44 +3,43 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("HD_TICKETS")]
+    [Table("HD_TICKETS")] // <--- CRÍTICO: Tabla correcta
     public class Ticket
     {
         [Key]
         [Column("ID_TICKET")]
         public int IdTicket { get; set; }
 
-        // --- INFORMACIÓN PRINCIPAL ---
+        // --- DATOS PRINCIPALES ---
         [Column("TITULO")]
         [Required(ErrorMessage = "El título es obligatorio")]
+        [StringLength(200)]
         public string Titulo { get; set; } = string.Empty;
 
         [Column("DESCRIPCION")]
         [Required(ErrorMessage = "La descripción es obligatoria")]
         public string Descripcion { get; set; } = string.Empty;
 
-        // ITIL: Diferenciar Incidente (Falla) de Requerimiento (Solicitud)
         [Column("TIPO_TICKET")]
         public string TipoTicket { get; set; } = "Incidente";
 
         [Column("ORIGEN")]
         public string Origen { get; set; } = "Web";
 
-        // --- MATRIZ DE PRIORIZACIÓN ITIL ---
-        // Impacto + Urgencia = Prioridad
+        // --- MATRIZ ITIL (Impacto + Urgencia = Prioridad) ---
         [Column("ID_IMPACTO")]
-        public int IdImpacto { get; set; } = 3; // 1:Alto, 2:Medio, 3:Bajo
+        public int IdImpacto { get; set; } = 3; // 3=Bajo por defecto
 
         [Column("ID_URGENCIA")]
-        public int IdUrgencia { get; set; } = 3; // 1:Alto, 2:Medio, 3:Bajo
+        public int IdUrgencia { get; set; } = 3; // 3=Bajo por defecto
 
         [Column("ID_PRIORIDAD")]
-        public int IdPrioridad { get; set; } // Calculada automáticamente
+        public int IdPrioridad { get; set; }
 
         [ForeignKey("IdPrioridad")]
         public Prioridad? Prioridad { get; set; }
 
-        // --- GESTIÓN DE TIEMPOS (SLA) ---
+        // --- SLA Y TIEMPOS ---
         [Column("FECHA_CREACION")]
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
@@ -50,9 +49,9 @@ namespace ITSM.Entidades
         [Column("FECHA_CIERRE")]
         public DateTime? FechaCierre { get; set; }
 
-        // --- CIERRE Y RESOLUCIÓN ---
+        // --- CIERRE ---
         [Column("CODIGO_CIERRE")]
-        public string? CodigoCierre { get; set; } // Solucionado, Cancelado, etc.
+        public string? CodigoCierre { get; set; }
 
         [Column("NOTAS_CIERRE")]
         public string? NotasCierre { get; set; }
@@ -63,6 +62,7 @@ namespace ITSM.Entidades
         [ForeignKey("IdSolicitante")]
         public Usuario? Solicitante { get; set; }
 
+        // En tu script SQL profesional usamos ID_ACTIVO_AFECTADO
         [Column("ID_ACTIVO_AFECTADO")]
         public int? IdActivo { get; set; }
         [ForeignKey("IdActivo")]
@@ -78,7 +78,7 @@ namespace ITSM.Entidades
         [ForeignKey("IdEstado")]
         public EstadoTicket? Estado { get; set; }
 
-        // --- Propiedades Auxiliares (No BD) ---
+        // --- AUXILIARES (No BD) ---
         [NotMapped]
         public string? CodigoPatrimonial { get; set; }
     }
