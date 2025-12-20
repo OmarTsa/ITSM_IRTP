@@ -4,27 +4,28 @@ using ITSM.Datos;
 using ITSM.Negocio;
 using ITSM.WEB.Components;
 using Microsoft.AspNetCore.Components;
-using ITSM.WEB.Client.Auth;
-using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Authorization; // Indispensable para AuthenticationStateProvider
 using Microsoft.AspNetCore.Authentication.Cookies;
+using ITSM.WEB.Client.Auth; // Asegúrate que el namespace coincida con tu ProveedorAutenticacion.cs
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. CONEXIÓN A ORACLE
+// 1. CONFIGURACIÓN DE BASE DE DATOS
 var connectionString = builder.Configuration.GetConnectionString("ConexionOracle");
-builder.Services.AddDbContext<ContextoBD>(options =>
-    options.UseOracle(connectionString));
+builder.Services.AddDbContext<ContextoBD>(options => options.UseOracle(connectionString));
 
-// 2. INYECCIÓN DE CAPA DE NEGOCIO (Acceso directo para Blazor Server)
+// 2. SERVICIOS DE NEGOCIO
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 
-// 3. CONFIGURACIÓN DE INTERFAZ MUDBLAZOR
+// 3. SERVICIOS DE INTERFAZ
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents(); // Habilita el modo profesional de servidor
+    .AddInteractiveServerComponents()
+    .AddInteractiveWebAssemblyComponents();
 
 // 4. SEGURIDAD Y ESTADO DE AUTENTICACIÓN
+// Esto resuelve el error "AuthenticationStateProvider no se encontró"
 builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 builder.Services.AddCascadingAuthenticationState();
 
@@ -33,14 +34,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/login";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(120);
-        options.SlidingExpiration = true;
     });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// 5. PIPELINE DE MIDDLEWARE
+// 5. MIDDLEWARES
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -54,9 +54,11 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers(); // Mantenemos soporte para controladores si se requieren
+app.MapControllers();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode(); // Renderizado en servidor para máxima velocidad
+    .AddInteractiveServerRenderMode()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
 
 app.Run();

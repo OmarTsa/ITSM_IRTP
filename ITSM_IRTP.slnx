@@ -1,7 +1,7 @@
 <Solution>
-  <Project Path="ITSM.Datos/ITSM.Datos.csproj" />
-  <Project Path="ITSM.Entidades/ITSM.Entidades.csproj" />
-  <Project Path="ITSM.Negocio/ITSM.Negocio.csproj" />
-  <Project Path="ITSM.WEB.Client/ITSM.WEB.Client.csproj" />
-  <Project Path="ITSM.WEB/ITSM.WEB.csproj" />
+  <Project Path="ITSM.Datos\ITSM.Datos.csproj" />
+  <Project Path="ITSM.Entidades\ITSM.Entidades.csproj" />
+  <Project Path="ITSM.Negocio\ITSM.Negocio.csproj" />
+  <Project Path="ITSM.WEB.Client\ITSM.WEB.Client.csproj" />
+  <Project Path="ITSM.WEB\ITSM.WEB.csproj" />
 </Solution>
