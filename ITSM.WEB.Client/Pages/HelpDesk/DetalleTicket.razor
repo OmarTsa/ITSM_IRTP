@@ -1,14 +1,15 @@
-﻿@page "/helpdesk/ticket/{IdTicket:int}"
+﻿@page "/helpdesk/detalle/{Id:int}"
 @using ITSM.Entidades
-@using ITSM.WEB.Client.Servicios
+@using ITSM.Negocio
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject TicketServicio TicketService
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject TicketNegocio TicketNegocio
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     @if (ticket == null)
     {
         <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
@@ -16,118 +17,59 @@
     else
     {
         <MudPaper Elevation="3" Class="pa-6">
-            @* ENCABEZADO *@
-            <div class="d-flex justify-space-between align-center mb-4">
-                <div>
-                    <MudText Typo="Typo.h5"><b>@ticket.Titulo</b></MudText>
-                    <MudText Typo="Typo.caption">Ticket #@ticket.IdTicket | Creado: @ticket.FechaCreacion.ToString("g")</MudText>
-                </div>
-                <MudChip T="string" Color="@ObtenerColorEstado(ticket.IdEstado)" Variant="Variant.Filled">
-                    @ticket.Estado?.Nombre
-                </MudChip>
-            </div>
+            <MudText Typo="Typo.h5" Class="mb-4">Gestión de Ticket: TKT-@ticket.IdTicket</MudText>
+            <MudDivider Class="mb-4" />
 
-            <MudDivider Class="my-4" />
-
-            @* DETALLES *@
             <MudGrid>
                 <MudItem xs="12" sm="8">
-                    <MudText Typo="Typo.subtitle2" Color="Color.Primary">Descripción</MudText>
-                    <MudPaper Class="pa-4 mt-2" Elevation="0" Outlined="true" Style="background-color: #f9f9f9;">
-                        <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">@ticket.Descripcion</MudText>
-                    </MudPaper>
+                    <MudText Typo="Typo.h6">@ticket.Titulo</MudText>
+                    <MudText Typo="Typo.body1" Class="mt-2">@ticket.Descripcion</MudText>
                 </MudItem>
 
                 <MudItem xs="12" sm="4">
-                    <MudStack>
-                        <div>
-                            <MudText Typo="Typo.subtitle2">Prioridad</MudText>
-                            <MudText Typo="Typo.body2">@ticket.Prioridad?.Nombre</MudText>
-                        </div>
-                        <div>
-                            <MudText Typo="Typo.subtitle2">Categoría</MudText>
-                            <MudText Typo="Typo.body2">@ticket.Categoria?.Nombre</MudText>
-                        </div>
-                        <div>
-                            <MudText Typo="Typo.subtitle2" Color="Color.Error">Vence (SLA)</MudText>
-                            <MudText Typo="Typo.body2"><b>@ticket.FechaLimite?.ToString("g")</b></MudText>
-                        </div>
-                    </MudStack>
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        Estado Actual: @ticket.Estado?.Nombre
+                    </MudAlert>
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex gap-4 mt-6">
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="@(() => ProcesarEstado(2))">En Proceso</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => ProcesarEstado(4))">Resolver</MudButton>
+
+                    <MudTooltip Text="Volver a la Bandeja">
+                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo("/helpdesk/gestion"))" />
+                    </MudTooltip>
                 </MudItem>
             </MudGrid>
-
-            <MudDivider Class="my-6" />
-
-            @* ACCIONES *@
-            <MudText Typo="Typo.h6" Class="mb-2">Acciones</MudText>
-            <div class="d-flex gap-2">
-                @if (ticket.IdEstado == 1) // Abierto -> En Proceso
-                {
-                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="@(() => ProcesarCambioEstado(2))">Tomar Caso</MudButton>
-                }
-                @if (ticket.IdEstado != 4) // Si no está cerrado -> Resolver
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => ProcesarCambioEstado(4))">Resolver Ticket</MudButton>
-                }
-                <MudSpacer />
-                <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/helpdesk/mis-tickets"))">Volver</MudButton>
-            </div>
         </MudPaper>
     }
 </MudContainer>
 
 @code {
-    [Parameter] public int IdTicket { get; set; }
+    [Parameter] public int Id { get; set; }
     private Ticket? ticket;
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarTicket();
+        ticket = await TicketNegocio.ObtenerTicketPorIdAsync(Id);
     }
 
-    private async Task CargarTicket()
+    private async Task ProcesarEstado(int nuevoEstado)
     {
-        try
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (int.TryParse(idClaim, out int userIdOperador))
         {
-            ticket = await TicketService.ObtenerTicket(IdTicket);
+            // Se envían los 4 argumentos: idTicket, nuevoEstado, idUsuarioOperador, notas
+            await TicketNegocio.CambiarEstadoTicketAsync(Id, nuevoEstado, userIdOperador, "Actualización desde panel de gestión");
+
+            Snackbar.Add("Estado actualizado correctamente", Severity.Success);
+            ticket = await TicketNegocio.ObtenerTicketPorIdAsync(Id);
         }
-        catch (Exception ex)
+        else
         {
-            Snackbar.Add("Error al cargar: " + ex.Message, Severity.Error);
+            Snackbar.Add("No se pudo identificar al usuario operador", Severity.Error);
         }
     }
-
-    private async Task ProcesarCambioEstado(int nuevoEstado)
-    {
-        try
-        {
-            // Obtener ID del usuario actual
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (int.TryParse(userIdStr, out int userId))
-            {
-                await TicketService.CambiarEstado(IdTicket, nuevoEstado, userId, "Cambio de estado rápido");
-                Snackbar.Add("Estado actualizado.", Severity.Success);
-                await CargarTicket(); // Refrescar vista
-            }
-            else
-            {
-                Snackbar.Add("No se pudo identificar su usuario.", Severity.Warning);
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add("Error: " + ex.Message, Severity.Error);
-        }
-    }
-
-    private Color ObtenerColorEstado(int id) => id switch
-    {
-        1 => Color.Info,
-        2 => Color.Warning,
-        4 => Color.Success,
-        _ => Color.Default
-    };
 }

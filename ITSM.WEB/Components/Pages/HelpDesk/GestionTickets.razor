@@ -1,0 +1,78 @@
+﻿@page "/helpdesk/gestion"
+@using ITSM.Entidades
+@using ITSM.Negocio
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject TicketNegocio TicketNegocio
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <MudText Typo="Typo.h4" Class="mb-4"><b>Bandeja de Gestión - OTIC</b></MudText>
+
+    <MudTable Items="@tickets" Hover="true" Filter="new Func<Ticket, bool>(FilterFunc1)" @bind-SelectedItem="selectedItem" Elevation="4">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Tickets del IRTP</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString" Placeholder="Buscar por título o ID..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Solicitante</MudTh>
+            <MudTh>Título</MudTh>
+            <MudTh>Prioridad</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">TKT-@context.IdTicket</MudTd>
+            <MudTd DataLabel="Fecha">@context.FechaCreacion.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Solicitante">@context.Solicitante?.Nombres @context.Solicitante?.Apellidos</MudTd>
+            <MudTd DataLabel="Título">@context.Titulo</MudTd>
+            <MudTd DataLabel="Prioridad">
+                <MudChip T="string" Color="@GetPriorityColor(context.IdPrioridad)" Size="Size.Small">
+                    @(context.Prioridad?.Nombre ?? "Baja")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Estado">@context.Estado?.Nombre</MudTd>
+            <MudTd>
+                <MudTooltip Text="Gestionar Ticket">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => VerDetalle(context.IdTicket))" />
+                </MudTooltip>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Ticket> tickets = new();
+    private Ticket selectedItem = null!;
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        tickets = await TicketNegocio.ListarTodosLosTicketsAsync();
+    }
+
+    private bool FilterFunc1(Ticket element) => FilterFunc(element, searchString);
+
+    private bool FilterFunc(Ticket element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Titulo.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.IdTicket.ToString().Contains(searchString)) return true;
+        return false;
+    }
+
+    private Color GetPriorityColor(int idPrioridad) => idPrioridad switch
+    {
+        1 => Color.Error,
+        2 => Color.Warning,
+        3 => Color.Success,
+        _ => Color.Default
+    };
+
+    private void VerDetalle(int id) => Navigation.NavigateTo($"/helpdesk/detalle/{id}");
+}

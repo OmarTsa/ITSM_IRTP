@@ -8,24 +8,30 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 
-@* Configuración correcta para Blazor Server en .NET 8 *@
+@* Corrección del modo de renderizado para .NET 8 Server *@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
     <MudPaper Elevation="3" Class="pa-6">
-        <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" Class="mb-6"><b>Nueva Solicitud</b></MudText>
+        <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" Class="mb-6">
+            <b>Nueva Solicitud de Soporte - OTIC</b>
+        </MudText>
 
         <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
             <DataAnnotationsValidator />
             <MudGrid>
                 <MudItem xs="12">
-                    <MudTextField Label="Título" @bind-Value="nuevoTicket.Titulo" For="@(() => nuevoTicket.Titulo)" Variant="Variant.Outlined" />
+                    <MudTextField Label="Título de la Incidencia o Requerimiento"
+                                  @bind-Value="nuevoTicket.Titulo"
+                                  For="@(() => nuevoTicket.Titulo)"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="Ej: Error al ingresar al correo institucional" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined" Required="true">
-                        <MudSelectItem T="string" Value="@("Incidente")">Incidente</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("Requerimiento")">Requerimiento</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Incidente")">Incidente (Falla de servicio)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Requerimiento")">Requerimiento (Nueva solicitud)</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
@@ -42,28 +48,37 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" @bind-Value="nuevoTicket.IdImpacto" Label="Impacto" Variant="Variant.Outlined">
-                        <MudSelectItem T="int" Value="1">Alto</MudSelectItem>
-                        <MudSelectItem T="int" Value="2">Medio</MudSelectItem>
-                        <MudSelectItem T="int" Value="3">Bajo</MudSelectItem>
+                    <MudSelect T="int" @bind-Value="nuevoTicket.IdImpacto" Label="Impacto Institucional" Variant="Variant.Outlined">
+                        <MudSelectItem T="int" Value="1">Alto (Afecta a toda el área)</MudSelectItem>
+                        <MudSelectItem T="int" Value="2">Medio (Afecta a un grupo)</MudSelectItem>
+                        <MudSelectItem T="int" Value="3">Bajo (Afecta a un solo usuario)</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="int" @bind-Value="nuevoTicket.IdUrgencia" Label="Urgencia" Variant="Variant.Outlined">
-                        <MudSelectItem T="int" Value="1">Alta</MudSelectItem>
-                        <MudSelectItem T="int" Value="2">Media</MudSelectItem>
-                        <MudSelectItem T="int" Value="3">Baja</MudSelectItem>
+                        <MudSelectItem T="int" Value="1">Alta (Crítico para la operación)</MudSelectItem>
+                        <MudSelectItem T="int" Value="2">Media (Puede esperar unas horas)</MudSelectItem>
+                        <MudSelectItem T="int" Value="3">Baja (Planificado / No urgente)</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudTextField Label="Descripción" @bind-Value="nuevoTicket.Descripcion" For="@(() => nuevoTicket.Descripcion)" Variant="Variant.Outlined" Lines="4" />
+                    <MudTextField Label="Detalle del Problema"
+                                  @bind-Value="nuevoTicket.Descripcion"
+                                  For="@(() => nuevoTicket.Descripcion)"
+                                  Variant="Variant.Outlined"
+                                  Lines="5"
+                                  Placeholder="Describa brevemente el problema para ayudar al técnico..." />
                 </MudItem>
 
                 <MudItem xs="12" Class="d-flex justify-end mt-4">
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@procesando">
-                        @(procesando ? "Enviando..." : "Crear Ticket")
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               Disabled="@procesando">
+                        @(procesando ? "Registrando en Sistema..." : "Enviar Solicitud")
                     </MudButton>
                 </MudItem>
             </MudGrid>
@@ -91,7 +106,7 @@
         }
         catch
         {
-            Snackbar.Add("Error al sincronizar datos.", Severity.Error);
+            Snackbar.Add("Error al conectar con la base de datos de la OTIC.", Severity.Error);
         }
     }
 
@@ -102,17 +117,18 @@
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
             if (int.TryParse(idClaim, out int userId))
             {
                 nuevoTicket.IdSolicitante = userId;
                 await TicketNegocio.GuardarTicketAsync(nuevoTicket);
-                Snackbar.Add("¡Registrado!", Severity.Success);
+                Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
                 Navigation.NavigateTo("/helpdesk/mis-tickets");
             }
         }
         catch
         {
-            Snackbar.Add("Error al procesar el ticket.", Severity.Error);
+            Snackbar.Add("Error interno al procesar el ticket.", Severity.Error);
         }
         finally
         {
