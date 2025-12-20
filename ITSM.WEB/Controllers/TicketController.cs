@@ -16,6 +16,7 @@ namespace ITSM.WEB.Controllers
         }
 
         [HttpGet("categorias")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> GetCategorias()
         {
             var lista = await _ticketNegocio.ListarCategoriasAsync();

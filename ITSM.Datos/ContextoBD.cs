@@ -21,7 +21,10 @@ namespace ITSM.Datos
             modelBuilder.Entity<Usuario>().ToTable("SEG_USUARIOS");
             modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO");
             modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");
+
+            // CRÍTICO: Asegurar que apunte a la tabla con los 5 registros
             modelBuilder.Entity<Categoria>().ToTable("HD_CATEGORIAS");
+
             modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
             modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
 

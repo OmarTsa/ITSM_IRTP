@@ -10,61 +10,57 @@
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
     <MudPaper Elevation="3" Class="pa-6">
-        <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" Class="mb-4"><b>Nueva Solicitud de Soporte</b></MudText>
+        <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" Class="mb-6"><b>Nueva Solicitud</b></MudText>
 
         <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
             <DataAnnotationsValidator />
             <MudGrid>
                 <MudItem xs="12">
-                    <MudTextField Label="Título / Resumen" @bind-Value="nuevoTicket.Titulo" For="@(() => nuevoTicket.Titulo)" Variant="Variant.Outlined" />
+                    <MudTextField Label="Título" @bind-Value="nuevoTicket.Titulo" For="@(() => nuevoTicket.Titulo)" Variant="Variant.Outlined" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined">
-                        <MudSelectItem Value="@("Incidente")">Incidente (Falla técnica)</MudSelectItem>
-                        <MudSelectItem Value="@("Requerimiento")">Requerimiento (Nueva solicitud)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Incidente")">Incidente</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Requerimiento")">Requerimiento</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Categoría ITIL" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined">
-                        @if (listaCategorias != null && listaCategorias.Any())
+                    <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined">
+                        @if (listaCategorias != null)
                         {
                             @foreach (var cat in listaCategorias)
                             {
-                                <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                                <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
                             }
-                        }
-                        else
-                        {
-                            <MudSelectItem Value="0">Cargando categorías...</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="int" Label="Impacto" @bind-Value="nuevoTicket.IdImpacto" Variant="Variant.Outlined">
-                        <MudSelectItem Value="1">Alto (Crítico)</MudSelectItem>
-                        <MudSelectItem Value="2">Medio (Normal)</MudSelectItem>
-                        <MudSelectItem Value="3">Bajo (Leve)</MudSelectItem>
+                        <MudSelectItem T="int" Value="1">Alto</MudSelectItem>
+                        <MudSelectItem T="int" Value="2">Medio</MudSelectItem>
+                        <MudSelectItem T="int" Value="3">Bajo</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="int" Label="Urgencia" @bind-Value="nuevoTicket.IdUrgencia" Variant="Variant.Outlined">
-                        <MudSelectItem Value="1">Alta (Inmediata)</MudSelectItem>
-                        <MudSelectItem Value="2">Media (Pronta)</MudSelectItem>
-                        <MudSelectItem Value="3">Baja (Programada)</MudSelectItem>
+                        <MudSelectItem T="int" Value="1">Alta</MudSelectItem>
+                        <MudSelectItem T="int" Value="2">Media</MudSelectItem>
+                        <MudSelectItem T="int" Value="3">Baja</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudTextField Label="Descripción detallada" @bind-Value="nuevoTicket.Descripcion" For="@(() => nuevoTicket.Descripcion)" Variant="Variant.Outlined" Lines="4" />
+                    <MudTextField Label="Descripción" @bind-Value="nuevoTicket.Descripcion" For="@(() => nuevoTicket.Descripcion)" Variant="Variant.Outlined" Lines="4" />
                 </MudItem>
 
-                <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Disabled="@procesando">
-                        @(procesando ? "Registrando..." : "Crear Ticket")
+                <MudItem xs="12" Class="d-flex justify-end mt-4">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@procesando">
+                        @(procesando ? "Guardando..." : "Crear Ticket")
                     </MudButton>
                 </MudItem>
             </MudGrid>
@@ -82,17 +78,15 @@
         try
         {
             listaCategorias = await TicketService.ObtenerCategorias();
-            if (listaCategorias.Any())
-            {
-                nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
-            }
+            if (listaCategorias.Any()) nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
+
             nuevoTicket.TipoTicket = "Incidente";
             nuevoTicket.IdImpacto = 3;
             nuevoTicket.IdUrgencia = 3;
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error al cargar categorías: " + ex.Message, Severity.Error);
+            Snackbar.Add("Error al cargar datos", Severity.Error);
         }
     }
 
@@ -102,24 +96,18 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            var userIdStr = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (int.TryParse(userIdStr, out int userId))
+            var idStr = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idStr, out int userId))
             {
                 nuevoTicket.IdSolicitante = userId;
                 await TicketService.GuardarTicket(nuevoTicket);
-                Snackbar.Add("Ticket creado con éxito", Severity.Success);
+                Snackbar.Add("Ticket creado", Severity.Success);
                 Navigation.NavigateTo("/helpdesk/mis-tickets");
-            }
-            else
-            {
-                Snackbar.Add("Sesión no válida", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error: " + ex.Message, Severity.Error);
+            Snackbar.Add("Error al guardar", Severity.Error);
         }
         finally
         {
