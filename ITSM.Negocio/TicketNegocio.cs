@@ -1,6 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ITSM.Datos;
 using ITSM.Entidades;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
 
 namespace ITSM.Negocio
 {
@@ -11,6 +15,13 @@ namespace ITSM.Negocio
         public TicketNegocio(ContextoBD contexto)
         {
             _contexto = contexto;
+        }
+
+        public async Task<List<Activo>> ListarActivosAsync()
+        {
+            return await _contexto.Activos
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<Dictionary<string, int>> ObtenerTicketsPorEstadoAsync()

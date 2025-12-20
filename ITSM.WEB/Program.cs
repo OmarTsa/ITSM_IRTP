@@ -10,17 +10,16 @@ using ITSM.WEB.Client.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. CONEXIÓN A BASE DE DATOS ORACLE IRTP
-var connectionString = builder.Configuration.GetConnectionString("ConexionOracle");
+// 1. CONEXIÓN A BASE DE DATOS
 builder.Services.AddDbContext<ContextoBD>(options =>
-    options.UseOracle(connectionString));
+    options.UseOracle(builder.Configuration.GetConnectionString("ConexionOracle")));
 
-// 2. REGISTRO DE SERVICIOS DE NEGOCIO Y SESIÓN
+// 2. SERVICIOS DE NEGOCIO Y SESIÓN
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<ServicioSesion>();
 
-// 3. CONFIGURACIÓN DE MUDBLAZOR (Versión 7/8 compatible)
+// 3. MUD BLAZOR
 builder.Services.AddMudServices();
 
 // 4. RENDERIZADO INTERACTIVO Y SEGURIDAD
@@ -40,24 +39,11 @@ builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>(
 
 var app = builder.Build();
 
-// 5. PIPELINE DE MIDDLEWARE
-if (app.Environment.IsDevelopment())
-{
-    app.UseWebAssemblyDebugging();
-}
-else
-{
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// MAPEO DE COMPONENTES (Soluciona Pantalla en Blanco y 404)
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()

@@ -1,6 +1,8 @@
 ﻿using Microsoft.JSInterop;
 using System.Text.Json;
 using ITSM.Entidades;
+using System.Threading.Tasks;
+using System;
 
 namespace ITSM.WEB.Client.Servicios
 {
@@ -20,10 +22,7 @@ namespace ITSM.WEB.Client.Servicios
                 var json = JsonSerializer.Serialize(usuario);
                 await _js.InvokeVoidAsync("localStorage.setItem", "usuario_sesion", json);
             }
-            catch
-            {
-                // Ignorar errores (ej. prerenderizado)
-            }
+            catch { }
         }
 
         public async Task<Usuario?> ObtenerUsuario()
@@ -31,14 +30,11 @@ namespace ITSM.WEB.Client.Servicios
             try
             {
                 var json = await _js.InvokeAsync<string>("localStorage.getItem", "usuario_sesion");
-
                 if (string.IsNullOrEmpty(json)) return null;
-
                 return JsonSerializer.Deserialize<Usuario>(json);
             }
-            catch (Exception) // <--- CAMBIO IMPORTANTE: Captura CUALQUIER error (JSON corrupto, etc.)
+            catch (Exception)
             {
-                // Si hay un error leyendo la sesión (datos corruptos), la limpiamos y retornamos null
                 await CerrarSesion();
                 return null;
             }
@@ -50,10 +46,7 @@ namespace ITSM.WEB.Client.Servicios
             {
                 await _js.InvokeVoidAsync("localStorage.removeItem", "usuario_sesion");
             }
-            catch
-            {
-                // Ignorar
-            }
+            catch { }
         }
     }
 }

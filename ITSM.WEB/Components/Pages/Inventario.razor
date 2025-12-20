@@ -1,0 +1,58 @@
+﻿@page "/activos/inventario"
+@using ITSM.Entidades
+@using ITSM.Negocio
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject TicketNegocio TicketNegocio
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <MudText Typo="Typo.h4" Class="mb-6"><b>Inventario de Activos Tecnológicos - IRTP</b></MudText>
+
+    <MudTable Items="@activos" Hover="true" Elevation="4" Filter="new Func<Activo, bool>(FilterFunc1)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Equipos Registrados</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString" Placeholder="Buscar por serie o nombre..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código/Serie</MudTh>
+            <MudTh>Nombre del Activo</MudTh>
+            <MudTh>Marca/Modelo</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Estado</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Serie">@context.CodigoSerie</MudTd>
+            <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+            <MudTd DataLabel="Modelo">@context.Marca @context.Modelo</MudTd>
+            <MudTd DataLabel="Tipo">@context.TipoActivo</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Color="@(context.ActivoSN == 1 ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.ActivoSN == 1 ? "Operativo" : "En Mantenimiento")
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private List<Activo> activos = new();
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        activos = await TicketNegocio.ListarActivosAsync();
+    }
+
+    private bool FilterFunc1(Activo element) => FilterFunc(element, searchString);
+
+    private bool FilterFunc(Activo element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Nombre.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.CodigoSerie.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+}

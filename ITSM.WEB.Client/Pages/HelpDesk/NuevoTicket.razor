@@ -7,8 +7,8 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
+@inject ITSM.WEB.Client.Servicios.ServicioSesion Sesion
 
-@* Corrección del modo de renderizado para .NET 8 Server *@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
@@ -17,121 +17,57 @@
             <b>Nueva Solicitud de Soporte - OTIC</b>
         </MudText>
 
-        <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
-            <DataAnnotationsValidator />
+        <MudForm @ref="form">
             <MudGrid>
                 <MudItem xs="12">
-                    <MudTextField Label="Título de la Incidencia o Requerimiento"
-                                  @bind-Value="nuevoTicket.Titulo"
-                                  For="@(() => nuevoTicket.Titulo)"
-                                  Variant="Variant.Outlined"
-                                  Placeholder="Ej: Error al ingresar al correo institucional" />
-                </MudItem>
-
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined" Required="true">
-                        <MudSelectItem T="string" Value="@("Incidente")">Incidente (Falla de servicio)</MudSelectItem>
-                        <MudSelectItem T="string" Value="@("Requerimiento")">Requerimiento (Nueva solicitud)</MudSelectItem>
-                    </MudSelect>
+                    <MudTextField Label="Título de la Incidencia" @bind-Value="nuevoTicket.Titulo" Required="true" Variant="Variant.Outlined" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined" Required="true">
-                        @if (listaCategorias != null)
+                        @foreach (var cat in listaCategorias)
                         {
-                            @foreach (var cat in listaCategorias)
-                            {
-                                <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
-                            }
+                            <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
 
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="int" @bind-Value="nuevoTicket.IdImpacto" Label="Impacto Institucional" Variant="Variant.Outlined">
-                        <MudSelectItem T="int" Value="1">Alto (Afecta a toda el área)</MudSelectItem>
-                        <MudSelectItem T="int" Value="2">Medio (Afecta a un grupo)</MudSelectItem>
-                        <MudSelectItem T="int" Value="3">Bajo (Afecta a un solo usuario)</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="int" @bind-Value="nuevoTicket.IdUrgencia" Label="Urgencia" Variant="Variant.Outlined">
-                        <MudSelectItem T="int" Value="1">Alta (Crítico para la operación)</MudSelectItem>
-                        <MudSelectItem T="int" Value="2">Media (Puede esperar unas horas)</MudSelectItem>
-                        <MudSelectItem T="int" Value="3">Baja (Planificado / No urgente)</MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-
                 <MudItem xs="12">
-                    <MudTextField Label="Detalle del Problema"
-                                  @bind-Value="nuevoTicket.Descripcion"
-                                  For="@(() => nuevoTicket.Descripcion)"
-                                  Variant="Variant.Outlined"
-                                  Lines="5"
-                                  Placeholder="Describa brevemente el problema para ayudar al técnico..." />
+                    <MudTextField Label="Detalle del Problema" @bind-Value="nuevoTicket.Descripcion" Variant="Variant.Outlined" Lines="5" Required="true" />
                 </MudItem>
 
                 <MudItem xs="12" Class="d-flex justify-end mt-4">
-                    <MudButton ButtonType="ButtonType.Submit"
-                               Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Size="Size.Large"
-                               Disabled="@procesando">
-                        @(procesando ? "Registrando en Sistema..." : "Enviar Solicitud")
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" Disabled="@procesando">
+                        @(procesando ? "Registrando..." : "Enviar Solicitud")
                     </MudButton>
                 </MudItem>
             </MudGrid>
-        </EditForm>
+        </MudForm>
     </MudPaper>
 </MudContainer>
 
 @code {
     private Ticket nuevoTicket = new Ticket();
     private List<Categoria> listaCategorias = new List<Categoria>();
+    private MudForm form = default!;
     private bool procesando = false;
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            listaCategorias = await TicketNegocio.ListarCategoriasAsync();
-            if (listaCategorias.Any())
-            {
-                nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
-            }
-            nuevoTicket.TipoTicket = "Incidente";
-            nuevoTicket.IdImpacto = 3;
-            nuevoTicket.IdUrgencia = 3;
-        }
-        catch
-        {
-            Snackbar.Add("Error al conectar con la base de datos de la OTIC.", Severity.Error);
-        }
+        listaCategorias = await TicketNegocio.ListarCategoriasAsync();
+        var user = await Sesion.ObtenerUsuario();
+        if (user != null) nuevoTicket.IdSolicitante = user.IdUsuario;
     }
 
     private async Task Guardar()
     {
-        procesando = true;
-        try
+        await form.Validate();
+        if (form.IsValid)
         {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (int.TryParse(idClaim, out int userId))
-            {
-                nuevoTicket.IdSolicitante = userId;
-                await TicketNegocio.GuardarTicketAsync(nuevoTicket);
-                Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
-                Navigation.NavigateTo("/helpdesk/mis-tickets");
-            }
-        }
-        catch
-        {
-            Snackbar.Add("Error interno al procesar el ticket.", Severity.Error);
-        }
-        finally
-        {
+            procesando = true;
+            await TicketNegocio.GuardarTicketAsync(nuevoTicket);
+            Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
+            Navigation.NavigateTo("/helpdesk/mis-tickets");
             procesando = false;
         }
     }

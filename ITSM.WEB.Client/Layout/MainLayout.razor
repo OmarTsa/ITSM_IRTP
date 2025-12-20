@@ -1,12 +1,14 @@
 ﻿@inherits LayoutComponentBase
+@using MudBlazor
 
 <MudThemeProvider Theme="IRTPTheme" />
+<MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => ToggleDrawer())" />
         <MudText Typo="Typo.h5" Class="ml-3">ITSM - OTIC IRTP</MudText>
         <MudSpacer />
         <MudTooltip Text="Cerrar Sesión">
@@ -26,7 +28,7 @@
 @code {
     private bool _drawerOpen = true;
 
-    private void DrawerToggle()
+    private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
     }
@@ -35,7 +37,7 @@
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = "#004B8D", // Azul Institucional
+            Primary = "#004B8D",
             AppbarBackground = "#004B8D",
             Secondary = "#D32F2F"
         }
