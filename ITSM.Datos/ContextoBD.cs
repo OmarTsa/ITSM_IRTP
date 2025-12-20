@@ -18,11 +18,17 @@ namespace ITSM.Datos
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configuraciones de nombres de tabla para Oracle
+            // Configuraciones de nombres de tabla para Oracle según tu DDL
             modelBuilder.Entity<Usuario>().ToTable("SEG_USUARIOS");
             modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");
-            modelBuilder.Entity<EstadoTicket>().ToTable("HD_ESTADOS");
+            modelBuilder.Entity<Categoria>().ToTable("HD_CATEGORIAS");
+            modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
+            modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
             modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO");
+
+            // Configuración de llaves primarias y relaciones si es necesario
+            modelBuilder.Entity<Ticket>().HasKey(t => t.IdTicket);
+            modelBuilder.Entity<Usuario>().HasKey(u => u.IdUsuario);
         }
     }
 }

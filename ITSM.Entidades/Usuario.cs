@@ -30,9 +30,9 @@ namespace ITSM.Entidades
         public string Rol { get; set; } = "Usuario";
 
         [Column("ACTIVO")]
-        public int Activo { get; set; } = 1;
+        public int Activo { get; set; } = 1; // 1 para Activo, 0 para Inactivo
 
-        // Propiedades de ayuda para compatibilidad
+        // Propiedades de ayuda para compatibilidad (No se crean en la BD)
         [NotMapped]
         public string Username { get => Correo; set => Correo = value; }
 

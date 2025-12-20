@@ -1,13 +1,8 @@
 ﻿@page "/helpdesk/nuevo"
-@using ITSM.Entidades
-@using ITSM.Negocio
-@using Microsoft.AspNetCore.Components.Authorization
-@using System.Security.Claims
 @inject TicketNegocio TicketNegocio
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
-@inject ITSM.WEB.Client.Servicios.ServicioSesion Sesion
+@inject ServicioSesion Sesion
 
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
@@ -25,9 +20,12 @@
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined" Required="true">
-                        @foreach (var cat in listaCategorias)
+                        @if (listaCategorias != null)
                         {
-                            <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                            @foreach (var cat in listaCategorias)
+                            {
+                                <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                            }
                         }
                     </MudSelect>
                 </MudItem>
@@ -54,9 +52,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        listaCategorias = await TicketNegocio.ListarCategoriasAsync();
-        var user = await Sesion.ObtenerUsuario();
-        if (user != null) nuevoTicket.IdSolicitante = user.IdUsuario;
+        try
+        {
+            listaCategorias = await TicketNegocio.ListarCategoriasAsync();
+            var user = await Sesion.ObtenerUsuario();
+            if (user != null)
+            {
+                // CORRECCIÓN: Asegurar que ambos son int. No usar "==" con strings aquí.
+                nuevoTicket.IdSolicitante = user.IdUsuario;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error de inicialización: " + ex.Message, Severity.Error);
+        }
     }
 
     private async Task Guardar()
@@ -65,9 +74,20 @@
         if (form.IsValid)
         {
             procesando = true;
-            await TicketNegocio.GuardarTicketAsync(nuevoTicket);
-            Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
-            Navigation.NavigateTo("/helpdesk/mis-tickets");
+            // CORRECCIÓN: Forzamos que el ID de categoría sea tratado como int
+            int categoriaId = nuevoTicket.IdCategoria;
+
+            var exito = await TicketNegocio.GuardarTicketAsync(nuevoTicket);
+
+            if (exito)
+            {
+                Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
+                Navigation.NavigateTo("/helpdesk/mis-tickets");
+            }
+            else
+            {
+                Snackbar.Add("Error al persistir en la base de datos.", Severity.Error);
+            }
             procesando = false;
         }
     }

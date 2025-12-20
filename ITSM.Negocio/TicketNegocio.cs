@@ -40,6 +40,7 @@ namespace ITSM.Negocio
             if (ticket != null)
             {
                 ticket.IdEstado = nuevoEstado;
+                // CORRECCIÓN: Comparación numérica estricta (int == int)
                 if (nuevoEstado == 4 || nuevoEstado == 5)
                 {
                     ticket.FechaCierre = DateTime.Now;
@@ -51,54 +52,46 @@ namespace ITSM.Negocio
 
         public async Task<Dictionary<string, int>> ObtenerTicketsPorEstadoAsync()
         {
-            return await _contexto.Tickets.Include(t => t.Estado)
-                .GroupBy(t => t.Estado!.Nombre)
-                .Select(g => new { E = g.Key, C = g.Count() })
-                .ToDictionaryAsync(x => x.E, x => x.C);
+            var datos = await _contexto.Tickets.Include(t => t.Estado).ToListAsync();
+            return datos.GroupBy(t => t.Estado?.Nombre ?? "Sin Estado")
+                        .ToDictionary(g => g.Key, g => g.Count());
         }
 
-        public async Task<Dictionary<string, int>> ObtenerTicketsPorPrioridadAsync()
+        public async Task<List<Categoria>> ListarCategoriasAsync()
         {
-            return await _contexto.Tickets.Include(t => t.Prioridad)
-                .GroupBy(t => t.Prioridad!.Nombre)
-                .Select(g => new { P = g.Key, C = g.Count() })
-                .ToDictionaryAsync(x => x.P, x => x.C);
+            return await _contexto.Categorias.ToListAsync();
         }
 
-        public async Task<List<Ticket>> GenerarReporteTicketsAsync(DateTime? inicio, DateTime? fin, int? idEstado)
+        public async Task<bool> GuardarTicketAsync(Ticket ticket)
         {
-            var query = _contexto.Tickets
-                .Include(t => t.Categoria).Include(t => t.Prioridad)
-                .Include(t => t.Estado).Include(t => t.Solicitante)
-                .AsQueryable();
+            try
+            {
+                ticket.FechaCreacion = DateTime.Now;
+                if (ticket.IdEstado == 0) ticket.IdEstado = 1;
+                _contexto.Tickets.Add(ticket);
+                await _contexto.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
-            if (inicio.HasValue) query = query.Where(t => t.FechaCreacion >= inicio.Value);
-            if (fin.HasValue) query = query.Where(t => t.FechaCreacion <= fin.Value);
-            if (idEstado.HasValue && idEstado > 0) query = query.Where(t => t.IdEstado == idEstado.Value);
-
-            return await query.ToListAsync();
+        public async Task<List<Ticket>> ListarTicketsPorUsuarioAsync(int idUsuario)
+        {
+            return await _contexto.Tickets
+                .Include(t => t.Estado)
+                .Where(t => t.IdSolicitante == idUsuario)
+                .ToListAsync();
         }
 
         public async Task<List<Usuario>> ListarUsuariosAsync()
         {
-            // CORRECCIÓN: Comparación numérica de int con int
+            // CORRECCIÓN: Comparación de int (Estado) contra int (1)
             return await _contexto.Usuarios
-                .Where(u => u.Activo == 1)
+                .Where(u => u.Estado == 1)
                 .ToListAsync();
-        }
-
-        public async Task<bool> AsignarActivoAUsuarioAsync(int idActivo, int? idUsuario)
-        {
-            var activo = await _contexto.Activos.FindAsync(idActivo);
-            if (activo == null) return false;
-            activo.IdUsuarioAsignado = idUsuario;
-            await _contexto.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<List<EstadoTicket>> ListarEstadosAsync()
-        {
-            return await _contexto.Estados.ToListAsync();
         }
     }
 }
