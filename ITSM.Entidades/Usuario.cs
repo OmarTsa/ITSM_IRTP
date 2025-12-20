@@ -32,7 +32,7 @@ namespace ITSM.Entidades
         [Column("ACTIVO")]
         public int Activo { get; set; } = 1;
 
-        // Propiedades de ayuda para compatibilidad con la lógica de negocio
+        // Propiedades de ayuda para compatibilidad
         [NotMapped]
         public string Username { get => Correo; set => Correo = value; }
 

@@ -17,7 +17,6 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // --- GESTIÓN DE TICKETS ---
         public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
         {
             return await _contexto.Tickets
@@ -50,7 +49,6 @@ namespace ITSM.Negocio
             }
         }
 
-        // --- DASHBOARD Y ESTADÍSTICAS ---
         public async Task<Dictionary<string, int>> ObtenerTicketsPorEstadoAsync()
         {
             return await _contexto.Tickets.Include(t => t.Estado)
@@ -81,10 +79,9 @@ namespace ITSM.Negocio
             return await query.ToListAsync();
         }
 
-        // --- GESTIÓN DE ACTIVOS ---
         public async Task<List<Usuario>> ListarUsuariosAsync()
         {
-            // CORRECCIÓN: Asegurar comparación de int con int
+            // CORRECCIÓN: Comparación numérica de int con int
             return await _contexto.Usuarios
                 .Where(u => u.Activo == 1)
                 .ToListAsync();
