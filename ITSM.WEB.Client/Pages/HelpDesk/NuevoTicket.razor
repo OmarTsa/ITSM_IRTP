@@ -1,12 +1,15 @@
 ﻿@page "/helpdesk/nuevo"
 @using ITSM.Entidades
-@using ITSM.WEB.Client.Servicios
+@using ITSM.Negocio
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject TicketServicio TicketService
+@inject TicketNegocio TicketNegocio
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
+
+@* Solución al error de InteractiveServer: Usar la constante de RenderMode *@
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
     <MudPaper Elevation="3" Class="pa-6">
@@ -28,7 +31,7 @@
 
                 <MudItem xs="12" sm="6">
                     <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined" Required="true">
-                        @if (listaCategorias != null && listaCategorias.Any())
+                        @if (listaCategorias != null)
                         {
                             @foreach (var cat in listaCategorias)
                             {
@@ -77,7 +80,8 @@
     {
         try
         {
-            listaCategorias = await TicketService.ObtenerCategorias();
+            // Ahora llama directamente al método corregido en TicketNegocio
+            listaCategorias = await TicketNegocio.ListarCategoriasAsync();
             if (listaCategorias.Any())
             {
                 nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
@@ -102,7 +106,8 @@
             if (int.TryParse(idClaim, out int userId))
             {
                 nuevoTicket.IdSolicitante = userId;
-                await TicketService.GuardarTicket(nuevoTicket);
+                // Llama directamente al método corregido
+                await TicketNegocio.GuardarTicketAsync(nuevoTicket);
                 Snackbar.Add("¡Registrado!", Severity.Success);
                 Navigation.NavigateTo("/helpdesk/mis-tickets");
             }

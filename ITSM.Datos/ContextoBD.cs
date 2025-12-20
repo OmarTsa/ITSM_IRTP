@@ -16,18 +16,20 @@ namespace ITSM.Datos
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Esquema definido en tu DDL de Oracle
             modelBuilder.HasDefaultSchema("OTITO");
 
             modelBuilder.Entity<Usuario>().ToTable("SEG_USUARIOS");
             modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO");
             modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");
 
-            // CRÍTICO: Asegurar que apunte a la tabla con los 5 registros
+            // MAPEO CRÍTICO: HD_CATEGORIAS contiene los 5 registros del DDL
             modelBuilder.Entity<Categoria>().ToTable("HD_CATEGORIAS");
 
             modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
             modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
 
+            // Data inicial para Prioridades (Seed Data)
             modelBuilder.Entity<Prioridad>().HasData(
                 new Prioridad { IdPrioridad = 1, Nombre = "Alta (Crítico)", HorasSLA = 4 },
                 new Prioridad { IdPrioridad = 2, Nombre = "Media (Normal)", HorasSLA = 24 },

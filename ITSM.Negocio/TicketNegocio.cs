@@ -13,13 +13,17 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // --- CONSULTA DE CATEGORÍAS (EL PUNTO DE FALLA) ---
+        // Método para listar categorías activas
         public async Task<List<Categoria>> ListarCategoriasAsync()
         {
-            // Forzamos la lectura fresca de la tabla HD_CATEGORIAS
-            return await _contexto.Categorias.AsNoTracking().ToListAsync();
+            return await _contexto.Categorias
+                .AsNoTracking()
+                .Where(c => c.Activo == 1)
+                .OrderBy(c => c.Nombre)
+                .ToListAsync();
         }
 
+        // Método para listar tickets de un usuario específico
         public async Task<List<Ticket>> ListarTicketsPorUsuarioAsync(int idUsuario)
         {
             return await _contexto.Tickets
@@ -31,6 +35,7 @@ namespace ITSM.Negocio
                 .ToListAsync();
         }
 
+        // Método para obtener un ticket por su ID
         public async Task<Ticket?> ObtenerTicketPorIdAsync(int id)
         {
             return await _contexto.Tickets
@@ -40,18 +45,23 @@ namespace ITSM.Negocio
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
+        // Método para guardar o actualizar tickets con lógica ITIL
         public async Task<Ticket> GuardarTicketAsync(Ticket ticket)
         {
-            // Matriz de Prioridad ITIL
-            if (ticket.IdImpacto == 1 && ticket.IdUrgencia == 1) ticket.IdPrioridad = 1;
-            else if (ticket.IdImpacto == 1 || ticket.IdUrgencia == 1) ticket.IdPrioridad = 2;
-            else ticket.IdPrioridad = 3;
+            // Lógica de Prioridad (Impacto vs Urgencia)
+            if (ticket.IdImpacto == 1 && ticket.IdUrgencia == 1) ticket.IdPrioridad = 1; // Alta
+            else if (ticket.IdImpacto == 1 || ticket.IdUrgencia == 1) ticket.IdPrioridad = 2; // Media
+            else ticket.IdPrioridad = 3; // Baja
 
             if (ticket.IdTicket == 0)
             {
                 ticket.FechaCreacion = DateTime.Now;
-                ticket.IdEstado = 1;
-                ticket.FechaLimite = DateTime.Now.AddHours(ticket.IdPrioridad == 1 ? 4 : 24);
+                ticket.IdEstado = 1; // Abierto
+
+                // Cálculo de SLA (4h para prioridad 1, 24h para 2, 72h para 3)
+                int horasSLA = ticket.IdPrioridad switch { 1 => 4, 2 => 24, _ => 72 };
+                ticket.FechaLimite = DateTime.Now.AddHours(horasSLA);
+
                 _contexto.Tickets.Add(ticket);
             }
             else
@@ -63,13 +73,14 @@ namespace ITSM.Negocio
             return ticket;
         }
 
+        // Método para cambiar el estado del ticket
         public async Task CambiarEstadoTicketAsync(int idTicket, int nuevoEstado, int idUsuarioOperador, string? notas = null)
         {
             var ticket = await _contexto.Tickets.FindAsync(idTicket);
             if (ticket != null)
             {
                 ticket.IdEstado = nuevoEstado;
-                if (nuevoEstado == 4)
+                if (nuevoEstado == 4) // 4 = Resuelto
                 {
                     ticket.FechaCierre = DateTime.Now;
                     ticket.NotasCierre = notas;
@@ -78,8 +89,5 @@ namespace ITSM.Negocio
                 await _contexto.SaveChangesAsync();
             }
         }
-
-        public async Task<List<Prioridad>> ListarPrioridadesAsync() => await _contexto.Prioridades.ToListAsync();
-        public async Task<List<EstadoTicket>> ListarEstadosAsync() => await _contexto.EstadosTicket.ToListAsync();
     }
 }
