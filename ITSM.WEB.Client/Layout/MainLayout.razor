@@ -13,10 +13,12 @@
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary">
-        @* Botón Menú: Solo visible para usuarios autorizados *@
+        @* Botón Menú: Usamos MudTooltip en lugar de Title *@
         <AuthorizeView>
             <Authorized>
-                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+                <MudTooltip Text="Alternar menú">
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+                </MudTooltip>
             </Authorized>
         </AuthorizeView>
 
@@ -24,15 +26,17 @@
 
         <MudSpacer />
 
-        @* Botón Salir: Solo visible para usuarios autorizados *@
+        @* Botón Salir: Usamos MudTooltip en lugar de Title *@
         <AuthorizeView>
             <Authorized>
-                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" />
+                <MudTooltip Text="Cerrar Sesión">
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" />
+                </MudTooltip>
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
 
-    @* Panel Lateral: Solo visible para usuarios autorizados *@
+    @* Panel Lateral *@
     <AuthorizeView>
         <Authorized>
             <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
@@ -59,8 +63,10 @@
     private async Task CerrarSesion()
     {
         await SesionService.CerrarSesion();
+
         var auth = (ProveedorAutenticacion)AuthProvider;
-        auth.NotificarLogout();
+        auth.NotificarLogout(); // Método síncrono, no requiere await
+
         Navegacion.NavigateTo("login", true);
     }
 }

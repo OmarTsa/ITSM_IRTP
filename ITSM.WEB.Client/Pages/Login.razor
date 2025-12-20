@@ -88,8 +88,8 @@
 
                 if (usuario != null)
                 {
-                    // CORRECCIÓN: Llamamos directo al proveedor y usamos 'await'
                     var authProvider = (ProveedorAutenticacion)AuthStateProvider;
+                    // IMPORTANTE: await aquí para asegurar que se guarde la sesión antes de navegar
                     await authProvider.NotificarLogin(usuario);
 
                     Snackbar.Add($"¡Bienvenido, {usuario.NombreUsuario}!", Severity.Success);
