@@ -1,0 +1,75 @@
+﻿@page "/admin/reportes"
+@using ITSM.Entidades
+@using ITSM.Negocio
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject TicketNegocio TicketNegocio
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
+    <MudText Typo="Typo.h4" Class="mb-6"><b>Generador de Reportes OTIC</b></MudText>
+
+    <MudPaper Class="pa-6 mb-6" Elevation="3">
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="Fecha Inicio" @bind-Date="fechaInicio" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="Fecha Fin" @bind-Date="fechaFin" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="int?" Label="Estado" @bind-Value="idEstado" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@((int?)0)">Todos los estados</MudSelectItem>
+                    @foreach (var est in estados)
+                    {
+                        <MudSelectItem Value="@((int?)est.IdEstado)">@est.Nombre</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" Class="d-flex justify-end">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="Consultar">Generar Reporte</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudTable Items="@reporteTickets" Hover="true" Elevation="4" Dense="true" Striped="true">
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Solicitante</MudTh>
+            <MudTh>Título</MudTh>
+            <MudTh>Categoría</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Prioridad</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.IdTicket</MudTd>
+            <MudTd>@context.FechaCreacion.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd>@context.Solicitante?.NombreCompleto</MudTd>
+            <MudTd>@context.Titulo</MudTd>
+            <MudTd>@context.Categoria?.Nombre</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Estado?.Nombre</MudChip></MudTd>
+            <MudTd>@context.Prioridad?.Nombre</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    private DateTime? fechaInicio = DateTime.Now.AddMonths(-1);
+    private DateTime? fechaFin = DateTime.Now;
+    private int? idEstado = 0;
+    private List<Ticket> reporteTickets = new();
+    private List<EstadoTicket> estados = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        estados = await TicketNegocio.ListarEstadosAsync();
+        await Consultar();
+    }
+
+    private async Task Consultar()
+    {
+        reporteTickets = await TicketNegocio.GenerarReporteTicketsAsync(fechaInicio, fechaFin, idEstado);
+    }
+}

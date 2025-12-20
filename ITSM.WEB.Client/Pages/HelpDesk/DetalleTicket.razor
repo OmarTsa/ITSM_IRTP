@@ -1,75 +1,85 @@
 ﻿@page "/helpdesk/detalle/{Id:int}"
 @using ITSM.Entidades
 @using ITSM.Negocio
-@using Microsoft.AspNetCore.Components.Authorization
-@using System.Security.Claims
+@using ITSM.WEB.Client.Servicios
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject TicketNegocio TicketNegocio
-@inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthStateProvider
+@inject ServicioSesion Sesion
 @inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
     @if (ticket == null)
     {
-        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <MudProgressLinear Color="Color.Info" Indeterminate="true" />
     }
     else
     {
-        <MudPaper Elevation="3" Class="pa-6">
-            <MudText Typo="Typo.h5" Class="mb-4">Gestión de Ticket: TKT-@ticket.IdTicket</MudText>
-            <MudDivider Class="mb-4" />
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudPaper Elevation="4" Class="pa-6">
+                    <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">Ticket #@ticket.IdTicket: @ticket.Titulo</MudText>
+                    <MudDivider Class="mb-4" />
+                    <MudText Typo="Typo.subtitle1"><b>Descripción:</b></MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4" Style="white-space: pre-wrap;">@ticket.Descripcion</MudText>
 
-            <MudGrid>
-                <MudItem xs="12" sm="8">
-                    <MudText Typo="Typo.h6">@ticket.Titulo</MudText>
-                    <MudText Typo="Typo.body1" Class="mt-2">@ticket.Descripcion</MudText>
-                </MudItem>
+                    @if (ticket.ActivoRelacionado != null)
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                            <b>Activo Afectado:</b> @ticket.ActivoRelacionado.Marca @ticket.ActivoRelacionado.Modelo (S/N: @ticket.ActivoRelacionado.Serie)
+                        </MudAlert>
+                    }
+                </MudPaper>
+            </MudItem>
 
-                <MudItem xs="12" sm="4">
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                        Estado Actual: @ticket.Estado?.Nombre
-                    </MudAlert>
-                </MudItem>
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="4" Class="pa-6">
+                    <MudText Typo="Typo.h6" Class="mb-4">Gestión de Soporte</MudText>
+                    <MudText Typo="Typo.body2"><b>Estado Actual:</b> @ticket.Estado?.Nombre</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-4"><b>Prioridad:</b> @ticket.Prioridad?.Nombre</MudText>
 
-                <MudItem xs="12" Class="d-flex gap-4 mt-6">
-                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="@(() => ProcesarEstado(2))">En Proceso</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => ProcesarEstado(4))">Resolver</MudButton>
+                    <AuthorizeView Roles="Administrador,Especialista">
+                        <MudSelect T="int" Label="Nuevo Estado" @bind-Value="nuevoEstadoId" Variant="Variant.Outlined" Class="mt-4">
+                            <MudSelectItem Value="1">Abierto</MudSelectItem>
+                            <MudSelectItem Value="2">En Proceso</MudSelectItem>
+                            <MudSelectItem Value="3">Pendiente</MudSelectItem>
+                            <MudSelectItem Value="4">Resuelto</MudSelectItem>
+                        </MudSelect>
 
-                    <MudTooltip Text="Volver a la Bandeja">
-                        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo("/helpdesk/gestion"))" />
-                    </MudTooltip>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
+                        <MudTextField T="string" Label="Notas de Resolución" @bind-Value="notasCierre" Lines="3" Variant="Variant.Outlined" Class="mt-4" />
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4" OnClick="ActualizarTicket">
+                            Actualizar Ticket
+                        </MudButton>
+                    </AuthorizeView>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
     }
 </MudContainer>
 
 @code {
     [Parameter] public int Id { get; set; }
     private Ticket? ticket;
+    private int nuevoEstadoId;
+    private string notasCierre = "";
+    private Usuario? usuarioActual;
 
     protected override async Task OnInitializedAsync()
     {
         ticket = await TicketNegocio.ObtenerTicketPorIdAsync(Id);
+        usuarioActual = await Sesion.ObtenerUsuario();
+        if (ticket != null) nuevoEstadoId = ticket.IdEstado;
     }
 
-    private async Task ProcesarEstado(int nuevoEstado)
+    private async Task ActualizarTicket()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (usuarioActual == null) return;
 
-        if (int.TryParse(idClaim, out int userIdOperador))
-        {
-            // Se envían los 4 argumentos: idTicket, nuevoEstado, idUsuarioOperador, notas
-            await TicketNegocio.CambiarEstadoTicketAsync(Id, nuevoEstado, userIdOperador, "Actualización desde panel de gestión");
+        // CORRECCIÓN: Se envían los 4 argumentos (TicketId, EstadoId, UsuarioId, Notas)
+        await TicketNegocio.CambiarEstadoTicketAsync(Id, nuevoEstadoId, usuarioActual.IdUsuario, notasCierre);
 
-            Snackbar.Add("Estado actualizado correctamente", Severity.Success);
-            ticket = await TicketNegocio.ObtenerTicketPorIdAsync(Id);
-        }
-        else
-        {
-            Snackbar.Add("No se pudo identificar al usuario operador", Severity.Error);
-        }
+        Snackbar.Add("Ticket actualizado exitosamente", Severity.Success);
+        Nav.NavigateTo("/helpdesk/gestion");
     }
 }

@@ -15,6 +15,7 @@
             <MudTh>Título</MudTh>
             <MudTh>Fecha</MudTh>
             <MudTh>Estado</MudTh>
+            <MudTh>Acciones</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.IdTicket</MudTd>
@@ -22,6 +23,12 @@
             <MudTd>@context.FechaCreacion.ToString("dd/MM/yyyy")</MudTd>
             <MudTd>
                 <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.Estado?.Nombre</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudTooltip Text="Ver Detalle">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary"
+                                   href="@($"/helpdesk/detalle/{context.IdTicket}")" />
+                </MudTooltip>
             </MudTd>
         </RowTemplate>
     </MudTable>

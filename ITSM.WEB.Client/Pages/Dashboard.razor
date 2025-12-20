@@ -1,70 +1,85 @@
 ﻿@page "/dashboard"
 @using ITSM.Negocio
-@using ITSM.Entidades
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject TicketNegocio TicketNegocio
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
-    <MudText Typo="Typo.h4" Class="mb-6"><b>Dashboard de Gestión TI - IRTP</b></MudText>
+    <MudText Typo="Typo.h4" Class="mb-6"><b>Dashboard de Gestión OTIC - IRTP</b></MudText>
 
     <MudGrid>
-        @* Resumen en Tarjetas *@
+        @* Tarjetas de Resumen *@
         <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="4" Style="border-left: 8px solid var(--mud-palette-primary);">
+            <MudPaper Class="pa-4" Style="background-color: #004B8D; color: white;">
                 <MudText Typo="Typo.h6">Total Tickets</MudText>
                 <MudText Typo="Typo.h3">@totalTickets</MudText>
             </MudPaper>
         </MudItem>
-
         <MudItem xs="12" sm="6" md="3">
-            <MudPaper Class="pa-4" Elevation="4" Style="border-left: 8px solid var(--mud-palette-error);">
-                <MudText Typo="Typo.h6">Críticos (SLA 4h)</MudText>
-                <MudText Typo="Typo.h3">@ticketsCriticos</MudText>
+            <MudPaper Class="pa-4" Style="background-color: #f44336; color: white;">
+                <MudText Typo="Typo.h6">Tickets Críticos</MudText>
+                <MudText Typo="Typo.h3">@criticosCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Style="background-color: #ff9800; color: white;">
+                <MudText Typo="Typo.h6">En Proceso</MudText>
+                <MudText Typo="Typo.h3">@enProcesoCount</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-4" Style="background-color: #4caf50; color: white;">
+                <MudText Typo="Typo.h6">Resueltos</MudText>
+                <MudText Typo="Typo.h3">@resueltosCount</MudText>
             </MudPaper>
         </MudItem>
 
-        @* Gráfico de Torta - Estados *@
+        @* Gráficas *@
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="4">
                 <MudText Typo="Typo.h6" Align="Align.Center">Tickets por Estado</MudText>
-                <MudChart ChartType="ChartType.Pie" InputData="@dataEstados" InputLabels="@labelsEstados" Width="300px" Height="300px" />
+                <MudChart ChartType="ChartType.Donut" InputData="@estadoData" InputLabels="@estadoLabels" Width="300px" Height="300px" />
             </MudPaper>
         </MudItem>
 
-        @* Gráfico de Barras - Prioridades *@
         <MudItem xs="12" md="6">
             <MudPaper Class="pa-4" Elevation="4">
-                <MudText Typo="Typo.h6" Align="Align.Center">Distribución de Prioridades</MudText>
-                <MudChart ChartType="ChartType.Donut" InputData="@dataPrioridades" InputLabels="@labelsPrioridades" Width="300px" Height="300px" />
+                <MudText Typo="Typo.h6" Align="Align.Center">Tickets por Prioridad</MudText>
+                <MudChart ChartType="ChartType.Pie" InputData="@prioridadData" InputLabels="@prioridadLabels" Width="300px" Height="300px" />
             </MudPaper>
         </MudItem>
     </MudGrid>
 </MudContainer>
 
 @code {
-    private int totalTickets = 0;
-    private int ticketsCriticos = 0;
+    private int totalTickets;
+    private int criticosCount;
+    private int enProcesoCount;
+    private int resueltosCount;
 
-    private double[] dataEstados = { };
-    private string[] labelsEstados = { };
+    private double[] estadoData = { };
+    private string[] estadoLabels = { };
 
-    private double[] dataPrioridades = { };
-    private string[] labelsPrioridades = { };
+    private double[] prioridadData = { };
+    private string[] prioridadLabels = { };
 
     protected override async Task OnInitializedAsync()
     {
-        var todos = await TicketNegocio.ListarTodosLosTicketsAsync();
-        totalTickets = todos.Count;
-        ticketsCriticos = todos.Count(t => t.IdPrioridad == 1);
+        var porEstado = await TicketNegocio.ObtenerTicketsPorEstadoAsync();
+        var porPrioridad = await TicketNegocio.ObtenerTicketsPorPrioridadAsync();
 
-        // Datos para gráfico de Estados
-        var estadosDict = await TicketNegocio.ObtenerTicketsPorEstadoAsync();
-        dataEstados = estadosDict.Values.Select(v => (double)v).ToArray();
-        labelsEstados = estadosDict.Keys.ToArray();
+        // Procesar Estados
+        estadoData = porEstado.Values.Select(v => (double)v).ToArray();
+        estadoLabels = porEstado.Keys.ToArray();
 
-        // Datos para gráfico de Prioridades
-        var prioridadesDict = await TicketNegocio.ObtenerTicketsPorPrioridadAsync();
-        dataPrioridades = prioridadesDict.Values.Select(v => (double)v).ToArray();
-        labelsPrioridades = prioridadesDict.Keys.ToArray();
+        // Procesar Prioridades
+        prioridadData = porPrioridad.Values.Select(v => (double)v).ToArray();
+        prioridadLabels = porPrioridad.Keys.ToArray();
+
+        // Totales para tarjetas
+        totalTickets = (int)estadoData.Sum();
+        resueltosCount = porEstado.ContainsKey("Resuelto") ? porEstado["Resuelto"] : 0;
+        enProcesoCount = porEstado.ContainsKey("En Proceso") ? porEstado["En Proceso"] : 0;
+        criticosCount = porPrioridad.ContainsKey("Alta") || porPrioridad.ContainsKey("Crítica") ?
+                        (porPrioridad.GetValueOrDefault("Alta") + porPrioridad.GetValueOrDefault("Crítica")) : 0;
     }
 }

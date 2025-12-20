@@ -1,0 +1,54 @@
+﻿@using MudBlazor
+@using ITSM.Entidades
+@using ITSM.Negocio
+@inject TicketNegocio Negocio
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AssignmentInd" Class="mr-3 mb-n1" />
+            Asignar Activo: @ActivoNombre
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudContainer Style="max-height: 300px; overflow-y: auto">
+            <MudSelect T="int?" Label="Seleccionar Colaborador IRTP" @bind-Value="idUsuarioSeleccionado"
+                       Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" AdornmentIcon="@Icons.Material.Filled.Search">
+                <MudSelectItem Value="@((int?)null)">-- Sin Asignar / Almacén --</MudSelectItem>
+                @foreach (var user in usuarios)
+                {
+                    <MudSelectItem Value="@((int?)user.IdUsuario)">@user.NombreCompleto</MudSelectItem>
+                }
+            </MudSelect>
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Confirmar Asignación</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string ActivoNombre { get; set; } = "";
+
+    [Parameter]
+    public int? IdUsuarioActual { get; set; }
+
+    private List<Usuario> usuarios = new();
+    private int? idUsuarioSeleccionado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargamos los usuarios disponibles
+        usuarios = await Negocio.ListarUsuariosAsync();
+        idUsuarioSeleccionado = IdUsuarioActual;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(idUsuarioSeleccionado));
+}

@@ -1,14 +1,19 @@
 ﻿@page "/helpdesk/gestion"
 @using ITSM.Entidades
 @using ITSM.Negocio
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@rendermode InteractiveServer
 @inject TicketNegocio TicketNegocio
-@inject NavigationManager Navigation
+@inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
-    <MudText Typo="Typo.h4" Class="mb-4" Color="Color.Primary"><b>Bandeja de Gestión - OTIC</b></MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
+    <MudText Typo="Typo.h4" Class="mb-4">Bandeja de Gestión de Tickets (OTIC)</MudText>
 
-    <MudTable Items="@tickets" Hover="true" Elevation="4">
+    <MudTable Items="@tickets" Hover="true" Elevation="2" Filter="new Func<Ticket, bool>(FilterFunc1)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Tickets del Sistema</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="searchString" Placeholder="Buscar ticket..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
         <HeaderContent>
             <MudTh>ID</MudTh>
             <MudTh>Solicitante</MudTh>
@@ -18,35 +23,50 @@
             <MudTh>Acciones</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="ID">TKT-@context.IdTicket</MudTd>
-            <MudTd DataLabel="Solicitante">@context.Solicitante?.Nombres @context.Solicitante?.Apellidos</MudTd>
-            <MudTd DataLabel="Título">@context.Titulo</MudTd>
-            <MudTd DataLabel="Prioridad">
+            <MudTd>@context.IdTicket</MudTd>
+            <MudTd>@context.Solicitante?.NombreCompleto</MudTd>
+            <MudTd>@context.Titulo</MudTd>
+            <MudTd>
                 <MudChip T="string" Color="@(context.IdPrioridad == 1 ? Color.Error : Color.Default)" Size="Size.Small">
-                    @(context.Prioridad?.Nombre ?? "Normal")
+                    @context.Prioridad?.Nombre
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Estado">@context.Estado?.Nombre</MudTd>
             <MudTd>
+                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                    @context.Estado?.Nombre
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                @* CORRECCIÓN: Se eliminó 'Title' y se usa 'MudTooltip' *@
                 <MudTooltip Text="Gestionar Ticket">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => Navigation.NavigateTo($"/helpdesk/detalle/{context.IdTicket}"))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Primary"
+                                   OnClick="@(() => Nav.NavigateTo($"/helpdesk/detalle/{context.IdTicket}"))" />
                 </MudTooltip>
             </MudTd>
         </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
     </MudTable>
 </MudContainer>
 
 @code {
     private List<Ticket> tickets = new();
+    private string searchString = "";
+
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            tickets = await TicketNegocio.ListarTodosLosTicketsAsync();
-        }
-        catch
-        {
-            // Manejo de errores de carga
-        }
+        tickets = await TicketNegocio.ListarTodosLosTicketsAsync();
+    }
+
+    private bool FilterFunc1(Ticket element) => FilterFunc(element, searchString);
+
+    private bool FilterFunc(Ticket element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Titulo != null && element.Titulo.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Solicitante?.NombreCompleto != null && element.Solicitante.NombreCompleto.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
     }
 }

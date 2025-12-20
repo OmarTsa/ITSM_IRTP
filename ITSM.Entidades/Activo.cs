@@ -13,20 +13,27 @@ namespace ITSM.Entidades
 
         [Required]
         [Column("CODIGO_PATRIMONIAL")]
-        [StringLength(20)]
+        [StringLength(50)]
         public string CodPatrimonial { get; set; } = string.Empty;
 
         [Column("MARCA")]
+        [StringLength(100)]
         public string? Marca { get; set; }
 
         [Column("MODELO")]
+        [StringLength(100)]
         public string? Modelo { get; set; }
 
         [Column("SERIE")]
+        [StringLength(100)]
         public string? Serie { get; set; }
 
-        [Column("FECHA_COMPRA")]
-        public DateTime? FechaCompra { get; set; }
+        [Column("TIPO_ACTIVO")]
+        [StringLength(50)]
+        public string? TipoActivo { get; set; }
+
+        [Column("ESTADO_OPERATIVO")]
+        public int ActivoSN { get; set; } // 1: Operativo, 0: No Operativo
 
         [Column("ID_USUARIO_ASIGNADO")]
         public int? IdUsuarioAsignado { get; set; }
@@ -34,17 +41,11 @@ namespace ITSM.Entidades
         [ForeignKey("IdUsuarioAsignado")]
         public Usuario? UsuarioAsignado { get; set; }
 
-        // Propiedades calculadas para la interfaz de usuario (NotMapped)
+        // Propiedad calculada para mostrar en tablas y combos
         [NotMapped]
-        public string Nombre => $"{Marca} {Modelo}".Trim();
+        public string Nombre => $"{Marca} {Modelo} (S/N: {Serie})".Trim();
 
         [NotMapped]
         public string CodigoSerie => !string.IsNullOrEmpty(Serie) ? Serie : CodPatrimonial;
-
-        [NotMapped]
-        public string TipoActivo { get; set; } = "Equipo Tecnológico";
-
-        [NotMapped]
-        public int ActivoSN { get; set; } = 1; // 1 = Operativo
     }
 }

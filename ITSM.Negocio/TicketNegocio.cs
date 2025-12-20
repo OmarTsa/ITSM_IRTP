@@ -1,6 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ITSM.Datos;
 using ITSM.Entidades;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
 
 namespace ITSM.Negocio
 {
@@ -13,71 +17,22 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // --- MÉTODOS PARA DASHBOARD Y ESTADÍSTICAS ---
-        public async Task<Dictionary<string, int>> ObtenerTicketsPorEstadoAsync()
-        {
-            return await _contexto.Tickets
-                .Include(t => t.Estado)
-                .GroupBy(t => t.Estado!.Nombre)
-                .Select(g => new { Estado = g.Key, Cantidad = g.Count() })
-                .ToDictionaryAsync(x => x.Estado, x => x.Cantidad);
-        }
-
-        public async Task<Dictionary<string, int>> ObtenerTicketsPorPrioridadAsync()
-        {
-            return await _contexto.Tickets
-                .Include(t => t.Prioridad)
-                .GroupBy(t => t.Prioridad!.Nombre)
-                .Select(g => new { Prioridad = g.Key, Cantidad = g.Count() })
-                .ToDictionaryAsync(x => x.Prioridad, x => x.Cantidad);
-        }
-
-        // --- MÉTODOS DE CONSULTA ---
+        // --- GESTIÓN DE TICKETS ---
         public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
         {
             return await _contexto.Tickets
-                .Include(t => t.Categoria)
-                .Include(t => t.Prioridad)
-                .Include(t => t.Estado)
-                .Include(t => t.Solicitante)
-                .OrderByDescending(t => t.FechaCreacion)
-                .ToListAsync();
-        }
-
-        public async Task<List<Ticket>> ListarTicketsPorUsuarioAsync(int idUsuario)
-        {
-            return await _contexto.Tickets
-                .Include(t => t.Categoria)
-                .Include(t => t.Prioridad)
-                .Include(t => t.Estado)
-                .Where(t => t.IdSolicitante == idUsuario)
-                .OrderByDescending(t => t.FechaCreacion)
-                .ToListAsync();
+                .Include(t => t.Categoria).Include(t => t.Prioridad)
+                .Include(t => t.Estado).Include(t => t.Solicitante)
+                .OrderByDescending(t => t.FechaCreacion).ToListAsync();
         }
 
         public async Task<Ticket?> ObtenerTicketPorIdAsync(int id)
         {
             return await _contexto.Tickets
-                .Include(t => t.Categoria)
-                .Include(t => t.Prioridad)
-                .Include(t => t.Estado)
-                .Include(t => t.Solicitante)
+                .Include(t => t.Categoria).Include(t => t.Prioridad)
+                .Include(t => t.Estado).Include(t => t.Solicitante)
+                .Include(t => t.ActivoRelacionado)
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
-        }
-
-        // --- MÉTODOS DE OPERACIÓN (ITIL 4) ---
-        public async Task<Ticket> GuardarTicketAsync(Ticket ticket)
-        {
-            if (ticket.IdTicket == 0)
-            {
-                ticket.FechaCreacion = DateTime.Now;
-                ticket.IdEstado = 1; // Abierto
-                _contexto.Tickets.Add(ticket);
-            }
-            else { _contexto.Tickets.Update(ticket); }
-
-            await _contexto.SaveChangesAsync();
-            return ticket;
         }
 
         public async Task CambiarEstadoTicketAsync(int idTicket, int nuevoEstado, int idUsuarioOperador, string? notas = null)
@@ -95,14 +50,57 @@ namespace ITSM.Negocio
             }
         }
 
-        public async Task<List<Categoria>> ListarCategoriasAsync()
+        // --- DASHBOARD Y REPORTES ---
+        public async Task<Dictionary<string, int>> ObtenerTicketsPorEstadoAsync()
         {
-            return await _contexto.Categorias.AsNoTracking().Where(c => c.Activo == 1).ToListAsync();
+            return await _contexto.Tickets.Include(t => t.Estado)
+                .GroupBy(t => t.Estado!.Nombre)
+                .Select(g => new { E = g.Key, C = g.Count() })
+                .ToDictionaryAsync(x => x.E, x => x.C);
         }
 
-        public async Task<List<Activo>> ListarActivosAsync()
+        public async Task<Dictionary<string, int>> ObtenerTicketsPorPrioridadAsync()
         {
-            return await _contexto.Activos.AsNoTracking().ToListAsync();
+            return await _contexto.Tickets.Include(t => t.Prioridad)
+                .GroupBy(t => t.Prioridad!.Nombre)
+                .Select(g => new { P = g.Key, C = g.Count() })
+                .ToDictionaryAsync(x => x.P, x => x.C);
+        }
+
+        public async Task<List<Ticket>> GenerarReporteTicketsAsync(DateTime? inicio, DateTime? fin, int? idEstado)
+        {
+            var query = _contexto.Tickets
+                .Include(t => t.Categoria).Include(t => t.Prioridad)
+                .Include(t => t.Estado).Include(t => t.Solicitante)
+                .AsQueryable();
+
+            if (inicio.HasValue) query = query.Where(t => t.FechaCreacion >= inicio.Value);
+            if (fin.HasValue) query = query.Where(t => t.FechaCreacion <= fin.Value);
+            if (idEstado.HasValue && idEstado > 0) query = query.Where(t => t.IdEstado == idEstado.Value);
+
+            return await query.ToListAsync();
+        }
+
+        // --- GESTIÓN DE ACTIVOS ---
+        public async Task<List<Usuario>> ListarUsuariosAsync()
+        {
+            return await _contexto.Usuarios
+                .Where(u => u.Activo == 1) // Comparación int con int
+                .ToListAsync();
+        }
+
+        public async Task<bool> AsignarActivoAUsuarioAsync(int idActivo, int? idUsuario)
+        {
+            var activo = await _contexto.Activos.FindAsync(idActivo);
+            if (activo == null) return false;
+            activo.IdUsuarioAsignado = idUsuario;
+            await _contexto.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<EstadoTicket>> ListarEstadosAsync()
+        {
+            return await _contexto.Estados.ToListAsync();
         }
     }
 }
