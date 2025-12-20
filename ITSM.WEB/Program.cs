@@ -1,52 +1,32 @@
-using MudBlazor.Services;
-using Microsoft.EntityFrameworkCore;
-using ITSM.Datos;
-using ITSM.Negocio;
 using ITSM.WEB.Components;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using ITSM.WEB.Client.Auth;
-using ITSM.WEB.Client.Servicios;
+using ITSM.Negocio;
+using ITSM.Datos;
+using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. CONEXIÓN A BASE DE DATOS
-builder.Services.AddDbContext<ContextoBD>(options =>
-    options.UseOracle(builder.Configuration.GetConnectionString("ConexionOracle")));
+// Configurar servicios de Blazor Server
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-// 2. SERVICIOS DE NEGOCIO Y SESIÓN
-builder.Services.AddScoped<UsuarioNegocio>();
-builder.Services.AddScoped<TicketNegocio>();
-builder.Services.AddScoped<ServicioSesion>();
-
-// 3. MUD BLAZOR
 builder.Services.AddMudServices();
 
-// 4. RENDERIZADO INTERACTIVO Y SEGURIDAD
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+// Inyección de la Base de Datos
+builder.Services.AddDbContext<ContextoBD>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options => {
-        options.LoginPath = "/login";
-        options.ExpireTimeSpan = TimeSpan.FromHours(2);
-    });
-
-builder.Services.AddAuthorization();
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
+// Inyección de la Capa de Negocio
+builder.Services.AddScoped<TicketNegocio>();
 
 var app = builder.Build();
 
+app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
-app.UseAuthentication();
-app.UseAuthorization();
 
+// Mapear el componente App como raíz interactiva
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.Run();

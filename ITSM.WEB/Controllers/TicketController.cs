@@ -16,27 +16,12 @@ namespace ITSM.WEB.Controllers
         }
 
         [HttpGet("categorias")]
-        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)] // <--- OBLIGATORIO
         public async Task<IActionResult> GetCategorias()
-        {
-            var lista = await _ticketNegocio.ListarCategoriasAsync();
-            return Ok(lista);
-        }
+            => Ok(await _ticketNegocio.ListarCategoriasAsync());
 
-        [HttpGet("usuario/{idUsuario}")]
-        public async Task<IActionResult> GetPorUsuario(int idUsuario)
-        {
-            var lista = await _ticketNegocio.ListarTicketsPorUsuarioAsync(idUsuario);
-            return Ok(lista);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
-        {
-            var item = await _ticketNegocio.ObtenerTicketPorIdAsync(id);
-            if (item == null) return NotFound();
-            return Ok(item);
-        }
+        [HttpGet("usuario/{id}")]
+        public async Task<IActionResult> GetPorUsuario(int id)
+            => Ok(await _ticketNegocio.ListarTicketsPorUsuarioAsync(id));
 
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Ticket ticket)
@@ -44,20 +29,5 @@ namespace ITSM.WEB.Controllers
             var resultado = await _ticketNegocio.GuardarTicketAsync(ticket);
             return Ok(resultado);
         }
-
-        [HttpPost("cambiar-estado")]
-        public async Task<IActionResult> CambiarEstado([FromBody] CambioEstadoRequest request)
-        {
-            await _ticketNegocio.CambiarEstadoTicketAsync(request.IdTicket, request.NuevoEstado, request.IdUsuario, request.Notas);
-            return Ok();
-        }
-    }
-
-    public class CambioEstadoRequest
-    {
-        public int IdTicket { get; set; }
-        public int NuevoEstado { get; set; }
-        public int IdUsuario { get; set; }
-        public string? Notas { get; set; }
     }
 }

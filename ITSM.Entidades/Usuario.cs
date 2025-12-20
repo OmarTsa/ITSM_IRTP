@@ -1,45 +1,40 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ITSM.Entidades
+namespace ITSM.Entidades;
+
+[Table("SEG_USUARIOS")]
+public class Usuario
 {
-    [Table("SEG_USUARIOS")]
-    public class Usuario
-    {
-        [Key]
-        [Column("ID_USUARIO")]
-        public int IdUsuario { get; set; }
+    [Key]
+    [Column("ID_USUARIO")]
+    public int IdUsuario { get; set; }
 
-        [Required]
-        [Column("NOMBRE_COMPLETO")]
-        [StringLength(200)]
-        public string NombreCompleto { get; set; } = string.Empty;
+    [Column("ID_ROL")]
+    public int IdRol { get; set; }
 
-        [Required]
-        [Column("CORREO")]
-        [StringLength(100)]
-        public string Correo { get; set; } = string.Empty;
+    [Required(ErrorMessage = "El nombre es obligatorio")]
+    [Column("NOMBRE_COMPLETO")]
+    public string NombreCompleto { get; set; } = string.Empty;
 
-        [Required]
-        [Column("CLAVE")]
-        [StringLength(100)]
-        public string Clave { get; set; } = string.Empty;
+    [Required(ErrorMessage = "El nombre de usuario es obligatorio")]
+    [Column("NOMBRE_USUARIO")]
+    public string NombreUsuario { get; set; } = string.Empty;
 
-        [Column("ROL")]
-        [StringLength(50)]
-        public string Rol { get; set; } = "Usuario";
+    [Required]
+    [EmailAddress]
+    [Column("CORREO")]
+    public string Correo { get; set; } = string.Empty;
 
-        [Column("ACTIVO")]
-        public int Activo { get; set; } = 1; // 1 para Activo, 0 para Inactivo
+    [Required]
+    [Column("CLAVE")]
+    public string Clave { get; set; } = string.Empty;
 
-        // Propiedades de ayuda para compatibilidad (No se crean en la BD)
-        [NotMapped]
-        public string Username { get => Correo; set => Correo = value; }
+    [Column("ROL")]
+    public string Rol { get; set; } = "Usuario";
 
-        [NotMapped]
-        public string PasswordHash { get => Clave; set => Clave = value; }
-
-        [NotMapped]
-        public string Estado => Activo == 1 ? "Activo" : "Inactivo";
-    }
+    // Propiedades para ciberseguridad y autenticación
+    [NotMapped] public string Username { get => NombreUsuario; set => NombreUsuario = value; }
+    [NotMapped] public string PasswordHash { get => Clave; set => Clave = value; }
+    [NotMapped] public int Estado { get; set; } = 1;
 }

@@ -1,51 +1,34 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ITSM.Entidades
+namespace ITSM.Entidades;
+
+[Table("INV_ACTIVOS")]
+public class Activo
 {
-    [Table("ACT_INVENTARIO")]
-    public class Activo
-    {
-        [Key]
-        [Column("ID_ACTIVO")]
-        public int IdActivo { get; set; }
+    [Key]
+    [Column("ID_ACTIVO")]
+    public int IdActivo { get; set; }
 
-        [Required]
-        [Column("CODIGO_PATRIMONIAL")]
-        [StringLength(50)]
-        public string CodPatrimonial { get; set; } = string.Empty;
+    [Column("NOMBRE")]
+    public string Nombre { get; set; } = string.Empty;
 
-        [Column("MARCA")]
-        [StringLength(100)]
-        public string? Marca { get; set; }
+    [Column("CODIGO_INVENTARIO")]
+    public string CodigoInventario { get; set; } = string.Empty;
 
-        [Column("MODELO")]
-        [StringLength(100)]
-        public string? Modelo { get; set; }
+    // Campos faltantes que pide Inventario.razor
+    [Column("COD_PATRIMONIAL")]
+    public string CodPatrimonial { get; set; } = string.Empty;
 
-        [Column("SERIE")]
-        [StringLength(100)]
-        public string? Serie { get; set; }
+    [Column("SERIE")]
+    public string Serie { get; set; } = string.Empty;
 
-        [Column("TIPO_ACTIVO")]
-        [StringLength(50)]
-        public string? TipoActivo { get; set; }
+    [Column("ID_USUARIO_ASIGNADO")]
+    public int? IdUsuarioAsignado { get; set; }
 
-        [Column("ESTADO_OPERATIVO")]
-        public int ActivoSN { get; set; } // 1: Operativo, 0: No Operativo
+    [Column("ACTIVO_SN")]
+    public string ActivoSN { get; set; } = "S"; // Para el checkbox S/N
 
-        [Column("ID_USUARIO_ASIGNADO")]
-        public int? IdUsuarioAsignado { get; set; }
-
-        [ForeignKey("IdUsuarioAsignado")]
-        public Usuario? UsuarioAsignado { get; set; }
-
-        // Propiedad calculada para mostrar en tablas y combos
-        [NotMapped]
-        public string Nombre => $"{Marca} {Modelo} (S/N: {Serie})".Trim();
-
-        [NotMapped]
-        public string CodigoSerie => !string.IsNullOrEmpty(Serie) ? Serie : CodPatrimonial;
-    }
+    [ForeignKey("IdUsuarioAsignado")]
+    public Usuario? UsuarioAsignado { get; set; }
 }

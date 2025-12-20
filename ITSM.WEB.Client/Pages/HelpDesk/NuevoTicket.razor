@@ -1,8 +1,11 @@
 ﻿@page "/helpdesk/nuevo"
+@using MudBlazor
+@using ITSM.Entidades
+@using ITSM.Negocio
 @inject TicketNegocio TicketNegocio
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
-@inject ServicioSesion Sesion
+@inject ITSM.WEB.Client.Servicios.ServicioSesion Sesion
 
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
@@ -12,17 +15,17 @@
             <b>Nueva Solicitud de Soporte - OTIC</b>
         </MudText>
 
-        <MudForm @ref="form">
+        <MudForm @ref="_form">
             <MudGrid>
                 <MudItem xs="12">
-                    <MudTextField Label="Título de la Incidencia" @bind-Value="nuevoTicket.Titulo" Required="true" Variant="Variant.Outlined" />
+                    <MudTextField Label="Título de la Incidencia" @bind-Value="_nuevoTicket.Titulo" Required="true" Variant="Variant.Outlined" />
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined" Required="true">
-                        @if (listaCategorias != null)
+                    <MudSelect T="int" Label="Categoría" @bind-Value="_nuevoTicket.IdCategoria" Variant="Variant.Outlined" Required="true">
+                        @if (_listaCategorias != null)
                         {
-                            @foreach (var cat in listaCategorias)
+                            @foreach (var cat in _listaCategorias)
                             {
                                 <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
                             }
@@ -31,12 +34,15 @@
                 </MudItem>
 
                 <MudItem xs="12">
-                    <MudTextField Label="Detalle del Problema" @bind-Value="nuevoTicket.Descripcion" Variant="Variant.Outlined" Lines="5" Required="true" />
+                    <MudTextField Label="Detalle del Problema" @bind-Value="_nuevoTicket.Descripcion" Variant="Variant.Outlined" Lines="5" Required="true" />
                 </MudItem>
 
                 <MudItem xs="12" Class="d-flex justify-end mt-4">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" Disabled="@procesando">
-                        @(procesando ? "Registrando..." : "Enviar Solicitud")
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="Guardar"
+                               Disabled="@_procesando">
+                        @(_procesando ? "Registrando..." : "Enviar Solicitud")
                     </MudButton>
                 </MudItem>
             </MudGrid>
@@ -45,50 +51,62 @@
 </MudContainer>
 
 @code {
-    private Ticket nuevoTicket = new Ticket();
-    private List<Categoria> listaCategorias = new List<Categoria>();
-    private MudForm form = default!;
-    private bool procesando = false;
+    private Ticket _nuevoTicket = new();
+    private List<Categoria> _listaCategorias = new();
+    private MudForm? _form;
+    private bool _procesando = false;
+
+    [CascadingParameter]
+    public MudBlazor.IMudDialogInstance? MudDialog { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            listaCategorias = await TicketNegocio.ListarCategoriasAsync();
+            _listaCategorias = await TicketNegocio.ListarCategoriasAsync();
             var user = await Sesion.ObtenerUsuario();
             if (user != null)
             {
-                // CORRECCIÓN: Asegurar que ambos son int. No usar "==" con strings aquí.
-                nuevoTicket.IdSolicitante = user.IdUsuario;
+                _nuevoTicket.IdSolicitante = user.IdUsuario;
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error de inicialización: " + ex.Message, Severity.Error);
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
     }
 
     private async Task Guardar()
     {
-        await form.Validate();
-        if (form.IsValid)
+        if (_form is null) return;
+
+        await _form.Validate();
+
+        if (_form.IsValid)
         {
-            procesando = true;
-            // CORRECCIÓN: Forzamos que el ID de categoría sea tratado como int
-            int categoriaId = nuevoTicket.IdCategoria;
-
-            var exito = await TicketNegocio.GuardarTicketAsync(nuevoTicket);
-
-            if (exito)
+            _procesando = true;
+            try
             {
-                Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
-                Navigation.NavigateTo("/helpdesk/mis-tickets");
+                var exito = await TicketNegocio.GuardarTicketAsync(_nuevoTicket);
+
+                if (exito)
+                {
+                    Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
+
+                    if (MudDialog is not null)
+                    {
+                        MudDialog.Close(DialogResult.Ok(true));
+                    }
+                    else
+                    {
+                        Navigation.NavigateTo("/helpdesk/mis-tickets");
+                    }
+                }
             }
-            else
+            finally
             {
-                Snackbar.Add("Error al persistir en la base de datos.", Severity.Error);
+                _procesando = false;
             }
-            procesando = false;
         }
     }
 }
