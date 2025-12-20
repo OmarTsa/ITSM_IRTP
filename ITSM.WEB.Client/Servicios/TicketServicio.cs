@@ -17,24 +17,37 @@ namespace ITSM.WEB.Client.Servicios
             return await _http.GetFromJsonAsync<List<Ticket>>($"api/ticket/usuario/{idUsuario}") ?? new List<Ticket>();
         }
 
+        public async Task<Ticket?> ObtenerTicket(int id)
+        {
+            return await _http.GetFromJsonAsync<Ticket>($"api/ticket/{id}");
+        }
+
         public async Task GuardarTicket(Ticket ticket)
         {
             var respuesta = await _http.PostAsJsonAsync("api/ticket", ticket);
-
-            // ESTO ES CLAVE: Si hay error 500 (Base de datos), lanza excepción visible
             if (!respuesta.IsSuccessStatusCode)
             {
                 var error = await respuesta.Content.ReadAsStringAsync();
-                throw new Exception($"Error del servidor ({respuesta.StatusCode}): {error}");
+                throw new Exception($"Error del servidor: {error}");
             }
         }
 
-        public async Task<List<Categoria>> ObtenerCategorias()
+        // --- NUEVO MÉTODO ---
+        public async Task CambiarEstado(int idTicket, int nuevoEstado, int idUsuario, string? notas = "")
         {
-            return await _http.GetFromJsonAsync<List<Categoria>>("api/ticket/categorias") ?? new List<Categoria>();
+            var request = new { IdTicket = idTicket, NuevoEstado = nuevoEstado, IdUsuario = idUsuario, Notas = notas };
+            var respuesta = await _http.PostAsJsonAsync("api/ticket/cambiar-estado", request);
+
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                throw new Exception("No se pudo cambiar el estado del ticket.");
+            }
         }
 
-        // Otros métodos
+        // --- Combos ---
+        public async Task<List<Categoria>> ObtenerCategorias() =>
+            await _http.GetFromJsonAsync<List<Categoria>>("api/ticket/categorias") ?? new List<Categoria>();
+
         public async Task<List<Prioridad>> ObtenerPrioridades() =>
             await _http.GetFromJsonAsync<List<Prioridad>>("api/ticket/prioridades") ?? new List<Prioridad>();
     }

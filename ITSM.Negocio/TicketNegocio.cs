@@ -21,7 +21,7 @@ namespace ITSM.Negocio
                 .Include(t => t.Categoria)
                 .Include(t => t.Prioridad)
                 .Include(t => t.Estado)
-                .OrderByDescending(t => t.IdPrioridad) // Primero lo crítico
+                .OrderByDescending(t => t.IdPrioridad)
                 .ThenByDescending(t => t.FechaCreacion)
                 .ToListAsync();
         }
@@ -49,10 +49,9 @@ namespace ITSM.Negocio
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
-        // --- ESCRITURA (CORE ITIL) ---
+        // --- ESCRITURA ---
         public async Task<Ticket> GuardarTicketAsync(Ticket ticket)
         {
-            // 1. Buscamos Activo en CMDB
             if (!string.IsNullOrEmpty(ticket.CodigoPatrimonial))
             {
                 var activo = await _contexto.Activos
@@ -60,18 +59,17 @@ namespace ITSM.Negocio
                 if (activo != null) ticket.IdActivo = activo.IdActivo;
             }
 
-            // 2. Calculamos Prioridad (Matriz Impacto x Urgencia)
-            if (ticket.IdImpacto == 1 && ticket.IdUrgencia == 1) ticket.IdPrioridad = 1; // Crítico
-            else if (ticket.IdImpacto == 1 || ticket.IdUrgencia == 1) ticket.IdPrioridad = 2; // Alto
-            else if (ticket.IdImpacto == 2 && ticket.IdUrgencia == 2) ticket.IdPrioridad = 3; // Medio
-            else ticket.IdPrioridad = 3; // Mínimo (Si no tienes prioridad 4 en BD)
+            // Matriz Prioridad
+            if (ticket.IdImpacto == 1 && ticket.IdUrgencia == 1) ticket.IdPrioridad = 1;
+            else if (ticket.IdImpacto == 1 || ticket.IdUrgencia == 1) ticket.IdPrioridad = 2;
+            else if (ticket.IdImpacto == 2 && ticket.IdUrgencia == 2) ticket.IdPrioridad = 3;
+            else ticket.IdPrioridad = 3;
 
             if (ticket.IdTicket == 0)
             {
                 ticket.FechaCreacion = DateTime.Now;
                 ticket.IdEstado = 1; // Abierto
 
-                // 3. Calculamos SLA (Horas Límite)
                 int horasSLA = ticket.IdPrioridad switch
                 {
                     1 => 4,
@@ -92,7 +90,26 @@ namespace ITSM.Negocio
             return ticket;
         }
 
-        // Listas Auxiliares
+        // --- NUEVO MÉTODO: CAMBIO DE ESTADO ---
+        public async Task CambiarEstadoTicketAsync(int idTicket, int nuevoEstado, int idUsuarioOperador, string? notas = null)
+        {
+            var ticket = await _contexto.Tickets.FindAsync(idTicket);
+            if (ticket == null) throw new Exception("Ticket no encontrado");
+
+            ticket.IdEstado = nuevoEstado;
+
+            // Si se cierra el ticket
+            if (nuevoEstado == 4)
+            {
+                ticket.FechaCierre = DateTime.Now;
+                ticket.CodigoCierre = "Resuelto";
+                ticket.NotasCierre = notas;
+            }
+
+            await _contexto.SaveChangesAsync();
+        }
+
+        // --- COMBOS ---
         public async Task<List<Categoria>> ListarCategoriasAsync() => await _contexto.Categorias.ToListAsync();
         public async Task<List<Prioridad>> ListarPrioridadesAsync() => await _contexto.Prioridades.ToListAsync();
         public async Task<List<EstadoTicket>> ListarEstadosAsync() => await _contexto.EstadosTicket.ToListAsync();

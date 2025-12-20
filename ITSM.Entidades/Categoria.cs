@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("CATEGORIAS")]
+    [Table("HD_CATEGORIAS")]
     public class Categoria
     {
         [Key]
@@ -14,7 +14,12 @@ namespace ITSM.Entidades
         [Column("NOMBRE")]
         public string Nombre { get; set; } = string.Empty;
 
+        // Propiedad requerida por el frontend
         [Column("ACTIVO")]
         public int Activo { get; set; } = 1;
+
+        // Opcional: Para diferenciar si es Incidente o Requerimiento
+        [Column("TIPO")]
+        public string? Tipo { get; set; }
     }
 }

@@ -22,7 +22,6 @@ namespace ITSM.WEB.Controllers
             return Ok(lista);
         }
 
-        // NUEVO ENDPOINT: Mis Tickets
         [HttpGet("usuario/{idUsuario}")]
         public async Task<IActionResult> GetPorUsuario(int idUsuario)
         {
@@ -46,24 +45,38 @@ namespace ITSM.WEB.Controllers
             return Ok(resultado);
         }
 
-        // --- Endpoints para Listas Desplegables ---
-
-        [HttpGet("categorias")]
-        public async Task<IActionResult> GetCategorias()
+        // --- NUEVO ENDPOINT ---
+        [HttpPost("cambiar-estado")]
+        public async Task<IActionResult> CambiarEstado([FromBody] CambioEstadoRequest request)
         {
-            return Ok(await _ticketNegocio.ListarCategoriasAsync());
+            try
+            {
+                await _ticketNegocio.CambiarEstadoTicketAsync(request.IdTicket, request.NuevoEstado, request.IdUsuario, request.Notas);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
+
+        // --- Combos ---
+        [HttpGet("categorias")]
+        public async Task<IActionResult> GetCategorias() => Ok(await _ticketNegocio.ListarCategoriasAsync());
 
         [HttpGet("prioridades")]
-        public async Task<IActionResult> GetPrioridades()
-        {
-            return Ok(await _ticketNegocio.ListarPrioridadesAsync());
-        }
+        public async Task<IActionResult> GetPrioridades() => Ok(await _ticketNegocio.ListarPrioridadesAsync());
 
         [HttpGet("estados")]
-        public async Task<IActionResult> GetEstados()
-        {
-            return Ok(await _ticketNegocio.ListarEstadosAsync());
-        }
+        public async Task<IActionResult> GetEstados() => Ok(await _ticketNegocio.ListarEstadosAsync());
+    }
+
+    // Clase auxiliar para la petición
+    public class CambioEstadoRequest
+    {
+        public int IdTicket { get; set; }
+        public int NuevoEstado { get; set; }
+        public int IdUsuario { get; set; }
+        public string? Notas { get; set; }
     }
 }

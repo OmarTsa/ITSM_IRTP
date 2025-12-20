@@ -48,6 +48,13 @@ namespace ITSM.Entidades
         [Column("FECHA_CIERRE")]
         public DateTime? FechaCierre { get; set; }
 
+        // --- CIERRE (AQUÍ ESTÁ LO QUE FALTABA) ---
+        [Column("CODIGO_CIERRE")]
+        public string? CodigoCierre { get; set; }
+
+        [Column("NOTAS_CIERRE")]
+        public string? NotasCierre { get; set; }
+
         // --- RELACIONES ---
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
@@ -69,7 +76,7 @@ namespace ITSM.Entidades
         [ForeignKey("IdEstado")]
         public EstadoTicket? Estado { get; set; }
 
-        // Propiedad auxiliar para búsqueda (No se guarda en BD)
+        // Propiedad auxiliar (No se guarda en BD)
         [NotMapped]
         public string? CodigoPatrimonial { get; set; }
     }
