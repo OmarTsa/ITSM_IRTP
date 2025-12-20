@@ -34,7 +34,7 @@ namespace ITSM.Entidades
         [ForeignKey("IdUsuarioAsignado")]
         public Usuario? UsuarioAsignado { get; set; }
 
-        // Propiedades calculadas para la UI de Inventario
+        // Propiedades calculadas para la interfaz de usuario (NotMapped)
         [NotMapped]
         public string Nombre => $"{Marca} {Modelo}".Trim();
 

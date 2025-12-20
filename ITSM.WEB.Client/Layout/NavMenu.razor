@@ -1,32 +1,26 @@
-﻿<MudNavMenu>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<MudNavMenu>
     <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
 
-    <MudNavGroup Title="Help Desk" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
+    <AuthorizeView Roles="Administrador,Especialista">
+        <MudNavGroup Title="HelpDesk" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
+            <MudNavLink Href="/helpdesk/gestion" Icon="@Icons.Material.Filled.Assignment">Gestión de Tickets</MudNavLink>
+        </MudNavGroup>
+
+        <MudNavGroup Title="Activos" Icon="@Icons.Material.Filled.Devices" Expanded="false">
+            <MudNavLink Href="/activos/inventario" Icon="@Icons.Material.Filled.List">Inventario OTIC</MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
+
+    <MudNavGroup Title="Soporte Usuario" Icon="@Icons.Material.Filled.Person" Expanded="true">
         <MudNavLink Href="/helpdesk/nuevo" Icon="@Icons.Material.Filled.AddCircle">Nueva Solicitud</MudNavLink>
-        <MudNavLink Href="/helpdesk/mis-tickets" Icon="@Icons.Material.Filled.List">Mis Solicitudes</MudNavLink>
-
-        @* Solo visible para personal de la OTIC *@
-        <AuthorizeView Roles="ADMINISTRADOR,COORDINADOR,ESPECIALISTA">
-            <MudNavLink Href="/helpdesk/gestion" Icon="@Icons.Material.Filled.Engineering">Bandeja de Gestión</MudNavLink>
-        </AuthorizeView>
+        <MudNavLink Href="/helpdesk/mis-tickets" Icon="@Icons.Material.Filled.History">Mis Solicitudes</MudNavLink>
     </MudNavGroup>
 
-    <MudNavGroup Title="Activos" Icon="@Icons.Material.Filled.Devices">
-        <MudNavLink Href="/activos/inventario" Icon="@Icons.Material.Filled.Inventory">Inventario General</MudNavLink>
-    </MudNavGroup>
-</MudNavMenu><MudNavMenu>
-    <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard OTIC</MudNavLink>
-
-    <MudNavGroup Title="Help Desk" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
-        <MudNavLink Href="/helpdesk/nuevo" Icon="@Icons.Material.Filled.AddCircle">Nueva Solicitud</MudNavLink>
-        <MudNavLink Href="/helpdesk/mis-tickets" Icon="@Icons.Material.Filled.List">Mis Solicitudes</MudNavLink>
-
-        <AuthorizeView Roles="ADMINISTRADOR,COORDINADOR,ESPECIALISTA">
-            <MudNavLink Href="/helpdesk/gestion" Icon="@Icons.Material.Filled.Engineering">Bandeja de Gestión</MudNavLink>
-        </AuthorizeView>
-    </MudNavGroup>
-
-    <MudNavGroup Title="Activos" Icon="@Icons.Material.Filled.Devices">
-        <MudNavLink Href="/activos/inventario" Icon="@Icons.Material.Filled.Inventory">Inventario General</MudNavLink>
-    </MudNavGroup>
+    <AuthorizeView Roles="Administrador">
+        <MudNavGroup Title="Configuración" Icon="@Icons.Material.Filled.Settings">
+            <MudNavLink Href="/admin/usuarios" Icon="@Icons.Material.Filled.People">Usuarios</MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
 </MudNavMenu>

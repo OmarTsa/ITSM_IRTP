@@ -42,10 +42,7 @@ namespace ITSM.WEB.Client.Servicios
 
         public async Task CerrarSesion()
         {
-            try
-            {
-                await _js.InvokeVoidAsync("localStorage.removeItem", "usuario_sesion");
-            }
+            try { await _js.InvokeVoidAsync("localStorage.removeItem", "usuario_sesion"); }
             catch { }
         }
     }

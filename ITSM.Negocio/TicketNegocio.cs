@@ -1,10 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ITSM.Datos;
 using ITSM.Entidades;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System;
 
 namespace ITSM.Negocio
 {
@@ -17,13 +13,7 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        public async Task<List<Activo>> ListarActivosAsync()
-        {
-            return await _contexto.Activos
-                .AsNoTracking()
-                .ToListAsync();
-        }
-
+        // --- MÉTODOS PARA DASHBOARD Y ESTADÍSTICAS ---
         public async Task<Dictionary<string, int>> ObtenerTicketsPorEstadoAsync()
         {
             return await _contexto.Tickets
@@ -42,6 +32,7 @@ namespace ITSM.Negocio
                 .ToDictionaryAsync(x => x.Prioridad, x => x.Cantidad);
         }
 
+        // --- MÉTODOS DE CONSULTA ---
         public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
         {
             return await _contexto.Tickets
@@ -74,6 +65,21 @@ namespace ITSM.Negocio
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
+        // --- MÉTODOS DE OPERACIÓN (ITIL 4) ---
+        public async Task<Ticket> GuardarTicketAsync(Ticket ticket)
+        {
+            if (ticket.IdTicket == 0)
+            {
+                ticket.FechaCreacion = DateTime.Now;
+                ticket.IdEstado = 1; // Abierto
+                _contexto.Tickets.Add(ticket);
+            }
+            else { _contexto.Tickets.Update(ticket); }
+
+            await _contexto.SaveChangesAsync();
+            return ticket;
+        }
+
         public async Task CambiarEstadoTicketAsync(int idTicket, int nuevoEstado, int idUsuarioOperador, string? notas = null)
         {
             var ticket = await _contexto.Tickets.FindAsync(idTicket);
@@ -91,30 +97,12 @@ namespace ITSM.Negocio
 
         public async Task<List<Categoria>> ListarCategoriasAsync()
         {
-            return await _contexto.Categorias
-                .AsNoTracking()
-                .Where(c => c.Activo == 1)
-                .OrderBy(c => c.Nombre)
-                .ToListAsync();
+            return await _contexto.Categorias.AsNoTracking().Where(c => c.Activo == 1).ToListAsync();
         }
 
-        public async Task<Ticket> GuardarTicketAsync(Ticket ticket)
+        public async Task<List<Activo>> ListarActivosAsync()
         {
-            if (ticket.IdImpacto == 1 && ticket.IdUrgencia == 1) ticket.IdPrioridad = 1;
-            else if (ticket.IdImpacto == 1 || ticket.IdUrgencia == 1) ticket.IdPrioridad = 2;
-            else ticket.IdPrioridad = 3;
-
-            if (ticket.IdTicket == 0)
-            {
-                ticket.FechaCreacion = DateTime.Now;
-                ticket.IdEstado = 1;
-                int horasSLA = ticket.IdPrioridad switch { 1 => 4, 2 => 24, _ => 72 };
-                ticket.FechaLimite = DateTime.Now.AddHours(horasSLA);
-                _contexto.Tickets.Add(ticket);
-            }
-            else { _contexto.Tickets.Update(ticket); }
-            await _contexto.SaveChangesAsync();
-            return ticket;
+            return await _contexto.Activos.AsNoTracking().ToListAsync();
         }
     }
 }
