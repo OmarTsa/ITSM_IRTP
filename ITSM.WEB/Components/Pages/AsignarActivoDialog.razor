@@ -30,7 +30,7 @@
 
 @code {
     [CascadingParameter]
-    MudDialogInstance MudDialog { get; set; } = null!;
+    MudDialogInstance MudDialog { get; set; } = null!; // Ahora reconocido por @using MudBlazor
 
     [Parameter]
     public string ActivoNombre { get; set; } = "";
@@ -43,7 +43,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Cargamos los usuarios disponibles
         usuarios = await Negocio.ListarUsuariosAsync();
         idUsuarioSeleccionado = IdUsuarioActual;
     }

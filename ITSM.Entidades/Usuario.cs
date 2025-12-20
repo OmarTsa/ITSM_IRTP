@@ -32,9 +32,12 @@ namespace ITSM.Entidades
         [Column("ACTIVO")]
         public int Activo { get; set; } = 1;
 
-        // Propiedades de ayuda (No se crean en la BD)
+        // Propiedades de ayuda para compatibilidad con la lógica de negocio
         [NotMapped]
         public string Username { get => Correo; set => Correo = value; }
+
+        [NotMapped]
+        public string PasswordHash { get => Clave; set => Clave = value; }
 
         [NotMapped]
         public string Estado => Activo == 1 ? "Activo" : "Inactivo";
