@@ -39,15 +39,12 @@ namespace ITSM.WEB.Client.Servicios
             if (!respuesta.IsSuccessStatusCode) throw new Exception("Error al cambiar estado.");
         }
 
-        // --- CATÁLOGOS (Asegúrate de que estas rutas coincidan con tu TicketController) ---
+        // --- CORRECCIÓN: Bypass de Caché ---
         public async Task<List<Categoria>> ObtenerCategorias()
         {
-            return await _http.GetFromJsonAsync<List<Categoria>>("api/ticket/categorias") ?? new List<Categoria>();
-        }
-
-        public async Task<List<Prioridad>> ObtenerPrioridades()
-        {
-            return await _http.GetFromJsonAsync<List<Prioridad>>("api/ticket/prioridades") ?? new List<Prioridad>();
+            // Agregamos un timestamp para forzar al servidor a ignorar la caché
+            var ticks = DateTime.Now.Ticks;
+            return await _http.GetFromJsonAsync<List<Categoria>>($"api/ticket/categorias?t={ticks}") ?? new List<Categoria>();
         }
     }
 }

@@ -20,15 +20,15 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined">
+                    <MudSelect T="string" Label="Tipo de Ticket" @bind-Value="nuevoTicket.TipoTicket" Variant="Variant.Outlined" Required="true">
                         <MudSelectItem T="string" Value="@("Incidente")">Incidente</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Requerimiento")">Requerimiento</MudSelectItem>
                     </MudSelect>
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined">
-                        @if (listaCategorias != null)
+                    <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" Variant="Variant.Outlined" Required="true">
+                        @if (listaCategorias != null && listaCategorias.Any())
                         {
                             @foreach (var cat in listaCategorias)
                             {
@@ -39,7 +39,7 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Impacto" @bind-Value="nuevoTicket.IdImpacto" Variant="Variant.Outlined">
+                    <MudSelect T="int" @bind-Value="nuevoTicket.IdImpacto" Label="Impacto" Variant="Variant.Outlined">
                         <MudSelectItem T="int" Value="1">Alto</MudSelectItem>
                         <MudSelectItem T="int" Value="2">Medio</MudSelectItem>
                         <MudSelectItem T="int" Value="3">Bajo</MudSelectItem>
@@ -47,7 +47,7 @@
                 </MudItem>
 
                 <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Urgencia" @bind-Value="nuevoTicket.IdUrgencia" Variant="Variant.Outlined">
+                    <MudSelect T="int" @bind-Value="nuevoTicket.IdUrgencia" Label="Urgencia" Variant="Variant.Outlined">
                         <MudSelectItem T="int" Value="1">Alta</MudSelectItem>
                         <MudSelectItem T="int" Value="2">Media</MudSelectItem>
                         <MudSelectItem T="int" Value="3">Baja</MudSelectItem>
@@ -60,7 +60,7 @@
 
                 <MudItem xs="12" Class="d-flex justify-end mt-4">
                     <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@procesando">
-                        @(procesando ? "Guardando..." : "Crear Ticket")
+                        @(procesando ? "Enviando..." : "Crear Ticket")
                     </MudButton>
                 </MudItem>
             </MudGrid>
@@ -78,15 +78,17 @@
         try
         {
             listaCategorias = await TicketService.ObtenerCategorias();
-            if (listaCategorias.Any()) nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
-
+            if (listaCategorias.Any())
+            {
+                nuevoTicket.IdCategoria = listaCategorias.First().IdCategoria;
+            }
             nuevoTicket.TipoTicket = "Incidente";
             nuevoTicket.IdImpacto = 3;
             nuevoTicket.IdUrgencia = 3;
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error al cargar datos", Severity.Error);
+            Snackbar.Add("Error al sincronizar datos.", Severity.Error);
         }
     }
 
@@ -96,18 +98,18 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var idStr = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (int.TryParse(idStr, out int userId))
+            var idClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idClaim, out int userId))
             {
                 nuevoTicket.IdSolicitante = userId;
                 await TicketService.GuardarTicket(nuevoTicket);
-                Snackbar.Add("Ticket creado", Severity.Success);
+                Snackbar.Add("¡Registrado!", Severity.Success);
                 Navigation.NavigateTo("/helpdesk/mis-tickets");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error al guardar", Severity.Error);
+            Snackbar.Add("Error al procesar el ticket.", Severity.Error);
         }
         finally
         {
