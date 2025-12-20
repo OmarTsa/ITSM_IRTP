@@ -10,51 +10,57 @@ using ITSM.WEB.Client.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. BASE DE DATOS
+// 1. CONEXIÓN A BASE DE DATOS ORACLE IRTP
 var connectionString = builder.Configuration.GetConnectionString("ConexionOracle");
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(connectionString));
 
-// 2. SERVICIOS DE NEGOCIO Y SESIÓN
+// 2. REGISTRO DE SERVICIOS DE NEGOCIO Y SESIÓN
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
-builder.Services.AddScoped<ServicioSesion>(); //
+builder.Services.AddScoped<ServicioSesion>();
 
-// 3. MUD BLAZOR Y COMPONENTES
+// 3. CONFIGURACIÓN DE MUDBLAZOR (Versión 7/8 compatible)
 builder.Services.AddMudServices();
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents(); // Solo servidor para evitar errores 404 de WASM
 
-// 4. SEGURIDAD
-builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>(); //
-builder.Services.AddCascadingAuthenticationState();
+// 4. RENDERIZADO INTERACTIVO Y SEGURIDAD
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
+    .AddInteractiveWebAssemblyComponents();
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options => {
         options.LoginPath = "/login";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(120);
+        options.ExpireTimeSpan = TimeSpan.FromHours(2);
     });
+
 builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 
 var app = builder.Build();
 
 // 5. PIPELINE DE MIDDLEWARE
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
+{
+    app.UseWebAssemblyDebugging();
+}
+else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Importante para cargar MudBlazor CSS/JS
+app.UseStaticFiles();
 app.UseAntiforgery();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 6. MAPEO DE RUTAS (Solución al 404)
-// Agregamos AdditionalAssemblies para que encuentre las páginas en el proyecto Client
+// MAPEO DE COMPONENTES (Soluciona Pantalla en Blanco y 404)
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
-    .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly); //
+    .AddInteractiveWebAssemblyRenderMode()
+    .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
 
 app.Run();

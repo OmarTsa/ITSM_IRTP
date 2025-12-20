@@ -1,117 +1,59 @@
 ﻿@page "/"
 @page "/login"
 @layout ITSM.WEB.Client.Layout.LoginLayout
-@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Auth
-@using ITSM.WEB.Client.Servicios
+@using ITSM.Negocio
 @using Microsoft.AspNetCore.Components.Authorization
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 
-@inject HttpClient Http
+@inject UsuarioNegocio UsuarioNegocio
+@inject NavigationManager Nav
 @inject ISnackbar Snackbar
-@inject NavigationManager Navegacion
 @inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Iniciar Sesión</PageTitle>
-
-<MudPaper Elevation="4" Class="pa-8" Width="100%" MaxWidth="400px">
-    <MudForm @ref="formulario">
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="height: 100vh;">
+    <MudPaper Elevation="25" Class="pa-8" Width="100%" Style="border-radius: 20px; border-top: 6px solid #004B8D;">
         <MudStack Spacing="4">
-
             <div class="d-flex justify-center mb-4">
-                <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Primary" Size="Size.Large" Style="font-size: 4rem;" />
+                <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Primary" Style="font-size: 4rem;" />
             </div>
 
-            <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Primary" Class="mb-4">
-                <b>Bienvenido al ITSM</b>
-            </MudText>
+            <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary"><b>Soporte IRTP</b></MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center">Gestión de Servicios de TI - OTIC</MudText>
 
-            <MudTextField @bind-Value="solicitud.NombreUsuario"
-                          Label="Usuario"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Person"
-                          FullWidth="true"
-                          Required="true"
-                          RequiredError="El usuario es obligatorio" />
+            <MudTextField @bind-Value="user" Label="Usuario Institucional" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
+            <MudTextField @bind-Value="pass" Label="Contraseña" Variant="Variant.Outlined" InputType="InputType.Password" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock" />
 
-            <MudTextField @bind-Value="solicitud.Clave"
-                          Label="Contraseña"
-                          Variant="Variant.Outlined"
-                          InputType="InputType.Password"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Lock"
-                          FullWidth="true"
-                          Required="true"
-                          RequiredError="La contraseña es obligatoria" />
-
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       Size="Size.Large"
-                       OnClick="ProcesarIngreso"
-                       FullWidth="true"
-                       Class="mt-4 py-2"
-                       Disabled="@procesando">
-                @if (procesando)
-                {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">Verificando...</MudText>
-                }
-                else
-                {
-                    <MudText>INGRESAR</MudText>
-                }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true" OnClick="EjecutarLogin" Class="mt-4">
+                INGRESAR AL SISTEMA
             </MudButton>
-
         </MudStack>
-    </MudForm>
-</MudPaper>
+    </MudPaper>
+</MudContainer>
 
 @code {
-    private SolicitudAcceso solicitud = new SolicitudAcceso();
-    private bool procesando = false;
-    private MudForm formulario = default!;
+    private string user = "";
+    private string pass = "";
 
-    private async Task ProcesarIngreso()
+    private async Task EjecutarLogin()
     {
-        await formulario.Validate();
-        if (!formulario.IsValid) return;
-
-        procesando = true;
         try
         {
-            var respuesta = await Http.PostAsJsonAsync("api/autenticacion/login", solicitud);
-
-            if (respuesta.IsSuccessStatusCode)
+            var usuario = await UsuarioNegocio.LoginAsync(user, pass);
+            if (usuario != null)
             {
-                var usuario = await respuesta.Content.ReadFromJsonAsync<Usuario>();
-
-                if (usuario != null)
-                {
-                    var authProvider = (ProveedorAutenticacion)AuthStateProvider;
-                    // IMPORTANTE: await aquí para asegurar que se guarde la sesión antes de navegar
-                    await authProvider.NotificarLogin(usuario);
-
-                    Snackbar.Add($"¡Bienvenido, {usuario.NombreUsuario}!", Severity.Success);
-                    Navegacion.NavigateTo("dashboard", true);
-                }
-                else
-                {
-                    Snackbar.Add("Error al leer datos del usuario.", Severity.Error);
-                }
+                await ((ProveedorAutenticacion)AuthStateProvider).NotificarLogin(usuario);
+                Nav.NavigateTo("/dashboard");
             }
             else
             {
-                Snackbar.Add("Usuario o contraseña incorrectos.", Severity.Error);
+                Snackbar.Add("Credenciales incorrectas o usuario inactivo.", Severity.Error);
             }
         }
-        catch (Exception ex)
+        catch
         {
-            Snackbar.Add($"Error de conexión: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            procesando = false;
+            Snackbar.Add("Error al conectar con la base de datos OTITO.", Severity.Error);
         }
     }
 }

@@ -13,7 +13,6 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // Métodos para el Dashboard (Estadísticas)
         public async Task<Dictionary<string, int>> ObtenerTicketsPorEstadoAsync()
         {
             return await _contexto.Tickets
@@ -32,7 +31,6 @@ namespace ITSM.Negocio
                 .ToDictionaryAsync(x => x.Prioridad, x => x.Cantidad);
         }
 
-        // Métodos de Listado
         public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
         {
             return await _contexto.Tickets
@@ -55,16 +53,6 @@ namespace ITSM.Negocio
                 .ToListAsync();
         }
 
-        public async Task<List<Categoria>> ListarCategoriasAsync()
-        {
-            return await _contexto.Categorias
-                .AsNoTracking()
-                .Where(c => c.Activo == 1)
-                .OrderBy(c => c.Nombre)
-                .ToListAsync();
-        }
-
-        // Métodos de Operación
         public async Task<Ticket?> ObtenerTicketPorIdAsync(int id)
         {
             return await _contexto.Tickets
@@ -72,8 +60,31 @@ namespace ITSM.Negocio
                 .Include(t => t.Prioridad)
                 .Include(t => t.Estado)
                 .Include(t => t.Solicitante)
-                .Include(t => t.ActivoRelacionado)
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
+        }
+
+        public async Task CambiarEstadoTicketAsync(int idTicket, int nuevoEstado, int idUsuarioOperador, string? notas = null)
+        {
+            var ticket = await _contexto.Tickets.FindAsync(idTicket);
+            if (ticket != null)
+            {
+                ticket.IdEstado = nuevoEstado;
+                if (nuevoEstado == 4 || nuevoEstado == 5)
+                {
+                    ticket.FechaCierre = DateTime.Now;
+                    ticket.NotasCierre = notas;
+                }
+                await _contexto.SaveChangesAsync();
+            }
+        }
+
+        public async Task<List<Categoria>> ListarCategoriasAsync()
+        {
+            return await _contexto.Categorias
+                .AsNoTracking()
+                .Where(c => c.Activo == 1)
+                .OrderBy(c => c.Nombre)
+                .ToListAsync();
         }
 
         public async Task<Ticket> GuardarTicketAsync(Ticket ticket)
@@ -90,28 +101,9 @@ namespace ITSM.Negocio
                 ticket.FechaLimite = DateTime.Now.AddHours(horasSLA);
                 _contexto.Tickets.Add(ticket);
             }
-            else
-            {
-                _contexto.Tickets.Update(ticket);
-            }
+            else { _contexto.Tickets.Update(ticket); }
             await _contexto.SaveChangesAsync();
             return ticket;
-        }
-
-        public async Task CambiarEstadoTicketAsync(int idTicket, int nuevoEstado, int idUsuarioOperador, string? notas = null)
-        {
-            var ticket = await _contexto.Tickets.FindAsync(idTicket);
-            if (ticket != null)
-            {
-                ticket.IdEstado = nuevoEstado;
-                if (nuevoEstado == 4 || nuevoEstado == 5)
-                {
-                    ticket.FechaCierre = DateTime.Now;
-                    ticket.NotasCierre = notas;
-                    ticket.CodigoCierre = nuevoEstado == 4 ? "Resuelto" : "Cerrado";
-                }
-                await _contexto.SaveChangesAsync();
-            }
         }
     }
 }
