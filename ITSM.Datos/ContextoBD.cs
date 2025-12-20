@@ -16,46 +16,19 @@ namespace ITSM.Datos
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Esquema por defecto (Si tu usuario Oracle es OTITO)
-            // Si el script lo corriste sin prefijos, puedes comentar esto.
             modelBuilder.HasDefaultSchema("OTITO");
 
-            // --- 1. USUARIOS (Tabla SEG_USUARIOS) ---
-            modelBuilder.Entity<Usuario>(entity =>
-            {
-                entity.ToTable("SEG_USUARIOS");
-                entity.HasKey(e => e.IdUsuario);
+            // Mapeos limpios
+            modelBuilder.Entity<Usuario>().ToTable("SEG_USUARIOS");
+            modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO");
+            modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");
 
-                entity.Property(e => e.IdUsuario).HasColumnName("ID_USUARIO");
-                entity.Property(e => e.Username).HasColumnName("USERNAME");
-                entity.Property(e => e.PasswordHash).HasColumnName("PASSWORD_HASH");
-                entity.Property(e => e.Nombres).HasColumnName("NOMBRES");
-                entity.Property(e => e.Apellidos).HasColumnName("APELLIDOS");
-                entity.Property(e => e.Correo).HasColumnName("CORREO");
-                entity.Property(e => e.IdRol).HasColumnName("ID_ROL");
-                entity.Property(e => e.Estado).HasColumnName("ESTADO");
-            });
-
-            // --- 2. TICKETS (Tabla HD_TICKETS) ---
-            modelBuilder.Entity<Ticket>(entity =>
-            {
-                entity.ToTable("HD_TICKETS");
-                // La clave y columnas se mapean en la clase Ticket con [Column]
-            });
-
-            // --- 3. ACTIVOS (Tabla ACT_INVENTARIO) ---
-            modelBuilder.Entity<Activo>(entity =>
-            {
-                entity.ToTable("ACT_INVENTARIO");
-                // Aseguramos que apunte a la tabla correcta
-            });
-
-            // --- 4. TABLAS AUXILIARES ---
-            modelBuilder.Entity<Categoria>().ToTable("CATEGORIAS");
+            // Tablas de catálogo
+            modelBuilder.Entity<Categoria>().ToTable("HD_CATEGORIAS"); // OJO: En tu script es HD_CATEGORIAS
             modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
             modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
 
-            // Datos semilla (opcional)
+            // Datos semilla para asegurar funcionamiento
             modelBuilder.Entity<Prioridad>().HasData(
                 new Prioridad { IdPrioridad = 1, Nombre = "Alta (Crítico)", HorasSLA = 4 },
                 new Prioridad { IdPrioridad = 2, Nombre = "Media (Normal)", HorasSLA = 24 },

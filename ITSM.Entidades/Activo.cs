@@ -3,11 +3,35 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("ACT_INVENTARIO")] // <--- Nombre correcto
+    [Table("ACT_INVENTARIO")]
     public class Activo
     {
-        [Key][Column("ID_ACTIVO")] public int IdActivo { get; set; }
-        [Column("CODIGO_PATRIMONIAL")] public string CodPatrimonial { get; set; } = string.Empty;
-        // ... resto de propiedades ...
+        [Key]
+        [Column("ID_ACTIVO")]
+        public int IdActivo { get; set; }
+
+        [Required]
+        [Column("CODIGO_PATRIMONIAL")]
+        [StringLength(20)]
+        public string CodPatrimonial { get; set; } = string.Empty;
+
+        // Mapeamos ID_TIPO si lo usas, por ahora lo dejamos simple
+        [Column("MARCA")]
+        public string? Marca { get; set; }
+
+        [Column("MODELO")]
+        public string? Modelo { get; set; }
+
+        [Column("SERIE")]
+        public string? Serie { get; set; }
+
+        [Column("FECHA_COMPRA")]
+        public DateTime? FechaCompra { get; set; }
+
+        [Column("ID_USUARIO_ASIGNADO")]
+        public int? IdUsuarioAsignado { get; set; }
+
+        [ForeignKey("IdUsuarioAsignado")]
+        public Usuario? UsuarioAsignado { get; set; }
     }
 }

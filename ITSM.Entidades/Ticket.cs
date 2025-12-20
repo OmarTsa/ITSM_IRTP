@@ -3,17 +3,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("HD_TICKETS")] // <--- CRÍTICO: Tabla correcta
+    [Table("HD_TICKETS")]
     public class Ticket
     {
         [Key]
         [Column("ID_TICKET")]
         public int IdTicket { get; set; }
 
-        // --- DATOS PRINCIPALES ---
+        // --- DATOS BÁSICOS ---
         [Column("TITULO")]
         [Required(ErrorMessage = "El título es obligatorio")]
-        [StringLength(200)]
         public string Titulo { get; set; } = string.Empty;
 
         [Column("DESCRIPCION")]
@@ -26,12 +25,12 @@ namespace ITSM.Entidades
         [Column("ORIGEN")]
         public string Origen { get; set; } = "Web";
 
-        // --- MATRIZ ITIL (Impacto + Urgencia = Prioridad) ---
+        // --- MATRIZ ITIL V4 ---
         [Column("ID_IMPACTO")]
-        public int IdImpacto { get; set; } = 3; // 3=Bajo por defecto
+        public int IdImpacto { get; set; } = 3;
 
         [Column("ID_URGENCIA")]
-        public int IdUrgencia { get; set; } = 3; // 3=Bajo por defecto
+        public int IdUrgencia { get; set; } = 3;
 
         [Column("ID_PRIORIDAD")]
         public int IdPrioridad { get; set; }
@@ -39,22 +38,15 @@ namespace ITSM.Entidades
         [ForeignKey("IdPrioridad")]
         public Prioridad? Prioridad { get; set; }
 
-        // --- SLA Y TIEMPOS ---
+        // --- SLA Y FECHAS ---
         [Column("FECHA_CREACION")]
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
-        [Column("FECHA_LIMITE")] // SLA Target
+        [Column("FECHA_LIMITE")]
         public DateTime? FechaLimite { get; set; }
 
         [Column("FECHA_CIERRE")]
         public DateTime? FechaCierre { get; set; }
-
-        // --- CIERRE ---
-        [Column("CODIGO_CIERRE")]
-        public string? CodigoCierre { get; set; }
-
-        [Column("NOTAS_CIERRE")]
-        public string? NotasCierre { get; set; }
 
         // --- RELACIONES ---
         [Column("ID_SOLICITANTE")]
@@ -62,7 +54,6 @@ namespace ITSM.Entidades
         [ForeignKey("IdSolicitante")]
         public Usuario? Solicitante { get; set; }
 
-        // En tu script SQL profesional usamos ID_ACTIVO_AFECTADO
         [Column("ID_ACTIVO_AFECTADO")]
         public int? IdActivo { get; set; }
         [ForeignKey("IdActivo")]
@@ -78,7 +69,7 @@ namespace ITSM.Entidades
         [ForeignKey("IdEstado")]
         public EstadoTicket? Estado { get; set; }
 
-        // --- AUXILIARES (No BD) ---
+        // Propiedad auxiliar para búsqueda (No se guarda en BD)
         [NotMapped]
         public string? CodigoPatrimonial { get; set; }
     }
