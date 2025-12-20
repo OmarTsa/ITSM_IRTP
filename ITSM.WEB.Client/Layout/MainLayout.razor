@@ -13,7 +13,7 @@
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary">
-        @* Botón Menú: Usamos MudTooltip en lugar de Title *@
+        @* Botón Menú: Usamos MudTooltip *@
         <AuthorizeView>
             <Authorized>
                 <MudTooltip Text="Alternar menú">
@@ -26,7 +26,7 @@
 
         <MudSpacer />
 
-        @* Botón Salir: Usamos MudTooltip en lugar de Title *@
+        @* Botón Salir: Usamos MudTooltip *@
         <AuthorizeView>
             <Authorized>
                 <MudTooltip Text="Cerrar Sesión">
@@ -65,7 +65,8 @@
         await SesionService.CerrarSesion();
 
         var auth = (ProveedorAutenticacion)AuthProvider;
-        auth.NotificarLogout(); // Método síncrono, no requiere await
+        // CORRECCIÓN: Agregamos 'await' aquí
+        await auth.NotificarLogout();
 
         Navegacion.NavigateTo("login", true);
     }

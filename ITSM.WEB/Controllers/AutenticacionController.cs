@@ -16,24 +16,27 @@ namespace ITSM.WEB.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] SolicitudAcceso request)
         {
-            // CORRECCIÓN: Usamos 'LoginAsync' que es el que existe en tu Negocio
-            var usuario = await _usuarioNegocio.LoginAsync(request.Usuario, request.Clave);
+            // Validación básica de seguridad
+            if (request == null || string.IsNullOrEmpty(request.NombreUsuario) || string.IsNullOrEmpty(request.Clave))
+            {
+                return BadRequest(new { mensaje = "Datos incompletos" });
+            }
+
+            // Llamada a la capa de negocio usando los datos correctos
+            var usuario = await _usuarioNegocio.LoginAsync(request.NombreUsuario, request.Clave);
 
             if (usuario == null)
             {
+                // Si falla, retornamos Unauthorized (401)
                 return Unauthorized(new { mensaje = "Credenciales incorrectas" });
             }
 
-            return Ok(usuario);
-        }
+            // Por seguridad, limpiamos la clave antes de enviarla de vuelta
+            usuario.Clave = "";
 
-        // Clase auxiliar para recibir los datos del JSON
-        public class LoginRequest
-        {
-            public string Usuario { get; set; } = string.Empty;
-            public string Clave { get; set; } = string.Empty;
+            return Ok(usuario);
         }
     }
 }
