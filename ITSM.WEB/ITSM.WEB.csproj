@@ -9,7 +9,6 @@
 		<ProjectReference Include="..\ITSM.Entidades\ITSM.Entidades.csproj" />
 		<ProjectReference Include="..\ITSM.Negocio\ITSM.Negocio.csproj" />
 		<ProjectReference Include="..\ITSM.Datos\ITSM.Datos.csproj" />
-		<ProjectReference Include="..\ITSM.WEB.Client\ITSM.WEB.Client.csproj" />
 
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.0" />
 

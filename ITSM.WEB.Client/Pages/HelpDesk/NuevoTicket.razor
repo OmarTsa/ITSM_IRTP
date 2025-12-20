@@ -8,7 +8,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 
-@* Solución al error de InteractiveServer: Usar la constante de RenderMode *@
+@* Configuración correcta para Blazor Server en .NET 8 *@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
@@ -80,7 +80,6 @@
     {
         try
         {
-            // Ahora llama directamente al método corregido en TicketNegocio
             listaCategorias = await TicketNegocio.ListarCategoriasAsync();
             if (listaCategorias.Any())
             {
@@ -90,7 +89,7 @@
             nuevoTicket.IdImpacto = 3;
             nuevoTicket.IdUrgencia = 3;
         }
-        catch (Exception ex)
+        catch
         {
             Snackbar.Add("Error al sincronizar datos.", Severity.Error);
         }
@@ -106,13 +105,12 @@
             if (int.TryParse(idClaim, out int userId))
             {
                 nuevoTicket.IdSolicitante = userId;
-                // Llama directamente al método corregido
                 await TicketNegocio.GuardarTicketAsync(nuevoTicket);
                 Snackbar.Add("¡Registrado!", Severity.Success);
                 Navigation.NavigateTo("/helpdesk/mis-tickets");
             }
         }
-        catch (Exception ex)
+        catch
         {
             Snackbar.Add("Error al procesar el ticket.", Severity.Error);
         }

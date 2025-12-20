@@ -9,6 +9,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\ITSM.Entidades\ITSM.Entidades.csproj" />
+		<ProjectReference Include="..\ITSM.Negocio\ITSM.Negocio.csproj" />
 
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.0" />
