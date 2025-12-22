@@ -1,15 +1,11 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
-@* Forzamos el namespace para que coincida con el servidor *@
-@namespace ITSM.WEB.Components
 
 <Router AppAssembly="@typeof(ITSM.WEB.Program).Assembly">
     <Found Context="routeData">
-        @* Usamos el nombre completo del Layout para evitar errores *@
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(ITSM.WEB.Components.Layout.MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <PageTitle>No encontrado</PageTitle>
         <LayoutView Layout="@typeof(ITSM.WEB.Components.Layout.MainLayout)">
             <p role="alert">Lo sentimos, no hay nada en esta dirección.</p>
         </LayoutView>
