@@ -2,8 +2,9 @@
 using ITSM.Negocio;
 using ITSM.Entidades;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace ITSM.WEB.Controllers
 {
@@ -11,62 +12,66 @@ namespace ITSM.WEB.Controllers
     [ApiController]
     public class AutenticacionController : ControllerBase
     {
+        // 1. Declaramos las variables privadas (Negocio y Configuración)
         private readonly UsuarioNegocio _usuarioNegocio;
+        private readonly IConfiguration _config;
 
-        public AutenticacionController(UsuarioNegocio usuarioNegocio)
+        // 2. INYECCIÓN DE DEPENDENCIAS (CONSTRUCTOR)
+        // Aquí es donde "inyectamos" lo que antes intentabas hacer con @inject
+        public AutenticacionController(UsuarioNegocio usuarioNegocio, IConfiguration config)
         {
             _usuarioNegocio = usuarioNegocio;
+            _config = config;
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] SolicitudAcceso request)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            if (request == null || string.IsNullOrEmpty(request.NombreUsuario) || string.IsNullOrEmpty(request.Clave))
-            {
-                return BadRequest(new { mensaje = "Datos incompletos" });
-            }
-
-            // 1. Validar credenciales usando la capa de Negocio
-            var usuario = await _usuarioNegocio.LoginAsync(request.NombreUsuario, request.Clave);
+            // Usamos la capa de Negocio para buscar al usuario
+            var usuario = await _usuarioNegocio.Login(request.Email, request.Password);
 
             if (usuario == null)
             {
-                return Unauthorized(new { mensaje = "Credenciales incorrectas" });
+                return Unauthorized(new { mensaje = "Credenciales incorrectas o usuario inactivo" });
             }
 
-            // 2. Crear los Claims (Datos de la identidad del usuario)
+            // 3. CREACIÓN DE CLAIMS (DATOS DEL TOKEN)
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, usuario.NombreUsuario),
+                // .ToString() es obligatorio aquí
+                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
+                new Claim(ClaimTypes.Name, usuario.NombreCompleto),
+                new Claim(ClaimTypes.Email, usuario.Email),
                 new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
-                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
+                new Claim("Username", usuario.Username)
             };
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
+            // 4. GENERACIÓN DE LA LLAVE DE SEGURIDAD
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? "ClaveSecretaSuperSegura123!"));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            // 5. CREACIÓN DEL TOKEN JWT
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddHours(8),
+                signingCredentials: creds
+            );
+
+            // 6. RETORNO DE RESPUESTA EXITOSA
+            return Ok(new
             {
-                IsPersistent = true,
-                ExpiresUtc = DateTime.UtcNow.AddMinutes(60)
-            };
-
-            // 3. Crear la Cookie de Sesión (Esta es la línea de autenticación)
-            // IMPORTANTE: Esto requiere que en Program.cs hayas agregado .AddAuthentication().AddCookie()
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            // 4. Limpiar datos sensibles antes de devolver al cliente
-            usuario.Clave = "";
-
-            return Ok(usuario);
+                token = new JwtSecurityTokenHandler().WriteToken(token),
+                usuario = usuario
+            });
         }
 
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout()
+        // Clase auxiliar para recibir el JSON del login
+        public class LoginRequest
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Ok(new { mensaje = "Sesión cerrada" });
+            public string Email { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
         }
     }
 }

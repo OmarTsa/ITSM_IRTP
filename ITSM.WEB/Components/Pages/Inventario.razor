@@ -34,7 +34,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Se llama al nuevo método que agregamos al servicio
         listaActivos = await _ticketServicio.ObtenerActivos();
     }
 }

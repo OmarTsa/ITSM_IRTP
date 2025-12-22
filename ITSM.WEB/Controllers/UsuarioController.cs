@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization; // <--- NECESARIO PARA LA SEGURIDAD
 using ITSM.Negocio;
 using ITSM.Entidades;
 
@@ -7,7 +6,6 @@ namespace ITSM.WEB.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // <--- ESTO PROTEGE TUS DATOS DE ATAQUES EXTERNOS
     public class UsuarioController : ControllerBase
     {
         private readonly UsuarioNegocio _usuarioNegocio;
@@ -17,18 +15,38 @@ namespace ITSM.WEB.Controllers
             _usuarioNegocio = usuarioNegocio;
         }
 
-        [HttpGet("listar")]
-        public async Task<IActionResult> ObtenerTodos()
+        [HttpGet]
+        public async Task<IActionResult> Get()
         {
-            try
+            var lista = await _usuarioNegocio.ListarUsuarios();
+            return Ok(lista);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
+        {
+            var usuario = await _usuarioNegocio.ObtenerPorId(id);
+            if (usuario == null) return NotFound();
+            return Ok(usuario);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Post([FromBody] Usuario usuario)
+        {
+            if (string.IsNullOrEmpty(usuario.Username) || string.IsNullOrEmpty(usuario.Password))
             {
-                var lista = await _usuarioNegocio.ListarUsuariosAsync();
-                return Ok(lista);
+                return BadRequest("Datos incompletos");
             }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error al consultar usuarios: {ex.Message}");
-            }
+            await _usuarioNegocio.GuardarUsuario(usuario);
+            return Ok();
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Put(int id, [FromBody] Usuario usuario)
+        {
+            if (id != usuario.IdUsuario) return BadRequest();
+            await _usuarioNegocio.GuardarUsuario(usuario);
+            return Ok();
         }
     }
 }

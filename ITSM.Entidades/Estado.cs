@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("SEG_ESTADOS")] // Verifica si tu tabla se llama así o "GLPI_ESTADOS" en tu BD
+    [Table("ESTADOS_TICKET")]
     public class Estado
     {
         [Key]
@@ -12,8 +12,5 @@ namespace ITSM.Entidades
 
         [Column("NOMBRE")]
         public string Nombre { get; set; } = string.Empty;
-
-        [Column("ACTIVO")]
-        public int? Activo { get; set; }
     }
 }

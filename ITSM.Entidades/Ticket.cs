@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("GLPI_TICKETS")]
+    [Table("HD_TICKETS")]
     public class Ticket
     {
         [Key]
@@ -33,6 +33,7 @@ namespace ITSM.Entidades
         [ForeignKey("IdCategoria")]
         public Categoria? Categoria { get; set; }
 
+        // En tu BD tienes ID_ESTADO (numérico) y ESTADO (texto). Usamos el ID.
         [Column("ID_ESTADO")]
         public int IdEstado { get; set; }
 
@@ -51,8 +52,8 @@ namespace ITSM.Entidades
         [ForeignKey("IdEspecialista")]
         public Usuario? Especialista { get; set; }
 
-        // --- ESTO SOLUCIONA EL ERROR CS1061 EN NUEVO TICKET ---
-        [Column("ID_ACTIVO")]
+        // CORRECCIÓN CLAVE SEGÚN TU DDL
+        [Column("ID_ACTIVO_AFECTADO")]
         public int? IdActivo { get; set; }
 
         [ForeignKey("IdActivo")]

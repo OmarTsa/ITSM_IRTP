@@ -6,7 +6,7 @@
         <MudSelect T="int?" Label="Activos Disponibles" @bind-Value="IdActivoSeleccionado">
             @foreach (var activo in ListaActivos)
             {
-                @* CORRECCIÓN AQUÍ: Usar CodPatrimonial *@
+                @* CORRECCIÓN AQUÍ: Usamos CodInventario *@
                 <MudSelectItem T="int?" Value="@activo.IdActivo">
                     @activo.Nombre (@activo.CodInventario)
                 </MudSelectItem>

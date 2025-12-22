@@ -1,61 +1,64 @@
 ﻿using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
-using ITSM.WEB.Client.Servicios;
-using ITSM.Entidades;
+using Microsoft.JSInterop;
 
 namespace ITSM.WEB.Client.Auth
 {
     public class ProveedorAutenticacion : AuthenticationStateProvider
     {
-        private readonly ServicioSesion _servicioSesion;
-        private readonly ClaimsPrincipal _anonimo = new ClaimsPrincipal(new ClaimsIdentity());
+        private readonly IJSRuntime _js;
+        private readonly HttpClient _http;
 
-        public ProveedorAutenticacion(ServicioSesion servicioSesion)
+        public ProveedorAutenticacion(IJSRuntime js, HttpClient http)
         {
-            _servicioSesion = servicioSesion;
+            _js = js;
+            _http = http;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var usuario = await _servicioSesion.ObtenerUsuario();
+            var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
 
-            if (usuario == null)
-                return new AuthenticationState(_anonimo);
-
-            var claims = new List<Claim>
+            if (string.IsNullOrEmpty(token))
             {
-                new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                // CORRECCIÓN: Accedemos a .Nombre. Si es nulo, usa "Usuario"
-                new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
-                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
-            };
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            }
 
-            var identidad = new ClaimsIdentity(claims, "JwtAuth");
-            return new AuthenticationState(new ClaimsPrincipal(identidad));
+            _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt")));
         }
 
-        public async Task NotificarLogin(Usuario usuario)
+        public void NotificarLogin(string token)
         {
-            await _servicioSesion.GuardarUsuario(usuario);
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                // CORRECCIÓN AQUÍ TAMBIÉN
-                new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
-                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
-            };
-
-            var identidad = new ClaimsIdentity(claims, "JwtAuth");
-            var userPrincipal = new ClaimsPrincipal(identidad);
-
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(userPrincipal)));
+            var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt")));
+            NotifyAuthenticationStateChanged(Task.FromResult(authState));
         }
 
-        public async Task NotificarLogout()
+        public void NotificarLogout()
         {
-            await _servicioSesion.CerrarSesion();
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonimo)));
+            var authState = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            NotifyAuthenticationStateChanged(Task.FromResult(authState));
+        }
+
+        private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+        {
+            var payload = jwt.Split('.')[1];
+            var jsonBytes = ParseBase64WithoutPadding(payload);
+            var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+
+            return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()));
+        }
+
+        private byte[] ParseBase64WithoutPadding(string base64)
+        {
+            switch (base64.Length % 4)
+            {
+                case 2: base64 += "=="; break;
+                case 3: base64 += "="; break;
+            }
+            return Convert.FromBase64String(base64);
         }
     }
 }

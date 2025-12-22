@@ -13,41 +13,43 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // Método existente
-        public async Task<Usuario?> ValidarLoginAsync(string username, string password)
+        public async Task<Usuario?> Login(string email, string password)
         {
+            // Mapea a las columnas de tu BD (CORREO, PASSWORD_HASH, ESTADO)
+            // Nota: En la entidad 'Usuario' mapeamos ESTADO -> Activo
             return await _contexto.Usuarios
-                .Include(u => u.Rol) // Asegúrate de tener la entidad Rol o quitar esto si no la usas
-                .FirstOrDefaultAsync(u => u.NombreUsuario == username && u.Clave == password && u.Estado == 1);
+                .Include(u => u.Rol)
+                .Where(u => u.Email == email && u.Password == password && u.Activo == 1)
+                .FirstOrDefaultAsync();
         }
 
-        // --- MÉTODOS AGREGADOS PARA CORREGIR ERRORES ---
-
-        public async Task<Usuario?> LoginAsync(string username, string password)
-        {
-            // Reutilizamos la lógica de validación existente
-            return await ValidarLoginAsync(username, password);
-        }
-
-        public async Task<List<Usuario>> ListarUsuariosAsync()
+        public async Task<List<Usuario>> ListarUsuarios()
         {
             return await _contexto.Usuarios
-                .AsNoTracking()
+                .Include(u => u.Rol)
+                .Where(u => u.Activo == 1)
                 .ToListAsync();
         }
 
-        public async Task<List<Usuario>> ListarTecnicosAsync()
+        public async Task<Usuario?> ObtenerPorId(int id)
         {
-            // Asumiendo que IdRol 4 es técnico
             return await _contexto.Usuarios
-                .Where(u => u.IdRol == 4 && u.Estado == 1)
-                .AsNoTracking()
-                .ToListAsync();
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u => u.IdUsuario == id);
         }
 
-        public async Task<Usuario?> ObtenerPorIdAsync(int id)
+        public async Task GuardarUsuario(Usuario usuario)
         {
-            return await _contexto.Usuarios.FindAsync(id);
+            if (usuario.IdUsuario == 0)
+            {
+                usuario.Activo = 1; // Default activo
+                _contexto.Usuarios.Add(usuario);
+            }
+            else
+            {
+                _contexto.Usuarios.Update(usuario);
+            }
+            await _contexto.SaveChangesAsync();
         }
     }
 }

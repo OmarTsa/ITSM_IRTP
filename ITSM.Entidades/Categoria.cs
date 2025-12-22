@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("GLPI_CATEGORIAS")]
+    [Table("HD_CATEGORIAS")]
     public class Categoria
     {
         [Key]

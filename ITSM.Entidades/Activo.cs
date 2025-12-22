@@ -10,8 +10,7 @@ namespace ITSM.Entidades
         [Column("ID_ACTIVO")]
         public int IdActivo { get; set; }
 
-        // CAMBIO AQUÍ: Ahora se llama CodInventario en C#
-        // Mantenemos el nombre de la columna en BD (si tu tabla usa CODIGO_PATRIMONIAL o COD_INVENTARIO, ajusta este string)
+        // ESTÁNDAR DEFINIDO: Usamos CodInventario
         [Column("CODIGO_PATRIMONIAL")]
         public string CodInventario { get; set; } = string.Empty;
 
@@ -24,7 +23,6 @@ namespace ITSM.Entidades
         [Column("SERIE")]
         public string Serie { get; set; } = string.Empty;
 
-        // Propiedad calculada para mostrar nombre completo en los combos
         [NotMapped]
         public string Nombre => $"{Marca} {Modelo}";
 

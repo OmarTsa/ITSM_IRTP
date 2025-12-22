@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("GLPI_PRIORIDAD")] // O el nombre que tenga en tu BD
+    [Table("PRIORIDADES")]
     public class Prioridad
     {
         [Key]
@@ -13,7 +13,10 @@ namespace ITSM.Entidades
         [Column("NOMBRE")]
         public string Nombre { get; set; } = string.Empty;
 
-        [Column("DESCRIPCION")]
-        public string? Descripcion { get; set; }
+        [Column("HORAS_SLA")]
+        public int? HorasSla { get; set; }
+
+        [Column("COLOR")]
+        public string? Color { get; set; }
     }
 }

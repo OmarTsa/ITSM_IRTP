@@ -1,151 +1,112 @@
 ﻿@page "/helpdesk/mis-tickets"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@using Microsoft.AspNetCore.Components.Authorization
 @using MudBlazor
 
 @inject TicketServicio _ticketServicio
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthStateProvider
-@inject ISnackbar Snackbar
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Large" Color="Color.Primary" />
-    <MudText Typo="Typo.h4" Color="Color.Primary">Mis Solicitudes</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Filled"
-               Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.Add"
-               Href="/helpdesk/nuevo-ticket">
-        Nuevo Ticket
-    </MudButton>
-</MudStack>
+<MudText Typo="Typo.h5" Class="mb-4"><b>Mis Solicitudes</b></MudText>
 
-<MudTable Items="@listaTickets"
-          Dense="false"
-          Hover="true"
-          Bordered="false"
-          Striped="true"
-          Filter="new Func<Ticket, bool>(FiltrarTickets)"
-          Elevation="4"
-          Class="rounded-lg">
-
+<MudTable Items="@tickets" Hover="true" Striped="true" Filter="new Func<Ticket, bool>(Filtrar)" Elevation="3" Loading="@cargando">
     <ToolBarContent>
-        <MudText Typo="Typo.h6">Historial Reciente</MudText>
+        <MudText Typo="Typo.h6">Bandeja de Entrada</MudText>
         <MudSpacer />
-        <MudTextField @bind-Value="searchString"
-                      Placeholder="Buscar..."
-                      Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
-                      IconSize="Size.Medium"
-                      Class="mt-0" />
+        <MudTextField @bind-Value="busqueda" Placeholder="Buscar por asunto, código..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
     </ToolBarContent>
-
     <HeaderContent>
-        <MudTh><MudTableSortLabel SortBy="new Func<Ticket, object>(x => x.IdTicket)">Nro</MudTableSortLabel></MudTh>
-        <MudTh>Asunto</MudTh>
-        <MudTh>Categoría</MudTh>
+        <MudTh>ID</MudTh>
+        <MudTh>Prioridad</MudTh>
+        <MudTh>Asunto / Activo</MudTh>
+        <MudTh>Estado</MudTh>
         <MudTh>Fecha</MudTh>
-        <MudTh Style="text-align:center">Estado</MudTh>
-        <MudTh Style="text-align:center">Acciones</MudTh>
+        <MudTh>Acciones</MudTh>
     </HeaderContent>
-
     <RowTemplate>
-        <MudTd DataLabel="Nro">
-            <MudText Typo="Typo.body2" Color="Color.Secondary"><b>#@context.IdTicket</b></MudText>
+        <MudTd DataLabel="ID"><b>#@context.IdTicket</b></MudTd>
+
+        <MudTd DataLabel="Prioridad">
+            <div class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Flag" Color="@ObtenerColorPrioridad(context.Prioridad?.Nombre)" Size="Size.Small" Class="mr-2" />
+                @context.Prioridad?.Nombre
+            </div>
         </MudTd>
+
         <MudTd DataLabel="Asunto">
-            <MudText Typo="Typo.body1" Style="font-weight:bold;">@context.Titulo</MudText>
-            <MudText Typo="Typo.caption">@AcortarTexto(context.Descripcion)</MudText>
+            <MudText Typo="Typo.body2" Style="font-weight:bold;">@context.Titulo</MudText>
+
+            @if (context.Activo != null)
+            {
+                <MudChip T="string" Variant="Variant.Text" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.QrCode">
+                    @context.Activo.CodInventario
+                </MudChip>
+            }
         </MudTd>
-        <MudTd DataLabel="Categoría">
-            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Label" Variant="Variant.Outlined">
-                @(context.Categoria?.Nombre ?? "General")
+
+        <MudTd DataLabel="Estado">
+            <MudChip T="string" Color="@ObtenerColorEstado(context.Estado?.Nombre)" Size="Size.Small" Variant="Variant.Filled">
+                @context.Estado?.Nombre
             </MudChip>
         </MudTd>
-        <MudTd DataLabel="Fecha">@context.FechaCreacion.ToShortDateString()</MudTd>
-        <MudTd DataLabel="Estado" Style="text-align:center">
-            <MudChip T="string" Color="@ObtenerColorEstado(context.Estado?.Nombre)" Variant="Variant.Filled" Size="Size.Small">
-                @(context.Estado?.Nombre ?? "Desconocido")
-            </MudChip>
-        </MudTd>
-        <MudTd Style="text-align:center">
-            <MudTooltip Text="Ver Detalles">
-                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
-                               Color="Color.Primary"
-                               OnClick="@(() => VerDetalle(context.IdTicket))" />
-            </MudTooltip>
+
+        <MudTd DataLabel="Fecha">@context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</MudTd>
+
+        <MudTd DataLabel="Acciones">
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" OnClick="@(() => VerDetalle(context.IdTicket))" />
         </MudTd>
     </RowTemplate>
-
     <PagerContent>
-        <MudTablePager RowsPerPageString="Filas por página" />
+        <MudTablePager />
     </PagerContent>
 </MudTable>
 
 @code {
-    private List<Ticket> listaTickets = new();
-    private string searchString = "";
-    private int idUsuarioActual;
+    private List<Ticket> tickets = new List<Ticket>();
+    private string busqueda = "";
+    private bool cargando = true;
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity != null && user.Identity.IsAuthenticated)
-        {
-            var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (idClaim != null && int.TryParse(idClaim.Value, out int id))
-            {
-                idUsuarioActual = id;
-                await CargarTickets();
-            }
-        }
+        // Traemos todos los tickets. Gracias al fix en TicketNegocio, ahora traerá los Activos.
+        tickets = await _ticketServicio.ObtenerTickets();
+        cargando = false;
     }
 
-    private async Task CargarTickets()
+    private bool Filtrar(Ticket t)
     {
-        try
-        {
-            listaTickets = await _ticketServicio.ListarPorUsuario(idUsuarioActual);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error al cargar: {ex.Message}", Severity.Error);
-        }
+        if (string.IsNullOrWhiteSpace(busqueda)) return true;
+        if (t.Titulo.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        if (t.IdTicket.ToString().Contains(busqueda)) return true;
+
+        // Filtramos también por código de inventario si existe
+        if (t.Activo != null && t.Activo.CodInventario.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+
+        return false;
     }
 
-    private Color ObtenerColorEstado(string? estado)
+    private void VerDetalle(int id)
     {
-        if (string.IsNullOrEmpty(estado)) return Color.Default;
-        return estado.ToUpper() switch
+        Navigation.NavigateTo($"/helpdesk/ticket/{id}");
+    }
+
+    private Color ObtenerColorPrioridad(string? nombre)
+    {
+        if (string.IsNullOrEmpty(nombre)) return Color.Default;
+        if (nombre.Contains("Alta", StringComparison.OrdinalIgnoreCase)) return Color.Error;
+        if (nombre.Contains("Media", StringComparison.OrdinalIgnoreCase)) return Color.Warning;
+        return Color.Success;
+    }
+
+    private Color ObtenerColorEstado(string? nombre)
+    {
+        if (string.IsNullOrEmpty(nombre)) return Color.Default;
+        return nombre.ToUpper() switch
         {
             "ABIERTO" => Color.Info,
             "EN PROCESO" => Color.Warning,
             "RESUELTO" => Color.Success,
-            "CERRADO" => Color.Error,
+            "CERRADO" => Color.Dark,
             _ => Color.Default
         };
-    }
-
-    private bool FiltrarTickets(Ticket element)
-    {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (element.Titulo.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
-        if (element.Descripcion?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if ($"{element.IdTicket}".Contains(searchString)) return true;
-        return false;
-    }
-
-    private string AcortarTexto(string? texto)
-    {
-        if (string.IsNullOrEmpty(texto)) return "";
-        return texto.Length > 50 ? texto.Substring(0, 50) + "..." : texto;
-    }
-
-    private void VerDetalle(int idTicket)
-    {
-        Navigation.NavigateTo($"/helpdesk/ticket/{idTicket}");
     }
 }
