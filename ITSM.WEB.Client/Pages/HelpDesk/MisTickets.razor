@@ -1,63 +1,151 @@
 ﻿@page "/helpdesk/mis-tickets"
 @using ITSM.Entidades
-@inject TicketServicio _ticketServicio
-@inject NavigationManager Nav
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
 
-@* CAMBIO CRÍTICO: Agregamos T="Ticket" y Context="item" *@
-<MudTable T="Ticket" Items="@tickets" Context="item" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@loading" LoadingProgressColor="Color.Info">
+@inject TicketServicio _ticketServicio
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIcon Icon="@Icons.Material.Filled.Dashboard" Size="Size.Large" Color="Color.Primary" />
+    <MudText Typo="Typo.h4" Color="Color.Primary">Mis Solicitudes</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               Href="/helpdesk/nuevo-ticket">
+        Nuevo Ticket
+    </MudButton>
+</MudStack>
+
+<MudTable Items="@listaTickets"
+          Dense="false"
+          Hover="true"
+          Bordered="false"
+          Striped="true"
+          Filter="new Func<Ticket, bool>(FiltrarTickets)"
+          Elevation="4"
+          Class="rounded-lg">
+
     <ToolBarContent>
-        <MudText Typo="Typo.h6">Mis Tickets</MudText>
+        <MudText Typo="Typo.h6">Historial Reciente</MudText>
         <MudSpacer />
-        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Href="/helpdesk/nuevo">
-            Nuevo Ticket
-        </MudButton>
+        <MudTextField @bind-Value="searchString"
+                      Placeholder="Buscar..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      IconSize="Size.Medium"
+                      Class="mt-0" />
     </ToolBarContent>
+
     <HeaderContent>
-        <MudTh>ID</MudTh>
-        <MudTh>Título</MudTh>
+        <MudTh><MudTableSortLabel SortBy="new Func<Ticket, object>(x => x.IdTicket)">Nro</MudTableSortLabel></MudTh>
+        <MudTh>Asunto</MudTh>
         <MudTh>Categoría</MudTh>
-        <MudTh>Estado</MudTh>
         <MudTh>Fecha</MudTh>
-        <MudTh>Acciones</MudTh>
+        <MudTh Style="text-align:center">Estado</MudTh>
+        <MudTh Style="text-align:center">Acciones</MudTh>
     </HeaderContent>
+
     <RowTemplate>
-        <MudTd DataLabel="ID">@item.IdTicket</MudTd>
-        <MudTd DataLabel="Título">@item.Titulo</MudTd>
-        <MudTd DataLabel="Categoría">@(item.Categoria?.Nombre ?? "-")</MudTd>
-        <MudTd DataLabel="Estado">
-            <MudChip T="string" Color="@GetColor(item.Estado?.Nombre)">@item.Estado?.Nombre</MudChip>
+        <MudTd DataLabel="Nro">
+            <MudText Typo="Typo.body2" Color="Color.Secondary"><b>#@context.IdTicket</b></MudText>
         </MudTd>
-        <MudTd DataLabel="Fecha">@item.FechaCreacion.ToShortDateString()</MudTd>
-        <MudTd DataLabel="Acciones">
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" OnClick="@(() => VerDetalle(item.IdTicket))" />
+        <MudTd DataLabel="Asunto">
+            <MudText Typo="Typo.body1" Style="font-weight:bold;">@context.Titulo</MudText>
+            <MudText Typo="Typo.caption">@AcortarTexto(context.Descripcion)</MudText>
+        </MudTd>
+        <MudTd DataLabel="Categoría">
+            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Label" Variant="Variant.Outlined">
+                @(context.Categoria?.Nombre ?? "General")
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="Fecha">@context.FechaCreacion.ToShortDateString()</MudTd>
+        <MudTd DataLabel="Estado" Style="text-align:center">
+            <MudChip T="string" Color="@ObtenerColorEstado(context.Estado?.Nombre)" Variant="Variant.Filled" Size="Size.Small">
+                @(context.Estado?.Nombre ?? "Desconocido")
+            </MudChip>
+        </MudTd>
+        <MudTd Style="text-align:center">
+            <MudTooltip Text="Ver Detalles">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                               Color="Color.Primary"
+                               OnClick="@(() => VerDetalle(context.IdTicket))" />
+            </MudTooltip>
         </MudTd>
     </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager RowsPerPageString="Filas por página" />
+    </PagerContent>
 </MudTable>
 
 @code {
-    private List<Ticket> tickets = new List<Ticket>();
-    private bool loading = true;
+    private List<Ticket> listaTickets = new();
+    private string searchString = "";
+    private int idUsuarioActual;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
         {
-            tickets = await _ticketServicio.ObtenerMisTickets(1);
+            var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out int id))
+            {
+                idUsuarioActual = id;
+                await CargarTickets();
+            }
         }
-        catch
-        {
-            tickets = new List<Ticket>();
-        }
-        loading = false;
     }
 
-    private void VerDetalle(int id) => Nav.NavigateTo($"/helpdesk/detalle/{id}");
-
-    private Color GetColor(string? estado) => estado switch
+    private async Task CargarTickets()
     {
-        "Abierto" => Color.Error,
-        "En Proceso" => Color.Warning,
-        "Resuelto" => Color.Success,
-        _ => Color.Default
-    };
+        try
+        {
+            listaTickets = await _ticketServicio.ListarPorUsuario(idUsuarioActual);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private Color ObtenerColorEstado(string? estado)
+    {
+        if (string.IsNullOrEmpty(estado)) return Color.Default;
+        return estado.ToUpper() switch
+        {
+            "ABIERTO" => Color.Info,
+            "EN PROCESO" => Color.Warning,
+            "RESUELTO" => Color.Success,
+            "CERRADO" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private bool FiltrarTickets(Ticket element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Titulo.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Descripcion?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if ($"{element.IdTicket}".Contains(searchString)) return true;
+        return false;
+    }
+
+    private string AcortarTexto(string? texto)
+    {
+        if (string.IsNullOrEmpty(texto)) return "";
+        return texto.Length > 50 ? texto.Substring(0, 50) + "..." : texto;
+    }
+
+    private void VerDetalle(int idTicket)
+    {
+        Navigation.NavigateTo($"/helpdesk/ticket/{idTicket}");
+    }
 }

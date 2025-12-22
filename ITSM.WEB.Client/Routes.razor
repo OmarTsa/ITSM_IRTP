@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
-@using Microsoft.AspNetCore.Components.Authorization  @* <--- IMPORTANTE *@
+@using Microsoft.AspNetCore.Components.Authorization
 @using ITSM.WEB.Client.Layout
+@using MudBlazor
 
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(Program).Assembly">
@@ -9,16 +10,19 @@
                 <NotAuthorized>
                     <LayoutView Layout="@typeof(LoginLayout)">
                         <div class="d-flex flex-column align-center justify-center" style="height:100vh">
-                            <h3>No autorizado</h3>
-                            <p>Debes iniciar sesión para ver esta página.</p>
-                            <MudButton Link="/login" Variant="Variant.Filled" Color="Color.Primary">Ir al Login</MudButton>
+                            <MudText Typo="Typo.h4" GutterBottom="true">No autorizado</MudText>
+                            <MudText>Debes iniciar sesión para ver esta página.</MudText>
+
+                            <MudButton Href="/login" Variant="Variant.Filled" Color="Color.Primary" Class="mt-4">
+                                Ir al Login
+                            </MudButton>
+
                         </div>
                     </LayoutView>
                 </NotAuthorized>
                 <Authorizing>
                     <div class="d-flex justify-center mt-4">
                         <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-                        <MudText Class="ms-2">Verificando sesión...</MudText>
                     </div>
                 </Authorizing>
             </AuthorizeRouteView>

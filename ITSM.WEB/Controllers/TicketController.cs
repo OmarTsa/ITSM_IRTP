@@ -15,33 +15,49 @@ namespace ITSM.WEB.Controllers
             _ticketNegocio = ticketNegocio;
         }
 
-        [HttpGet("categorias")]
-        public async Task<ActionResult<List<Categoria>>> ListarCategorias()
+        [HttpGet]
+        public async Task<IActionResult> Get()
         {
-            return Ok(await _ticketNegocio.ListarCategoriasAsync());
+            var lista = await _ticketNegocio.ObtenerTickets();
+            return Ok(lista);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> Get(int id)
+        {
+            var ticket = await _ticketNegocio.ObtenerTicketPorId(id);
+            if (ticket == null) return NotFound();
+            return Ok(ticket);
+        }
+
+        [HttpGet("usuario/{id}")]
+        public async Task<IActionResult> GetPorUsuario(int id)
+        {
+            var lista = await _ticketNegocio.ObtenerTicketsPorUsuario(id);
+            return Ok(lista);
+        }
+
+        // --- ENDPOINT AGREGADO ---
+        [HttpGet("categorias")]
+        public async Task<IActionResult> GetCategorias()
+        {
+            var lista = await _ticketNegocio.ListarCategorias();
+            return Ok(lista);
         }
 
         [HttpPost]
-        public async Task<ActionResult> CrearTicket([FromBody] Ticket ticket)
+        public async Task<IActionResult> Post([FromBody] Ticket ticket)
         {
-            await _ticketNegocio.GuardarTicketAsync(ticket);
+            await _ticketNegocio.GuardarTicket(ticket);
             return Ok();
         }
 
-        // Endpoint para Mis Tickets
-        [HttpGet("usuario/{idUsuario}")]
-        public async Task<ActionResult<List<Ticket>>> ObtenerPorUsuario(int idUsuario)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Put(int id, [FromBody] Ticket ticket)
         {
-            return Ok(await _ticketNegocio.ListarTicketsPorUsuarioAsync(idUsuario));
-        }
-
-        // Endpoint para Detalle
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Ticket>> ObtenerPorId(int id)
-        {
-            var ticket = await _ticketNegocio.ObtenerTicketPorIdAsync(id);
-            if (ticket == null) return NotFound();
-            return Ok(ticket);
+            if (id != ticket.IdTicket) return BadRequest();
+            await _ticketNegocio.GuardarTicket(ticket);
+            return Ok();
         }
     }
 }

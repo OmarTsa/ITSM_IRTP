@@ -1,13 +1,15 @@
-﻿@page "/helpdesk/nuevo"
+﻿@page "/helpdesk/nuevo-ticket"
 @using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@using MudBlazor
 @inject TicketServicio _ticketServicio
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h4" GutterBottom="true">Nuevo Ticket</MudText>
-
-<MudPaper Class="pa-4">
+<MudPaper Class="pa-4 ma-2" Elevation="3">
+    <MudText Typo="Typo.h5">Nuevo Ticket</MudText>
     <MudForm @bind-IsValid="@success">
+
         <MudTextField @bind-Value="ticket.Titulo" Label="Título del Incidente" Required="true" />
         <MudTextField @bind-Value="ticket.Descripcion" Label="Descripción Detallada" Lines="4" Required="true" />
 
@@ -31,6 +33,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Esto ahora funciona porque actualizamos TicketServicio.cs
         categorias = await _ticketServicio.ObtenerCategorias();
     }
 
@@ -38,9 +41,10 @@
     {
         try
         {
+            // TODO: Obtener el ID real del usuario logueado
             ticket.IdSolicitante = 1;
-            ticket.IdEstado = 1;
-            ticket.IdPrioridad = 2;
+            ticket.IdEstado = 1;      // Abierto
+            ticket.IdPrioridad = 3;   // Media
 
             await _ticketServicio.GuardarTicket(ticket);
 

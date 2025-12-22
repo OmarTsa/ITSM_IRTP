@@ -13,73 +13,76 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // --- MÉTODO AGREGADO PARA CORREGIR ERROR ---
-        public async Task<List<Activo>> ListarActivosAsync()
+        // --- MÉTODOS EXISTENTES (Déjalos igual) ---
+        public async Task<List<Ticket>> ObtenerTickets()
         {
-            return await _contexto.Activos
-                .AsNoTracking()
+            return await _contexto.Tickets
+                .Include(t => t.Categoria)
+                .Include(t => t.Estado)
+                .Include(t => t.Prioridad)
+                .OrderByDescending(t => t.FechaCreacion)
                 .ToListAsync();
         }
 
-        // Métodos existentes conservados
-        public async Task<List<Categoria>> ListarCategoriasAsync()
-        {
-            return await _contexto.Categorias.Where(c => c.Activo == 1).AsNoTracking().ToListAsync();
-        }
-
-        public async Task<List<Prioridad>> ListarPrioridadesAsync()
-        {
-            return await _contexto.Prioridades.AsNoTracking().ToListAsync();
-        }
-
-        public async Task<List<EstadoTicket>> ListarEstadosAsync()
-        {
-            return await _contexto.EstadosTicket.AsNoTracking().ToListAsync();
-        }
-
-        public async Task<List<Ticket>> ListarTicketsPorUsuarioAsync(int idUsuario)
+        public async Task<Ticket?> ObtenerTicketPorId(int id)
         {
             return await _contexto.Tickets
+                .Include(t => t.Categoria)
+                .Include(t => t.Estado)
+                .Include(t => t.Prioridad)
+                .Include(t => t.Solicitante)
+                .FirstOrDefaultAsync(t => t.IdTicket == id);
+        }
+
+        public async Task<List<Ticket>> ObtenerTicketsPorUsuario(int idUsuario)
+        {
+            return await _contexto.Tickets
+                .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Where(t => t.IdSolicitante == idUsuario)
                 .OrderByDescending(t => t.FechaCreacion)
-                .AsNoTracking()
                 .ToListAsync();
         }
 
+        public async Task<List<Categoria>> ListarCategorias()
+        {
+            return await _contexto.Categorias.Where(c => c.Activo == 1).ToListAsync();
+        }
+
+        public async Task GuardarTicket(Ticket ticket)
+        {
+            if (ticket.IdTicket == 0)
+            {
+                ticket.FechaCreacion = DateTime.Now;
+                _contexto.Tickets.Add(ticket);
+            }
+            else
+            {
+                _contexto.Tickets.Update(ticket);
+            }
+            await _contexto.SaveChangesAsync();
+        }
+
+        // --- MÉTODOS FALTANTES QUE CAUSAN EL ERROR (AGREGAR ESTOS) ---
+
+        // 1. Método que pide tu página de Tickets
         public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
         {
+            // Reutilizamos la lógica o hacemos la consulta completa incluyendo al Solicitante
             return await _contexto.Tickets
-                .Include(t => t.Estado)
                 .Include(t => t.Categoria)
-                .Include(t => t.Solicitante)
+                .Include(t => t.Estado)
+                .Include(t => t.Prioridad)
+                .Include(t => t.Solicitante) // IMPORTANTE: Para mostrar el nombre del usuario
                 .OrderByDescending(t => t.FechaCreacion)
-                .AsNoTracking()
                 .ToListAsync();
         }
 
-        public async Task<bool> GuardarTicketAsync(Ticket ticket)
+        // 2. Método que pide tu página de Inventario
+        public async Task<List<Activo>> ListarActivosAsync()
         {
-            if (ticket.FechaCreacion == default) ticket.FechaCreacion = DateTime.Now;
-            _contexto.Tickets.Add(ticket);
-            return await _contexto.SaveChangesAsync() > 0;
-        }
-
-        public async Task<Ticket?> ObtenerTicketPorIdAsync(int idTicket)
-        {
-            return await _contexto.Tickets
-                .Include(t => t.Estado)
-                .Include(t => t.Categoria)
-                .Include(t => t.ActivoRelacionado)
-                .FirstOrDefaultAsync(t => t.IdTicket == idTicket);
-        }
-
-        public async Task<List<Ticket>> GenerarReporteTicketsAsync(DateTime inicio, DateTime fin)
-        {
-            return await _contexto.Tickets
-                .Include(t => t.Estado)
-                .Where(t => t.FechaCreacion >= inicio && t.FechaCreacion <= fin)
-                .AsNoTracking()
+            return await _contexto.Activos
+                .Include(a => a.UsuarioAsignado) // Para mostrar quién lo tiene asignado
                 .ToListAsync();
         }
     }

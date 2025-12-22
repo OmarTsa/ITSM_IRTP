@@ -22,23 +22,13 @@ namespace ITSM.WEB.Client.Auth
             if (usuario == null)
                 return new AuthenticationState(_anonimo);
 
-            // Crear los Claims (Datos de la credencial)
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                
-                // --- CORREGIDO: Accedemos a usuario.Rol?.Nombre ---
-                // Si usuario.Rol es nulo, usa "Usuario" por defecto
+                // CORRECCIÓN: Accedemos a .Nombre. Si es nulo, usa "Usuario"
                 new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
-
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
             };
-
-            // Propiedad calculada en Usuario.cs (NombreCompleto)
-            if (!string.IsNullOrEmpty(usuario.NombreCompleto))
-            {
-                claims.Add(new Claim("NombreCompleto", usuario.NombreCompleto));
-            }
 
             var identidad = new ClaimsIdentity(claims, "JwtAuth");
             return new AuthenticationState(new ClaimsPrincipal(identidad));
@@ -51,10 +41,8 @@ namespace ITSM.WEB.Client.Auth
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-
-                // --- CORREGIDO: Lo mismo aquí ---
+                // CORRECCIÓN AQUÍ TAMBIÉN
                 new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
-
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
             };
 

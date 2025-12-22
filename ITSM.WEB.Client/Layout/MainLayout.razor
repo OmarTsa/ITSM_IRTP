@@ -1,45 +1,63 @@
 ﻿@inherits LayoutComponentBase
 @using MudBlazor
 
-<MudThemeProvider Theme="IRTPTheme" />
+<MudThemeProvider Theme="CorporativoTheme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Color="Color.Primary">
+    <MudAppBar Elevation="2" Color="Color.Primary" Dense="false" Class="px-4">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h5" Class="ml-3">ITSM - OTIC IRTP</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.SupportAgent" Class="ml-3 mr-2" Size="Size.Large" />
+        <MudText Typo="Typo.h6" Style="font-weight: 600;">ITSM | Centro de Servicios</MudText>
         <MudSpacer />
-        <MudTooltip Text="Cerrar Sesión">
-            <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" href="/logout" />
-        </MudTooltip>
+
+        <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+            <ActivatorContent>
+                <MudAvatar Color="Color.Secondary" Variant="Variant.Outlined">U</MudAvatar>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem Icon="@Icons.Material.Filled.Person">Mi Perfil</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Logout" Href="/logout">Cerrar Sesión</MudMenuItem>
+            </ChildContent>
+        </MudMenu>
     </MudAppBar>
+
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
     </MudDrawer>
-    <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
-            @Body
+
+    <MudMainContent Class="mud-background-gray">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
+            <div class="animate__animated animate__fadeIn">
+                @Body
+            </div>
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
     private bool _drawerOpen = true;
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
-    private void ToggleDrawer()
-    {
-        _drawerOpen = !_drawerOpen;
-    }
-
-    private MudTheme IRTPTheme = new MudTheme()
+    // TEMA SIMPLIFICADO (Sin Typography para evitar errores de versión)
+    private MudTheme CorporativoTheme = new MudTheme()
     {
         PaletteLight = new PaletteLight()
         {
-            Primary = "#004B8D",
-            AppbarBackground = "#004B8D",
-            Secondary = "#D32F2F"
+            Primary = "#0D47A1",
+            Secondary = "#E91E63",
+            AppbarBackground = "#0D47A1",
+            Background = "#F4F6F8",
+            Surface = "#FFFFFF"
         }
     };
 }
+
+<style>
+    .mud-background-gray {
+        background-color: #F4F6F8;
+        min-height: 100vh;
+    }
+</style>
