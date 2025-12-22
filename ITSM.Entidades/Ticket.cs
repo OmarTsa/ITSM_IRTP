@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    // Asegúrate que el nombre de la tabla coincida con tu BD (ej. TICKETS, GLPI_TICKETS, etc.)
     [Table("GLPI_TICKETS")]
     public class Ticket
     {
@@ -20,7 +19,7 @@ namespace ITSM.Entidades
         [Column("FECHA_CREACION")]
         public DateTime FechaCreacion { get; set; }
 
-        // --- RELACIONES EXISTENTES ---
+        // --- RELACIONES ---
 
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
@@ -46,12 +45,17 @@ namespace ITSM.Entidades
         [ForeignKey("IdPrioridad")]
         public Prioridad? Prioridad { get; set; }
 
-        // --- PROPIEDAD QUE FALTABA (SOLUCIÓN DEL ERROR) ---
-
         [Column("ID_ESPECIALISTA")]
-        public int? IdEspecialista { get; set; } // Nullable, porque un ticket nuevo no tiene técnico aún
+        public int? IdEspecialista { get; set; }
 
         [ForeignKey("IdEspecialista")]
         public Usuario? Especialista { get; set; }
+
+        // --- ESTO SOLUCIONA EL ERROR CS1061 EN NUEVO TICKET ---
+        [Column("ID_ACTIVO")]
+        public int? IdActivo { get; set; }
+
+        [ForeignKey("IdActivo")]
+        public Activo? Activo { get; set; }
     }
 }

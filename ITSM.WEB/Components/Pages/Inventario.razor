@@ -1,22 +1,32 @@
-﻿@page "/inventario"
+﻿@page "/activos/inventario"
 @using ITSM.Entidades
-@using ITSM.Negocio
-@inject TicketNegocio TicketNegocio
+@using ITSM.WEB.Client.Servicios
+@using MudBlazor
+@inject TicketServicio _ticketServicio
+@inject ISnackbar Snackbar
 
 <MudText Typo="Typo.h4" Class="mb-4">Inventario de Activos</MudText>
 
-<MudTable Items="@listaActivos" Hover="true" Bordered="true">
+<MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3">
     <HeaderContent>
-        <MudTh>Nombre</MudTh>
         <MudTh>Código</MudTh>
+        <MudTh>Nombre / Descripción</MudTh>
         <MudTh>Usuario Asignado</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd>@context.Nombre</MudTd>
-        @* CORRECCIÓN AQUÍ: Usar CodPatrimonial *@
-        <MudTd>@context.CodPatrimonial</MudTd>
-        <MudTd>@(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")</MudTd>
+        <MudTd DataLabel="Código">
+            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">
+                @context.CodInventario
+            </MudChip>
+        </MudTd>
+        <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+        <MudTd DataLabel="Usuario Asignado">
+            @(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")
+        </MudTd>
     </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
 </MudTable>
 
 @code {
@@ -24,7 +34,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Ahora este método sí existe gracias a la corrección en TicketNegocio
-        listaActivos = await TicketNegocio.ListarActivosAsync();
+        // Se llama al nuevo método que agregamos al servicio
+        listaActivos = await _ticketServicio.ObtenerActivos();
     }
 }

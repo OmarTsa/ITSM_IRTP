@@ -1,39 +1,251 @@
-﻿@page "/helpdesk/detalle/{Id:int}"
+﻿@page "/helpdesk/ticket/{IdTicket:int}"
 @using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+
 @inject TicketServicio _ticketServicio
-@inject NavigationManager Nav
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h5" GutterBottom="true">Detalle del Ticket #@Id</MudText>
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/helpdesk/mis-tickets" Color="Color.Inherit" />
+    <MudText Typo="Typo.h5">Gestión de Ticket #@IdTicket</MudText>
+    <MudSpacer />
+    @if (hayCambios)
+    {
+        <div class="animate__animated animate__pulse animate__infinite">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="GuardarCambiosTicket">
+                Guardar Cambios
+            </MudButton>
+        </div>
+    }
+</MudStack>
 
 @if (ticket == null)
 {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
 }
 else
 {
-    <MudPaper Class="pa-4">
-        <MudTextField Label="Título" Value="@ticket.Titulo" ReadOnly="true" />
-        <MudTextField Label="Descripción" Value="@ticket.Descripcion" Lines="3" ReadOnly="true" Class="mt-3" />
-        <MudTextField Label="Estado" Value="@ticket.Estado?.Nombre" ReadOnly="true" Class="mt-3" />
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="3" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Primary">Panel de Control</MudText>
 
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Volver">Volver</MudButton>
-    </MudPaper>
+                <MudStack Spacing="3">
+                    <MudTextField Label="Asunto" Value="@ticket.Titulo" ReadOnly="true" Variant="Variant.Text" />
+
+                    <MudTextField Label="Categoría" Value="@ticket.Categoria?.Nombre" ReadOnly="true" Variant="Variant.Text" />
+
+                    <MudDivider />
+
+                    <MudSelect T="int" Label="Estado Actual" @bind-Value="ticket.IdEstado"
+                               AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined"
+                               SelectedValuesChanged="DetectarCambio">
+                        @foreach (var estado in listaEstados)
+                        {
+                            <MudSelectItem Value="@estado.IdEstado">
+                                <MudChip T="string" Color="@ObtenerColorEstado(estado.Nombre)" Size="Size.Small" Class="my-0">
+                                    @estado.Nombre
+                                </MudChip>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudSelect T="int?" Label="Asignado a" @bind-Value="ticket.IdEspecialista"
+                               AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined"
+                               Clearable="true"
+                               SelectedValuesChanged="DetectarCambio">
+                        @foreach (var user in listaEspecialistas)
+                        {
+                            <MudSelectItem T="int?" Value="@user.IdUsuario">@user.NombreCompleto</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    <MudField Label="Prioridad" Variant="Variant.Text">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="@(ticket.Prioridad?.Nombre.Contains("Alta") == true ? Color.Error : Color.Success)" Class="mr-2" />
+                            @ticket.Prioridad?.Nombre
+                        </div>
+                    </MudField>
+
+                    <MudField Label="Solicitante" Variant="Variant.Text">@ticket.Solicitante?.NombreCompleto</MudField>
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Elevation="3" Class="pa-4" Style="background-color:#FFF3E0;">
+                <MudText Typo="Typo.subtitle2" Color="Color.Warning" Class="mb-1">Descripción Original:</MudText>
+                <MudText Typo="Typo.body2" Style="font-style:italic;">
+                    "@ticket.Descripcion"
+                </MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="3" Class="pa-4 d-flex flex-column" Style="height: 600px;">
+                <MudText Typo="Typo.h6" Class="mb-3">Bitácora de Seguimiento</MudText>
+
+                <div class="flex-grow-1 overflow-auto px-2 mb-4">
+                    <MudTimeline TimelinePosition="TimelinePosition.Start">
+
+                        <MudTimelineItem Color="Color.Info" Size="Size.Small">
+                            <ItemOpposite>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@ticket.FechaCreacion.ToShortTimeString()</MudText>
+                            </ItemOpposite>
+                            <ItemContent>
+                                <MudText Typo="Typo.body2"><b>Ticket Creado</b></MudText>
+                            </ItemContent>
+                        </MudTimelineItem>
+
+                        @foreach (var detalle in detalles)
+                        {
+                            <MudTimelineItem Color="@(detalle.TipoAccion == 2 ? Color.Warning : (detalle.IdUsuario == ticket.IdSolicitante ? Color.Primary : Color.Success))" Size="Size.Small">
+                                <ItemOpposite>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@detalle.FechaRegistro.ToShortDateString() @detalle.FechaRegistro.ToShortTimeString()</MudText>
+                                </ItemOpposite>
+                                <ItemContent>
+                                    <MudPaper Elevation="1" Class="pa-3 mt-n2" Style="@(detalle.IdUsuario == ticket.IdSolicitante ? "background:#F5F5F5;" : "background:#E8F5E9;")">
+                                        <MudText Typo="Typo.caption" Color="Color.Default"><b>@(detalle.Usuario?.NombreCompleto ?? "Usuario")</b> escribió:</MudText>
+                                        <MudText Typo="Typo.body2" Class="mt-1">@detalle.Mensaje</MudText>
+                                    </MudPaper>
+                                </ItemContent>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                </div>
+
+                <MudDivider Class="mb-3" />
+                <MudStack Row="true">
+                    <MudTextField @bind-Value="nuevoMensaje"
+                                  Placeholder="Escribe una actualización o comentario..."
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Lines="2" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Send"
+                                   Color="Color.Primary"
+                                   Variant="Variant.Filled"
+                                   OnClick="EnviarComentario"
+                                   Disabled="@string.IsNullOrWhiteSpace(nuevoMensaje)" />
+                </MudStack>
+
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 }
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [Parameter] public int IdTicket { get; set; }
+
     private Ticket? ticket;
+    private List<TicketDetalle> detalles = new();
+    private List<Estado> listaEstados = new();
+    private List<Usuario> listaEspecialistas = new();
+
+    private string nuevoMensaje = "";
+    private int idUsuarioActual = 1;
+    private bool hayCambios = false;
 
     protected override async Task OnInitializedAsync()
     {
-        ticket = await _ticketServicio.ObtenerTicketPorId(Id);
-        if (ticket == null)
+        // Cargamos catálogos y ticket en paralelo
+        var t1 = _ticketServicio.ObtenerEstados();
+        var t2 = _ticketServicio.ObtenerEspecialistas();
+
+        await Task.WhenAll(t1, t2);
+
+        listaEstados = t1.Result;
+        listaEspecialistas = t2.Result;
+
+        await CargarDatosTicket();
+    }
+
+    private async Task CargarDatosTicket()
+    {
+        ticket = await _ticketServicio.ObtenerTicketPorId(IdTicket);
+        if (ticket != null)
         {
-            Snackbar.Add("Ticket no encontrado", Severity.Error);
-            Volver();
+            detalles = await _ticketServicio.ObtenerDetalles(IdTicket);
+        }
+        hayCambios = false;
+    }
+
+    private void DetectarCambio()
+    {
+        hayCambios = true;
+    }
+
+    private async Task GuardarCambiosTicket()
+    {
+        if (ticket == null) return;
+
+        try
+        {
+            // Guardamos el ticket con los nuevos valores
+            await _ticketServicio.GuardarTicket(ticket);
+
+            // Creamos un registro automático en el chat
+            var nombreEstado = listaEstados.FirstOrDefault(e => e.IdEstado == ticket.IdEstado)?.Nombre;
+            var nombreTecnico = listaEspecialistas.FirstOrDefault(u => u.IdUsuario == ticket.IdEspecialista)?.NombreCompleto ?? "Sin asignar";
+
+            var autoLog = new TicketDetalle
+            {
+                IdTicket = ticket.IdTicket,
+                IdUsuario = idUsuarioActual,
+                Mensaje = $"SISTEMA: El estado cambió a '{nombreEstado}'. Asignado a: {nombreTecnico}.",
+                TipoAccion = 2 // Tipo acción de sistema
+            };
+            await _ticketServicio.GuardarComentario(autoLog);
+
+            Snackbar.Add("Cambios guardados correctamente", Severity.Success);
+            await CargarDatosTicket();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
         }
     }
 
-    void Volver() => Nav.NavigateTo("/helpdesk/mis-tickets");
+    private async Task EnviarComentario()
+    {
+        if (string.IsNullOrWhiteSpace(nuevoMensaje)) return;
+
+        var nuevoDetalle = new TicketDetalle
+        {
+            IdTicket = IdTicket,
+            IdUsuario = idUsuarioActual,
+            Mensaje = nuevoMensaje,
+            FechaRegistro = DateTime.Now,
+            TipoAccion = 1
+        };
+
+        try
+        {
+            await _ticketServicio.GuardarComentario(nuevoDetalle);
+            nuevoMensaje = "";
+            await CargarDatosTicket();
+            Snackbar.Add("Comentario agregado", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error al enviar", Severity.Error);
+        }
+    }
+
+    private Color ObtenerColorEstado(string? estado)
+    {
+        if (string.IsNullOrEmpty(estado)) return Color.Default;
+        return estado.ToUpper() switch
+        {
+            "ABIERTO" => Color.Info,
+            "EN PROCESO" => Color.Warning,
+            "RESUELTO" => Color.Success,
+            "CERRADO" => Color.Error,
+            _ => Color.Default
+        };
+    }
 }

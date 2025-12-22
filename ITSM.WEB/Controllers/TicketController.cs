@@ -44,14 +44,12 @@ namespace ITSM.WEB.Controllers
             return Ok(lista);
         }
 
-        // --- NUEVO ENDPOINT ---
         [HttpGet("prioridades")]
         public async Task<IActionResult> GetPrioridades()
         {
             var lista = await _ticketNegocio.ListarPrioridades();
             return Ok(lista);
         }
-        // ----------------------
 
         [HttpGet("kpis/{idUsuario}")]
         public async Task<IActionResult> GetKpis(int idUsuario)
@@ -59,6 +57,23 @@ namespace ITSM.WEB.Controllers
             var kpis = await _ticketNegocio.ObtenerKpisAsync(idUsuario);
             return Ok(kpis);
         }
+
+        // --- NUEVOS ENDPOINTS DETALLE ---
+
+        [HttpGet("{id}/detalles")]
+        public async Task<IActionResult> GetDetalles(int id)
+        {
+            var lista = await _ticketNegocio.ListarDetallesTicket(id);
+            return Ok(lista);
+        }
+
+        [HttpPost("comentario")]
+        public async Task<IActionResult> PostComentario([FromBody] TicketDetalle detalle)
+        {
+            await _ticketNegocio.AgregarComentario(detalle);
+            return Ok();
+        }
+        // --------------------------------
 
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Ticket ticket)

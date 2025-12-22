@@ -1,27 +1,29 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿@using MudBlazor
 
-<MudNavMenu>
-    <MudNavLink Href="/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+<MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0" Style="background-color: transparent;">
+    <MudNavMenu Class="mud-width-full">
 
-    <AuthorizeView Roles="Administrador,Especialista">
-        <MudNavGroup Title="HelpDesk" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
-            <MudNavLink Href="/helpdesk/gestion" Icon="@Icons.Material.Filled.Assignment">Gestión de Tickets</MudNavLink>
+        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-2"><b>PRINCIPAL</b></MudText>
+
+        <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+
+        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>OPERACIONES</b></MudText>
+
+        <MudNavGroup Title="Mesa de Ayuda" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
+
+            <MudNavLink Href="helpdesk/nuevo-ticket" Icon="@Icons.Material.Filled.AddCircleOutline">Nueva Solicitud</MudNavLink>
+
+            <MudNavLink Href="helpdesk/mis-tickets" Icon="@Icons.Material.Filled.ViewList">Mis Solicitudes</MudNavLink>
+
         </MudNavGroup>
 
-        <MudNavGroup Title="Activos" Icon="@Icons.Material.Filled.Devices" Expanded="false">
-            <MudNavLink Href="/activos/inventario" Icon="@Icons.Material.Filled.List">Inventario OTIC</MudNavLink>
+        <MudNavGroup Title="Activos TI" Icon="@Icons.Material.Filled.Devices" Expanded="false">
+            <MudNavLink Href="activos/inventario" Icon="@Icons.Material.Filled.Computer">Inventario</MudNavLink>
         </MudNavGroup>
-    </AuthorizeView>
 
-    <MudNavGroup Title="Soporte Usuario" Icon="@Icons.Material.Filled.Person" Expanded="true">
-        <MudNavLink Href="/helpdesk/nuevo" Icon="@Icons.Material.Filled.AddCircle">Nueva Solicitud</MudNavLink>
-        <MudNavLink Href="/helpdesk/mis-tickets" Icon="@Icons.Material.Filled.History">Mis Solicitudes</MudNavLink>
-    </MudNavGroup>
+    </MudNavMenu>
+</MudPaper>
 
-    <AuthorizeView Roles="Administrador">
-        <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.Settings">
-            <MudNavLink Href="/admin/usuarios" Icon="@Icons.Material.Filled.People">Usuarios</MudNavLink>
-            <MudNavLink Href="/admin/reportes" Icon="@Icons.Material.Filled.BarChart">Reportes</MudNavLink>
-        </MudNavGroup>
-    </AuthorizeView>
-</MudNavMenu>
+@code {
+    // No se requiere lógica C# aquí por ahora
+}

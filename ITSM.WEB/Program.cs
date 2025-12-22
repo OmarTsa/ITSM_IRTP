@@ -4,7 +4,6 @@ using ITSM.Datos;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
-// USINGS NECESARIOS PARA EL CLIENTE
 using ITSM.WEB.Client.Servicios;
 using ITSM.WEB.Client.Auth;
 
@@ -25,20 +24,19 @@ builder.Services.AddDbContext<ContextoBD>(options =>
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<UsuarioNegocio>();
 
-// --- 4. CONFIGURACIÓN DEL CLIENTE EN EL SERVIDOR (CORREGIDO) ---
-// Registramos HttpClient para que el servidor pueda "auto-llamar" a su API.
-// IMPORTANTE: Usamos HTTP (Puerto 5244) para evitar errores de certificado SSL.
+// --- 4. CONFIGURACIÓN DEL CLIENTE ---
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("http://localhost:5244/")
+    // AQUÍ MANTENEMOS TU IP REAL DE LA RED
+    // Esto asegura que el cliente WebAssembly sepa dónde buscar la API
+    BaseAddress = new Uri("http://172.30.97.30:5244/")
 });
 
-// Registramos los servicios del Cliente para que funcionen en el Servidor
 builder.Services.AddScoped<TicketServicio>();
 builder.Services.AddScoped<ServicioSesion>();
 // -------------------------------------------------------------------
 
-// 5. Configuración de Cookies (Autenticación)
+// 5. Configuración de Cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -48,13 +46,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 
 builder.Services.AddAuthorization();
-
-// 6. Habilitar APIs
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -67,10 +62,9 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.MapStaticAssets(); // Configuración para .NET 10
+app.MapStaticAssets();
 app.UseAntiforgery();
 
-// 7. Activar Seguridad (Orden Importante)
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -81,4 +75,5 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
 
+// IMPORTANTE: .Run() toma la configuración del launchSettings.json
 app.Run();

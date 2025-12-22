@@ -30,6 +30,7 @@ namespace ITSM.Negocio
                 .Include(t => t.Estado)
                 .Include(t => t.Prioridad)
                 .Include(t => t.Solicitante)
+                .Include(t => t.Especialista) // Incluimos al técnico asignado
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
@@ -48,12 +49,10 @@ namespace ITSM.Negocio
             return await _contexto.Categorias.Where(c => c.Activo == 1).ToListAsync();
         }
 
-        // --- NUEVO: MÉTODO PRIORIDADES ---
         public async Task<List<Prioridad>> ListarPrioridades()
         {
             return await _contexto.Prioridades.ToListAsync();
         }
-        // ---------------------------------
 
         public async Task GuardarTicket(Ticket ticket)
         {
@@ -99,6 +98,24 @@ namespace ITSM.Negocio
             kpi.MisAsignados = todos.Count(t => t.IdEspecialista == idUsuario && t.IdEstado != 5);
 
             return kpi;
+        }
+
+        // --- NUEVOS MÉTODOS PARA DETALLE DE TICKET ---
+
+        public async Task<List<TicketDetalle>> ListarDetallesTicket(int idTicket)
+        {
+            return await _contexto.TicketDetalles
+                .Include(d => d.Usuario) // Importante: Traer nombre de quien comentó
+                .Where(d => d.IdTicket == idTicket)
+                .OrderBy(d => d.FechaRegistro)
+                .ToListAsync();
+        }
+
+        public async Task AgregarComentario(TicketDetalle detalle)
+        {
+            detalle.FechaRegistro = DateTime.Now;
+            _contexto.TicketDetalles.Add(detalle);
+            await _contexto.SaveChangesAsync();
         }
     }
 }
