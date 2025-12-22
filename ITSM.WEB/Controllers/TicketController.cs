@@ -16,18 +16,32 @@ namespace ITSM.WEB.Controllers
         }
 
         [HttpGet("categorias")]
-        public async Task<IActionResult> GetCategorias()
-            => Ok(await _ticketNegocio.ListarCategoriasAsync());
-
-        [HttpGet("usuario/{id}")]
-        public async Task<IActionResult> GetPorUsuario(int id)
-            => Ok(await _ticketNegocio.ListarTicketsPorUsuarioAsync(id));
+        public async Task<ActionResult<List<Categoria>>> ListarCategorias()
+        {
+            return Ok(await _ticketNegocio.ListarCategoriasAsync());
+        }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Ticket ticket)
+        public async Task<ActionResult> CrearTicket([FromBody] Ticket ticket)
         {
-            var resultado = await _ticketNegocio.GuardarTicketAsync(ticket);
-            return Ok(resultado);
+            await _ticketNegocio.GuardarTicketAsync(ticket);
+            return Ok();
+        }
+
+        // Endpoint para Mis Tickets
+        [HttpGet("usuario/{idUsuario}")]
+        public async Task<ActionResult<List<Ticket>>> ObtenerPorUsuario(int idUsuario)
+        {
+            return Ok(await _ticketNegocio.ListarTicketsPorUsuarioAsync(idUsuario));
+        }
+
+        // Endpoint para Detalle
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Ticket>> ObtenerPorId(int id)
+        {
+            var ticket = await _ticketNegocio.ObtenerTicketPorIdAsync(id);
+            if (ticket == null) return NotFound();
+            return Ok(ticket);
         }
     }
 }

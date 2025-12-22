@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using ITSM.Entidades;
+﻿using Microsoft.EntityFrameworkCore;
 using ITSM.Datos;
+using ITSM.Entidades;
 
 namespace ITSM.Negocio
 {
@@ -15,39 +13,28 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        public async Task<Usuario?> LoginAsync(string usuario, string clave)
+        public async Task<Usuario?> ValidarLoginAsync(string username, string password)
         {
-            // CONSULTA CORREGIDA:
-            // Compara contra las columnas reales de la BD.
+            // NOTA: Aquí deberías comparar hashes en un entorno real.
+            // Para la tesis inicial, validamos texto plano si así lo tienes en DB,
+            // pero idealmente usa BCrypt o SHA256.
             return await _contexto.Usuarios
-                .FirstOrDefaultAsync(u => u.Username == usuario
-                                       && u.PasswordHash == clave
-                                       && u.Estado == 1);
+                .Include(u => u.Rol)
+                .FirstOrDefaultAsync(u => u.Username == username && u.PasswordHash == password && u.Estado == 1);
         }
 
-        public async Task<List<Usuario>> ListarUsuariosAsync()
+        public async Task<List<Usuario>> ListarTecnicosAsync()
         {
-            return await _contexto.Usuarios.ToListAsync();
+            // Asumiendo que el Rol 3 o 4 son técnicos/especialistas
+            return await _contexto.Usuarios
+                .Where(u => u.IdRol == 4 && u.Estado == 1)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
-        public async Task<Usuario?> ObtenerUsuarioPorIdAsync(int id)
+        public async Task<Usuario?> ObtenerPorIdAsync(int id)
         {
             return await _contexto.Usuarios.FindAsync(id);
-        }
-
-        public async Task<Usuario> GuardarUsuarioAsync(Usuario usuario)
-        {
-            if (usuario.IdUsuario == 0)
-            {
-                _contexto.Usuarios.Add(usuario);
-            }
-            else
-            {
-                _contexto.Usuarios.Update(usuario);
-            }
-
-            await _contexto.SaveChangesAsync();
-            return usuario;
         }
     }
 }

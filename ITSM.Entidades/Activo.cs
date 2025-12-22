@@ -1,34 +1,39 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ITSM.Entidades;
-
-[Table("INV_ACTIVOS")]
-public class Activo
+namespace ITSM.Entidades
 {
-    [Key]
-    [Column("ID_ACTIVO")]
-    public int IdActivo { get; set; }
+    // CORREGIDO: Nombre de tabla según Script Oracle
+    [Table("ACT_INVENTARIO")]
+    public class Activo
+    {
+        [Key]
+        [Column("ID_ACTIVO")]
+        public int IdActivo { get; set; }
 
-    [Column("NOMBRE")]
-    public string Nombre { get; set; } = string.Empty;
+        // El script no tenía NOMBRE, tenía MARCA/MODELO. 
+        // Si agregaste NOMBRE después, déjalo. Si no, mapealo a MARCA o concatena.
+        [Column("MARCA")]
+        public string Nombre { get; set; } = string.Empty;
 
-    [Column("CODIGO_INVENTARIO")]
-    public string CodigoInventario { get; set; } = string.Empty;
+        [Column("MODELO")]
+        public string Modelo { get; set; } = string.Empty;
 
-    // Campos faltantes que pide Inventario.razor
-    [Column("COD_PATRIMONIAL")]
-    public string CodPatrimonial { get; set; } = string.Empty;
+        // CORREGIDO: Nombre de columna según Script
+        [Column("CODIGO_PATRIMONIAL")]
+        public string CodPatrimonial { get; set; } = string.Empty;
 
-    [Column("SERIE")]
-    public string Serie { get; set; } = string.Empty;
+        [Column("SERIE")]
+        public string Serie { get; set; } = string.Empty;
 
-    [Column("ID_USUARIO_ASIGNADO")]
-    public int? IdUsuarioAsignado { get; set; }
+        [Column("ID_USUARIO_ASIGNADO")]
+        public int? IdUsuarioAsignado { get; set; }
 
-    [Column("ACTIVO_SN")]
-    public string ActivoSN { get; set; } = "S"; // Para el checkbox S/N
+        // Usamos NotMapped si esta columna no existe en la BD aún
+        [NotMapped]
+        public string ActivoSN { get; set; } = "S";
 
-    [ForeignKey("IdUsuarioAsignado")]
-    public Usuario? UsuarioAsignado { get; set; }
+        [ForeignKey("IdUsuarioAsignado")]
+        public Usuario? UsuarioAsignado { get; set; }
+    }
 }

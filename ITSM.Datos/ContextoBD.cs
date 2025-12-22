@@ -7,26 +7,20 @@ namespace ITSM.Datos
     {
         public ContextoBD(DbContextOptions<ContextoBD> options) : base(options) { }
 
+        // Tablas principales
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
-        public DbSet<Prioridad> Prioridades { get; set; }
-        public DbSet<EstadoTicket> Estados { get; set; }
         public DbSet<Activo> Activos { get; set; }
+
+        // FALTABAN ESTAS DOS:
+        public DbSet<Prioridad> Prioridades { get; set; }
+        public DbSet<EstadoTicket> EstadosTicket { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // Configuraciones adicionales si fueran necesarias
             base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<Usuario>().ToTable("SEG_USUARIOS");
-            modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");
-            modelBuilder.Entity<Categoria>().ToTable("HD_CATEGORIAS");
-            modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
-            modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
-            modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO");
-
-            modelBuilder.Entity<Ticket>().HasKey(t => t.IdTicket);
-            modelBuilder.Entity<Usuario>().HasKey(u => u.IdUsuario);
         }
     }
 }

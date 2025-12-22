@@ -4,11 +4,15 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
+
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
+		<PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.*" />
 		<PackageReference Include="MudBlazor" Version="8.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.0" />
 	</ItemGroup>
+
 	<ItemGroup>
+		<ProjectReference Include="..\ITSM.WEB.Client\ITSM.WEB.Client.csproj" />
 		<ProjectReference Include="..\ITSM.Datos\ITSM.Datos.csproj" />
 		<ProjectReference Include="..\ITSM.Negocio\ITSM.Negocio.csproj" />
 	</ItemGroup>

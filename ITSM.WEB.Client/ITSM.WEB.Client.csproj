@@ -13,6 +13,5 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\ITSM.Entidades\ITSM.Entidades.csproj" />
-		<ProjectReference Include="..\ITSM.Negocio\ITSM.Negocio.csproj" />
 	</ItemGroup>
 </Project>

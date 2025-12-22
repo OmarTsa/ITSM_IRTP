@@ -1,36 +1,25 @@
-﻿@page "/helpdesk/ticket/{Id:int}"
+﻿@page "/helpdesk/detalle/{Id:int}"
 @using ITSM.Entidades
-@using ITSM.Negocio
-@inject TicketNegocio TicketNegocio
+@inject TicketServicio _ticketServicio
+@inject NavigationManager Nav
 @inject ISnackbar Snackbar
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-8">
-    @if (ticket == null)
-    {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    }
-    else
-    {
-        <MudPaper Elevation="3" Class="pa-6">
-            <MudText Typo="Typo.h4" Class="mb-4">Ticket #@ticket.IdTicket: @ticket.Titulo</MudText>
+<MudText Typo="Typo.h5" GutterBottom="true">Detalle del Ticket #@Id</MudText>
 
-            <MudGrid>
-                <MudItem xs="12" sm="6">
-                    <MudText><b>Solicitante:</b> @ticket.Solicitante?.NombreCompleto</MudText>
-                    <MudText><b>Estado:</b> @ticket.Estado?.Nombre</MudText>
-                </MudItem>
-                <MudItem xs="12" Class="d-flex gap-2 mt-4">
-                    @* CORRECCIÓN MUD0002: Usar MudTooltip en lugar de Title *@
-                    <MudTooltip Text="Resolver Ticket">
-                        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="() => ActualizarEstado(4)">
-                            Resolver
-                        </MudButton>
-                    </MudTooltip>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-    }
-</MudContainer>
+@if (ticket == null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudPaper Class="pa-4">
+        <MudTextField Label="Título" Value="@ticket.Titulo" ReadOnly="true" />
+        <MudTextField Label="Descripción" Value="@ticket.Descripcion" Lines="3" ReadOnly="true" Class="mt-3" />
+        <MudTextField Label="Estado" Value="@ticket.Estado?.Nombre" ReadOnly="true" Class="mt-3" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="mt-4" OnClick="Volver">Volver</MudButton>
+    </MudPaper>
+}
 
 @code {
     [Parameter] public int Id { get; set; }
@@ -38,15 +27,13 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // CORRECCIÓN CS1061: Asegurar que el nombre coincida con Negocio
-        ticket = await TicketNegocio.ObtenerTicketPorIdAsync(Id);
+        ticket = await _ticketServicio.ObtenerTicketPorId(Id);
+        if (ticket == null)
+        {
+            Snackbar.Add("Ticket no encontrado", Severity.Error);
+            Volver();
+        }
     }
 
-    private async Task ActualizarEstado(int nuevoEstado)
-    {
-        // CORRECCIÓN CS1061: Se pasan los 4 argumentos requeridos
-        await TicketNegocio.CambiarEstadoTicketAsync(Id, nuevoEstado, 0, "Cierre desde detalle");
-        Snackbar.Add("Estado actualizado", Severity.Success);
-        ticket = await TicketNegocio.ObtenerTicketPorIdAsync(Id);
-    }
+    void Volver() => Nav.NavigateTo("/helpdesk/mis-tickets");
 }

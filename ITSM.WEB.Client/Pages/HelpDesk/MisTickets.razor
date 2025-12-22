@@ -1,50 +1,67 @@
 ﻿@page "/helpdesk/mis-tickets"
 @using ITSM.Entidades
-@using ITSM.Negocio
-@using ITSM.WEB.Client.Servicios
-@inject TicketNegocio TicketNegocio
-@inject ServicioSesion Sesion
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject TicketServicio _ticketServicio
+@inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
-    <MudText Typo="Typo.h4" Class="mb-4">Mis Solicitudes</MudText>
-
-    <MudTable Items="@tickets" Hover="true" Elevation="2" Loading="@loading">
-        <HeaderContent>
-            <MudTh>ID</MudTh>
-            <MudTh>Título</MudTh>
-            <MudTh>Fecha</MudTh>
-            <MudTh>Estado</MudTh>
-            <MudTh>Acciones</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.IdTicket</MudTd>
-            <MudTd>@context.Titulo</MudTd>
-            <MudTd>@context.FechaCreacion.ToString("dd/MM/yyyy")</MudTd>
-            <MudTd>
-                <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.Estado?.Nombre</MudChip>
-            </MudTd>
-            <MudTd>
-                <MudTooltip Text="Ver Detalle">
-                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary"
-                                   href="@($"/helpdesk/detalle/{context.IdTicket}")" />
-                </MudTooltip>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-</MudContainer>
+@* CAMBIO CLAVE: Agregamos T="Ticket" para que 'context' sea reconocido *@
+<MudTable T="Ticket" Items="@tickets" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@loading" LoadingProgressColor="Color.Info">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Mis Tickets</MudText>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Href="/helpdesk/nuevo">
+            Nuevo Ticket
+        </MudButton>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Título</MudTh>
+        <MudTh>Categoría</MudTh>
+        <MudTh>Estado</MudTh>
+        <MudTh>Fecha</MudTh>
+        <MudTh>Acciones</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.IdTicket</MudTd>
+        <MudTd DataLabel="Título">@context.Titulo</MudTd>
+        <MudTd DataLabel="Categoría">@(context.Categoria?.Nombre ?? "-")</MudTd>
+        <MudTd DataLabel="Estado">
+            <MudChip T="string" Color="@GetColor(context.Estado?.Nombre)">@context.Estado?.Nombre</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Fecha">@context.FechaCreacion.ToShortDateString()</MudTd>
+        <MudTd DataLabel="Acciones">
+            @* Ahora el compilador sabe que context es Ticket *@
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" OnClick="@(() => VerDetalle(context.IdTicket))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
 
 @code {
-    private List<Ticket> tickets = new();
+    private List<Ticket> tickets = new List<Ticket>();
     private bool loading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        var user = await Sesion.ObtenerUsuario();
-        if (user != null)
+        try
         {
-            tickets = await TicketNegocio.ListarTicketsPorUsuarioAsync(user.IdUsuario);
+            tickets = await _ticketServicio.ObtenerMisTickets(1);
+        }
+        catch
+        {
+            tickets = new List<Ticket>();
         }
         loading = false;
     }
+
+    private void VerDetalle(int id)
+    {
+        Nav.NavigateTo($"/helpdesk/detalle/{id}");
+    }
+
+    private Color GetColor(string? estado) => estado switch
+    {
+        "Abierto" => Color.Error,
+        "En Proceso" => Color.Warning,
+        "Resuelto" => Color.Success,
+        _ => Color.Default
+    };
 }

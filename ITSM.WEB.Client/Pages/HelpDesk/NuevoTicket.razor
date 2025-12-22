@@ -1,112 +1,55 @@
 ﻿@page "/helpdesk/nuevo"
-@using MudBlazor
 @using ITSM.Entidades
-@using ITSM.Negocio
-@inject TicketNegocio TicketNegocio
+@inject TicketServicio _ticketServicio
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
-@inject ITSM.WEB.Client.Servicios.ServicioSesion Sesion
 
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+<MudText Typo="Typo.h4" GutterBottom="true">Nuevo Ticket</MudText>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8 mb-8">
-    <MudPaper Elevation="3" Class="pa-6">
-        <MudText Typo="Typo.h4" Color="Color.Primary" Align="Align.Center" Class="mb-6">
-            <b>Nueva Solicitud de Soporte - OTIC</b>
-        </MudText>
+<MudPaper Class="pa-4">
+    <MudForm @bind-IsValid="@success">
+        <MudTextField @bind-Value="ticket.Titulo" Label="Título del Incidente" Required="true" />
+        <MudTextField @bind-Value="ticket.Descripcion" Label="Descripción Detallada" Lines="4" Required="true" />
 
-        <MudForm @ref="_form">
-            <MudGrid>
-                <MudItem xs="12">
-                    <MudTextField Label="Título de la Incidencia" @bind-Value="_nuevoTicket.Titulo" Required="true" Variant="Variant.Outlined" />
-                </MudItem>
+        <MudSelect T="int" Label="Categoría" @bind-Value="ticket.IdCategoria" AnchorOrigin="Origin.BottomCenter">
+            @foreach (var cat in categorias)
+            {
+                <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+            }
+        </MudSelect>
 
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="int" Label="Categoría" @bind-Value="_nuevoTicket.IdCategoria" Variant="Variant.Outlined" Required="true">
-                        @if (_listaCategorias != null)
-                        {
-                            @foreach (var cat in _listaCategorias)
-                            {
-                                <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
-                            }
-                        }
-                    </MudSelect>
-                </MudItem>
-
-                <MudItem xs="12">
-                    <MudTextField Label="Detalle del Problema" @bind-Value="_nuevoTicket.Descripcion" Variant="Variant.Outlined" Lines="5" Required="true" />
-                </MudItem>
-
-                <MudItem xs="12" Class="d-flex justify-end mt-4">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               OnClick="Guardar"
-                               Disabled="@_procesando">
-                        @(_procesando ? "Registrando..." : "Enviar Solicitud")
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudForm>
-    </MudPaper>
-</MudContainer>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" Disabled="@(!success)" Class="mt-4">
+            Registrar Ticket
+        </MudButton>
+    </MudForm>
+</MudPaper>
 
 @code {
-    private Ticket _nuevoTicket = new();
-    private List<Categoria> _listaCategorias = new();
-    private MudForm? _form;
-    private bool _procesando = false;
-
-    [CascadingParameter]
-    public MudBlazor.IMudDialogInstance? MudDialog { get; set; }
+    bool success;
+    Ticket ticket = new Ticket();
+    List<Categoria> categorias = new List<Categoria>();
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            _listaCategorias = await TicketNegocio.ListarCategoriasAsync();
-            var user = await Sesion.ObtenerUsuario();
-            if (user != null)
-            {
-                _nuevoTicket.IdSolicitante = user.IdUsuario;
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
-        }
+        categorias = await _ticketServicio.ObtenerCategorias();
     }
 
     private async Task Guardar()
     {
-        if (_form is null) return;
-
-        await _form.Validate();
-
-        if (_form.IsValid)
+        try
         {
-            _procesando = true;
-            try
-            {
-                var exito = await TicketNegocio.GuardarTicketAsync(_nuevoTicket);
+            ticket.IdSolicitante = 1;
+            ticket.IdEstado = 1;
+            ticket.IdPrioridad = 2;
 
-                if (exito)
-                {
-                    Snackbar.Add("Ticket registrado exitosamente.", Severity.Success);
+            await _ticketServicio.GuardarTicket(ticket);
 
-                    if (MudDialog is not null)
-                    {
-                        MudDialog.Close(DialogResult.Ok(true));
-                    }
-                    else
-                    {
-                        Navigation.NavigateTo("/helpdesk/mis-tickets");
-                    }
-                }
-            }
-            finally
-            {
-                _procesando = false;
-            }
+            Snackbar.Add("Ticket creado correctamente", Severity.Success);
+            Navigation.NavigateTo("/helpdesk/mis-tickets");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
     }
 }

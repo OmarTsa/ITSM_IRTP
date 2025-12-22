@@ -6,27 +6,49 @@ using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar servicios de Blazor Server
+// 1. Configurar Blazor (Soporte para Server y WebAssembly)
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents()
+    .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddMudServices();
 
-// Inyección de la Base de Datos
+// 2. Conexión a Base de Datos ORACLE
 builder.Services.AddDbContext<ContextoBD>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Inyección de la Capa de Negocio
+// 3. Inyección de la Lógica de Negocio (Solo existe en el Servidor)
 builder.Services.AddScoped<TicketNegocio>();
+builder.Services.AddScoped<UsuarioNegocio>();
+
+// 4. Habilitar APIs (Controladores) - EL PUENTE
+builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
+
+// Pipeline HTTP
+if (app.Environment.IsDevelopment())
+{
+    app.UseWebAssemblyDebugging();
+}
+else
+{
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
-// Mapear el componente App como raíz interactiva
+// 5. Mapear rutas
+app.MapControllers(); // Activa las APIs
+
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .AddInteractiveWebAssemblyRenderMode()
+    // Esto conecta las páginas del Cliente para que corran en el Server
+    .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
 
 app.Run();

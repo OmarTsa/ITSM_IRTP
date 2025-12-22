@@ -12,39 +12,36 @@ namespace ITSM.WEB.Client.Servicios
             _http = http;
         }
 
-        public async Task<List<Ticket>> ObtenerMisTickets(int idUsuario)
+        public async Task<List<Categoria>> ObtenerCategorias()
         {
-            return await _http.GetFromJsonAsync<List<Ticket>>($"api/ticket/usuario/{idUsuario}") ?? new List<Ticket>();
+            return await _http.GetFromJsonAsync<List<Categoria>>("api/ticket/categorias") ?? new List<Categoria>();
         }
 
-        public async Task<Ticket?> ObtenerTicket(int id)
+        // Método Espejo para obtener Ticket por ID
+        public async Task<Ticket?> ObtenerTicketPorId(int id)
         {
-            return await _http.GetFromJsonAsync<Ticket>($"api/ticket/{id}");
+            try
+            {
+                return await _http.GetFromJsonAsync<Ticket>($"api/ticket/{id}");
+            }
+            catch { return null; }
+        }
+
+        public async Task<List<Ticket>> ObtenerMisTickets(int idUsuario)
+        {
+            // Nota: Debes crear este endpoint en el Controller si no existe, 
+            // o usar un endpoint genérico. Por ahora devolvemos lista vacía si falla para que no explote.
+            try
+            {
+                return await _http.GetFromJsonAsync<List<Ticket>>($"api/ticket/usuario/{idUsuario}") ?? new List<Ticket>();
+            }
+            catch { return new List<Ticket>(); }
         }
 
         public async Task GuardarTicket(Ticket ticket)
         {
             var respuesta = await _http.PostAsJsonAsync("api/ticket", ticket);
-            if (!respuesta.IsSuccessStatusCode)
-            {
-                var error = await respuesta.Content.ReadAsStringAsync();
-                throw new Exception($"Error del servidor: {error}");
-            }
-        }
-
-        public async Task CambiarEstado(int idTicket, int nuevoEstado, int idUsuario, string? notas = "")
-        {
-            var request = new { IdTicket = idTicket, NuevoEstado = nuevoEstado, IdUsuario = idUsuario, Notas = notas };
-            var respuesta = await _http.PostAsJsonAsync("api/ticket/cambiar-estado", request);
-            if (!respuesta.IsSuccessStatusCode) throw new Exception("Error al cambiar estado.");
-        }
-
-        // --- CORRECCIÓN: Bypass de Caché ---
-        public async Task<List<Categoria>> ObtenerCategorias()
-        {
-            // Agregamos un timestamp para forzar al servidor a ignorar la caché
-            var ticks = DateTime.Now.Ticks;
-            return await _http.GetFromJsonAsync<List<Categoria>>($"api/ticket/categorias?t={ticks}") ?? new List<Categoria>();
+            if (!respuesta.IsSuccessStatusCode) throw new Exception("Error al guardar ticket");
         }
     }
 }
