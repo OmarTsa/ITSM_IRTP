@@ -3,8 +3,8 @@
 @inject TicketServicio _ticketServicio
 @inject NavigationManager Nav
 
-@* CAMBIO CLAVE: Agregamos T="Ticket" para que 'context' sea reconocido *@
-<MudTable T="Ticket" Items="@tickets" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@loading" LoadingProgressColor="Color.Info">
+@* CAMBIO CRÍTICO: Agregamos T="Ticket" y Context="item" *@
+<MudTable T="Ticket" Items="@tickets" Context="item" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@loading" LoadingProgressColor="Color.Info">
     <ToolBarContent>
         <MudText Typo="Typo.h6">Mis Tickets</MudText>
         <MudSpacer />
@@ -21,16 +21,15 @@
         <MudTh>Acciones</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="ID">@context.IdTicket</MudTd>
-        <MudTd DataLabel="Título">@context.Titulo</MudTd>
-        <MudTd DataLabel="Categoría">@(context.Categoria?.Nombre ?? "-")</MudTd>
+        <MudTd DataLabel="ID">@item.IdTicket</MudTd>
+        <MudTd DataLabel="Título">@item.Titulo</MudTd>
+        <MudTd DataLabel="Categoría">@(item.Categoria?.Nombre ?? "-")</MudTd>
         <MudTd DataLabel="Estado">
-            <MudChip T="string" Color="@GetColor(context.Estado?.Nombre)">@context.Estado?.Nombre</MudChip>
+            <MudChip T="string" Color="@GetColor(item.Estado?.Nombre)">@item.Estado?.Nombre</MudChip>
         </MudTd>
-        <MudTd DataLabel="Fecha">@context.FechaCreacion.ToShortDateString()</MudTd>
+        <MudTd DataLabel="Fecha">@item.FechaCreacion.ToShortDateString()</MudTd>
         <MudTd DataLabel="Acciones">
-            @* Ahora el compilador sabe que context es Ticket *@
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" OnClick="@(() => VerDetalle(context.IdTicket))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" OnClick="@(() => VerDetalle(item.IdTicket))" />
         </MudTd>
     </RowTemplate>
 </MudTable>
@@ -52,10 +51,7 @@
         loading = false;
     }
 
-    private void VerDetalle(int id)
-    {
-        Nav.NavigateTo($"/helpdesk/detalle/{id}");
-    }
+    private void VerDetalle(int id) => Nav.NavigateTo($"/helpdesk/detalle/{id}");
 
     private Color GetColor(string? estado) => estado switch
     {
