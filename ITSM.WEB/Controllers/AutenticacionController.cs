@@ -1,15 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ITSM.Negocio;
 using ITSM.Entidades;
-using System.Security.Claims; // Necesario para Claims
-using Microsoft.AspNetCore.Authentication; // Necesario para Cookies
-using Microsoft.AspNetCore.Authentication.Cookies; // Necesario para Cookies
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace ITSM.WEB.Controllers
 {
-
-
-
     [Route("api/[controller]")]
     [ApiController]
     public class AutenticacionController : ControllerBase
@@ -29,6 +26,7 @@ namespace ITSM.WEB.Controllers
                 return BadRequest(new { mensaje = "Datos incompletos" });
             }
 
+            // 1. Validar credenciales usando la capa de Negocio
             var usuario = await _usuarioNegocio.LoginAsync(request.NombreUsuario, request.Clave);
 
             if (usuario == null)
@@ -36,12 +34,11 @@ namespace ITSM.WEB.Controllers
                 return Unauthorized(new { mensaje = "Credenciales incorrectas" });
             }
 
-            // --- CREACIÓN DE LA COOKIE DE SESIÓN (OBLIGATORIO PARA BLAZOR SERVER) ---
+            // 2. Crear los Claims (Datos de la identidad del usuario)
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, usuario.Username),
-                new Claim(ClaimTypes.Role, usuario.IdRol == 1 ? "ADMIN" : "USUARIO"),
-                // CORRECCIÓN CLAVE: Aquí guardamos el ID para que NuevoTicket lo encuentre
+                new Claim(ClaimTypes.Name, usuario.NombreUsuario),
+                new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
             };
 
@@ -52,12 +49,15 @@ namespace ITSM.WEB.Controllers
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(60)
             };
 
+            // 3. Crear la Cookie de Sesión (Esta es la línea de autenticación)
+            // IMPORTANTE: Esto requiere que en Program.cs hayas agregado .AddAuthentication().AddCookie()
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),
                 authProperties);
 
-            usuario.PasswordHash = "";
+            // 4. Limpiar datos sensibles antes de devolver al cliente
+            usuario.Clave = "";
 
             return Ok(usuario);
         }

@@ -3,6 +3,7 @@ using ITSM.Negocio;
 using ITSM.Datos;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using Microsoft.AspNetCore.Authentication.Cookies; // <--- AGREGAR ESTO
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,13 +14,24 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 
-// 2. Conexión a Base de Datos ORACLE
+// 2. Conexión a Base de Datos
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Inyección de la Lógica de Negocio
+// 3. Inyección de Negocio
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<UsuarioNegocio>();
+
+// --- NUEVO: CONFIGURACIÓN DE COOKIES (NECESARIO PARA EL LOGIN) ---
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "AuthCookie_ITSM";
+        options.LoginPath = "/login";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    });
+builder.Services.AddAuthorization(); // Habilitar seguridad
+// ---------------------------------------------------------------
 
 // 4. Habilitar APIs
 builder.Services.AddControllers();
@@ -39,13 +51,15 @@ else
 }
 
 app.UseHttpsRedirection();
-
-// --- CORRECCIÓN CLAVE PARA .NET 10 ---
-app.UseStaticFiles(); // Sirve archivos de wwwroot (imágenes, css)
+app.UseStaticFiles();
+app.MapStaticAssets(); // Mantener para .NET 9/10
 app.UseAntiforgery();
 
-// NUEVO: Esto soluciona el error "Mapped static asset endpoints not found"
-app.MapStaticAssets();
+// --- NUEVO: ACTIVAR LOS MIDDLEWARES DE SEGURIDAD ---
+// (Deben ir en este orden exacto: Auth -> Authorization)
+app.UseAuthentication();
+app.UseAuthorization();
+// ---------------------------------------------------
 
 app.MapControllers();
 
