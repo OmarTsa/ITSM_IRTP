@@ -37,12 +37,19 @@ namespace ITSM.WEB.Controllers
             return Ok(lista);
         }
 
-        // --- ENDPOINT AGREGADO ---
         [HttpGet("categorias")]
         public async Task<IActionResult> GetCategorias()
         {
             var lista = await _ticketNegocio.ListarCategorias();
             return Ok(lista);
+        }
+
+        // NUEVO: ENDPOINT DASHBOARD
+        [HttpGet("kpis/{idUsuario}")]
+        public async Task<IActionResult> GetKpis(int idUsuario)
+        {
+            var kpis = await _ticketNegocio.ObtenerKpisAsync(idUsuario);
+            return Ok(kpis);
         }
 
         [HttpPost]

@@ -7,20 +7,21 @@ namespace ITSM.Datos
     {
         public ContextoBD(DbContextOptions<ContextoBD> options) : base(options) { }
 
-        // Tablas principales
+        // TABLAS
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Ticket> Tickets { get; set; }
-        public DbSet<Categoria> Categorias { get; set; }
         public DbSet<Activo> Activos { get; set; }
-        public DbSet<Prioridad> Prioridades { get; set; }
-        public DbSet<EstadoTicket> EstadosTicket { get; set; }
 
-        // --- CORRECCIÓN: FALTABA LA TABLA DE ROLES ---
-        public DbSet<Rol> Roles { get; set; } // <--- AGREGAR ESTO
+        // CATÁLOGOS (Asegúrate que estén aquí)
+        public DbSet<Estado> Estados { get; set; }
+        public DbSet<Prioridad> Prioridades { get; set; }
+        public DbSet<Categoria> Categorias { get; set; }
+        public DbSet<Rol> Roles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            // Configuraciones adicionales si las tienes...
         }
     }
 }

@@ -1,17 +1,120 @@
-﻿@page "/dashboard"
+﻿@page "/"
 @using ITSM.Entidades
-@* ELIMINAMOS TicketNegocio *@
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+
 @inject TicketServicio _ticketServicio
+@inject AuthenticationStateProvider AuthStateProvider
 
-<MudText Typo="Typo.h4">Dashboard</MudText>
-<MudText>Bienvenido al sistema ITSM</MudText>
+<PageTitle>Dashboard | ITSM</PageTitle>
 
-@* Aquí irían tus gráficos. Por ahora lo dejamos simple para que compile *@
+<div class="animate__animated animate__fadeIn">
+
+    <MudText Typo="Typo.h4" Class="mb-1" Style="font-weight:700; color:#0D47A1;">
+        Hola, @nombreUsuario
+    </MudText>
+    <MudText Typo="Typo.body1" Class="mb-6" Color="Color.Secondary">
+        Aquí tienes el resumen de la operación hoy @DateTime.Now.ToShortDateString()
+    </MudText>
+
+    <MudGrid Class="mb-8">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="d-flex flex-row pt-6 pb-4" Style="height:100px;" Elevation="4">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Primary" Class="mx-4" Style="width:54px; height:54px;" />
+                <div>
+                    <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Total Tickets</MudText>
+                    <MudText Typo="Typo.h4">@kpis.TotalTickets</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="d-flex flex-row pt-6 pb-4" Style="height:100px; border-left: 5px solid #FFC107;" Elevation="4">
+                <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning" Class="mx-4" Style="width:54px; height:54px;" />
+                <div>
+                    <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Pendientes</MudText>
+                    <MudText Typo="Typo.h4">@kpis.TicketsAbiertos</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="d-flex flex-row pt-6 pb-4" Style="height:100px; border-left: 5px solid #F44336;" Elevation="4">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Class="mx-4" Style="width:54px; height:54px;" />
+                <div>
+                    <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Críticos</MudText>
+                    <MudText Typo="Typo.h4">@kpis.TicketsCriticos</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="d-flex flex-row pt-6 pb-4" Style="height:100px; border-left: 5px solid #4CAF50;" Elevation="4">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Class="mx-4" Style="width:54px; height:54px;" />
+                <div>
+                    <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Resueltos</MudText>
+                    <MudText Typo="Typo.h4">@kpis.TicketsResueltos</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4" Elevation="3">
+                <MudText Typo="Typo.h6" Class="mb-4">Accesos Directos</MudText>
+                <div class="d-flex gap-4 flex-wrap">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/helpdesk/nuevo-ticket">
+                        Reportar Incidente
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.List" Href="/helpdesk/mis-tickets">
+                        Ver Mis Solicitudes
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Computer" Href="/activos/inventario">
+                        Consultar Inventario
+                    </MudButton>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Elevation="3" Style="background-color:#E3F2FD;">
+                <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">¿Necesitas Ayuda?</MudText>
+                <MudText Typo="Typo.body2">
+                    Si tienes un problema urgente que detiene la operación, por favor llama al anexo <strong>#5555</strong>.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+</div>
 
 @code {
+    private DashboardKpi kpis = new DashboardKpi();
+    private string nombreUsuario = "Usuario";
+    private int idUsuario;
+
     protected override async Task OnInitializedAsync()
     {
-        // Lógica futura con _ticketServicio
-        await Task.CompletedTask;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            nombreUsuario = user.Identity.Name ?? "Usuario";
+            var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+
+            if (idClaim != null && int.TryParse(idClaim.Value, out int id))
+            {
+                idUsuario = id;
+                await CargarDatos();
+            }
+        }
+    }
+
+    private async Task CargarDatos()
+    {
+        kpis = await _ticketServicio.ObtenerDashboard(idUsuario);
     }
 }

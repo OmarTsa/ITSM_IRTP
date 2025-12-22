@@ -13,7 +13,6 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // --- MÉTODOS EXISTENTES (Déjalos igual) ---
         public async Task<List<Ticket>> ObtenerTickets()
         {
             return await _contexto.Tickets
@@ -63,27 +62,45 @@ namespace ITSM.Negocio
             await _contexto.SaveChangesAsync();
         }
 
-        // --- MÉTODOS FALTANTES QUE CAUSAN EL ERROR (AGREGAR ESTOS) ---
+        // --- MÉTODOS DE SOPORTE Y KPI ---
 
-        // 1. Método que pide tu página de Tickets
         public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
         {
-            // Reutilizamos la lógica o hacemos la consulta completa incluyendo al Solicitante
             return await _contexto.Tickets
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.Prioridad)
-                .Include(t => t.Solicitante) // IMPORTANTE: Para mostrar el nombre del usuario
+                .Include(t => t.Solicitante)
                 .OrderByDescending(t => t.FechaCreacion)
                 .ToListAsync();
         }
 
-        // 2. Método que pide tu página de Inventario
         public async Task<List<Activo>> ListarActivosAsync()
         {
             return await _contexto.Activos
-                .Include(a => a.UsuarioAsignado) // Para mostrar quién lo tiene asignado
+                .Include(a => a.UsuarioAsignado)
                 .ToListAsync();
+        }
+
+        // NUEVO: CÁLCULO DE DASHBOARD
+        public async Task<DashboardKpi> ObtenerKpisAsync(int idUsuario)
+        {
+            var kpi = new DashboardKpi();
+
+            // Traemos todos los tickets (si son muchos, optimizar con CountAsync separados)
+            var todos = await _contexto.Tickets.AsNoTracking().ToListAsync();
+
+            kpi.TotalTickets = todos.Count;
+            kpi.TicketsAbiertos = todos.Count(t => t.IdEstado == 1); // 1 = Abierto
+            kpi.TicketsResueltos = todos.Count(t => t.IdEstado == 4); // 4 = Resuelto
+
+            // Críticos: Prioridad 1 (Alta) y que no estén cerrados
+            kpi.TicketsCriticos = todos.Count(t => t.IdPrioridad == 1 && t.IdEstado != 4 && t.IdEstado != 5);
+
+            // Mis asignados (si el usuario es técnico)
+            kpi.MisAsignados = todos.Count(t => t.IdEspecialista == idUsuario && t.IdEstado != 5);
+
+            return kpi;
         }
     }
 }

@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("HD_TICKETS")]
+    // Asegúrate que el nombre de la tabla coincida con tu BD (ej. TICKETS, GLPI_TICKETS, etc.)
+    [Table("GLPI_TICKETS")]
     public class Ticket
     {
         [Key]
@@ -11,57 +12,21 @@ namespace ITSM.Entidades
         public int IdTicket { get; set; }
 
         [Column("TITULO")]
-        [Required(ErrorMessage = "El título es obligatorio")]
         public string Titulo { get; set; } = string.Empty;
 
         [Column("DESCRIPCION")]
-        [Required(ErrorMessage = "La descripción es obligatoria")]
-        public string Descripcion { get; set; } = string.Empty;
-
-        [Column("TIPO_TICKET")]
-        public string TipoTicket { get; set; } = "Incidente";
-
-        [Column("ORIGEN")]
-        public string Origen { get; set; } = "Web";
-
-        [Column("ID_IMPACTO")]
-        public int IdImpacto { get; set; } = 3;
-
-        [Column("ID_URGENCIA")]
-        public int IdUrgencia { get; set; } = 3;
-
-        [Column("ID_PRIORIDAD")]
-        public int IdPrioridad { get; set; }
-
-        [ForeignKey("IdPrioridad")]
-        public Prioridad? Prioridad { get; set; }
+        public string? Descripcion { get; set; }
 
         [Column("FECHA_CREACION")]
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+        public DateTime FechaCreacion { get; set; }
 
-        [Column("FECHA_LIMITE")]
-        public DateTime? FechaLimite { get; set; }
-
-        [Column("FECHA_CIERRE")]
-        public DateTime? FechaCierre { get; set; }
-
-        [Column("CODIGO_CIERRE")]
-        public string? CodigoCierre { get; set; }
-
-        [Column("NOTAS_CIERRE")]
-        public string? NotasCierre { get; set; }
+        // --- RELACIONES EXISTENTES ---
 
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
 
         [ForeignKey("IdSolicitante")]
         public Usuario? Solicitante { get; set; }
-
-        [Column("ID_ACTIVO_AFECTADO")]
-        public int? IdActivo { get; set; }
-
-        [ForeignKey("IdActivo")]
-        public Activo? ActivoRelacionado { get; set; }
 
         [Column("ID_CATEGORIA")]
         public int IdCategoria { get; set; }
@@ -73,9 +38,20 @@ namespace ITSM.Entidades
         public int IdEstado { get; set; }
 
         [ForeignKey("IdEstado")]
-        public EstadoTicket? Estado { get; set; }
+        public Estado? Estado { get; set; }
 
-        [NotMapped]
-        public string? CodigoPatrimonial { get; set; }
+        [Column("ID_PRIORIDAD")]
+        public int IdPrioridad { get; set; }
+
+        [ForeignKey("IdPrioridad")]
+        public Prioridad? Prioridad { get; set; }
+
+        // --- PROPIEDAD QUE FALTABA (SOLUCIÓN DEL ERROR) ---
+
+        [Column("ID_ESPECIALISTA")]
+        public int? IdEspecialista { get; set; } // Nullable, porque un ticket nuevo no tiene técnico aún
+
+        [ForeignKey("IdEspecialista")]
+        public Usuario? Especialista { get; set; }
     }
 }

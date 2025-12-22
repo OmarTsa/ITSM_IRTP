@@ -7,7 +7,10 @@ namespace ITSM.WEB.Client.Servicios
     {
         private readonly HttpClient _http;
 
-        public TicketServicio(HttpClient http) { _http = http; }
+        public TicketServicio(HttpClient http)
+        {
+            _http = http;
+        }
 
         public async Task<List<Ticket>> ObtenerTickets()
         {
@@ -34,11 +37,24 @@ namespace ITSM.WEB.Client.Servicios
             return respuesta ?? new List<Ticket>();
         }
 
-        // --- MÉTODO OBLIGATORIO PARA NUEVO TICKET ---
         public async Task<List<Categoria>> ObtenerCategorias()
         {
             var respuesta = await _http.GetFromJsonAsync<List<Categoria>>("api/ticket/categorias");
             return respuesta ?? new List<Categoria>();
+        }
+
+        // NUEVO: MÉTODO DASHBOARD
+        public async Task<DashboardKpi> ObtenerDashboard(int idUsuario)
+        {
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<DashboardKpi>($"api/ticket/kpis/{idUsuario}");
+                return resultado ?? new DashboardKpi();
+            }
+            catch
+            {
+                return new DashboardKpi(); // Retornamos vacíos si falla para no romper la pantalla
+            }
         }
     }
 }
