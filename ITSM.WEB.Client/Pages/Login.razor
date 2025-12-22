@@ -1,8 +1,14 @@
-﻿@page "/login"
+﻿@page "/"
+@page "/login"
 @layout LoginLayout
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 @inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center mud-width-full" Style="height: 100vh;">
     <MudPaper Elevation="25" Class="pa-8" Width="100%" MaxWidth="400px">
@@ -19,34 +25,78 @@
                           @bind-Value="password" InputType="InputType.Password"
                           Required="true" RequiredError="Ingrese contraseña" Class="mt-3" />
 
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                       Class="mt-6" OnClick="ProcesarLogin" Disabled="@(!success)">
-                INGRESAR
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       FullWidth="true"
+                       Class="mt-6"
+                       OnClick="ProcesarLogin"
+                       Disabled="@procesando">
+                @if (procesando)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">INGRESANDO...</MudText>
+                }
+                else
+                {
+                    <MudText>INGRESAR</MudText>
+                }
             </MudButton>
+
         </MudForm>
     </MudPaper>
 </MudContainer>
 
 @code {
     bool success;
-    MudForm? form; // Corregido: Puede ser nulo
+    bool procesando = false;
+    MudForm? form;
     string username = "";
     string password = "";
 
     private async Task ProcesarLogin()
     {
+        // Validar formulario primero
+        await form!.Validate();
+        if (!form.IsValid) return;
+
+        procesando = true;
         try
         {
-            // Bypass temporal para desarrollo
-            if (!string.IsNullOrEmpty(username))
+            var loginRequest = new SolicitudAcceso
             {
-                await Task.Delay(100); // Simular proceso
-                Navigation.NavigateTo("/helpdesk/mis-tickets");
+                NombreUsuario = username,
+                Clave = password
+            };
+
+            var respuesta = await Http.PostAsJsonAsync("api/autenticacion/login", loginRequest);
+
+            if (respuesta.IsSuccessStatusCode)
+            {
+                var usuario = await respuesta.Content.ReadFromJsonAsync<Usuario>();
+
+                if (usuario != null)
+                {
+                    var auth = (ProveedorAutenticacion)AuthStateProvider;
+                    await auth.NotificarLogin(usuario);
+
+                    Snackbar.Add("Bienvenido al sistema", Severity.Success);
+                    Navigation.NavigateTo("/helpdesk/mis-tickets", forceLoad: true);
+                }
+            }
+            else
+            {
+                Snackbar.Add("Usuario o contraseña incorrectos", Severity.Error);
             }
         }
-        catch (Exception) // Corregido: Quitamos la variable 'ex' si no se usa
+        catch (Exception ex)
         {
-            Snackbar.Add("Error de conexión", Severity.Error);
+            Snackbar.Add($"Error de conexión: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            procesando = false;
         }
     }
 }

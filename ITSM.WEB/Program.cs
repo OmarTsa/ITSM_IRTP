@@ -6,7 +6,7 @@ using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configurar Blazor (Soporte para Server y WebAssembly)
+// 1. Configurar Blazor
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
@@ -17,11 +17,11 @@ builder.Services.AddMudServices();
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Inyección de la Lógica de Negocio (Solo existe en el Servidor)
+// 3. Inyección de la Lógica de Negocio
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<UsuarioNegocio>();
 
-// 4. Habilitar APIs (Controladores) - EL PUENTE
+// 4. Habilitar APIs
 builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 
@@ -39,16 +39,19 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// --- CORRECCIÓN CLAVE PARA .NET 10 ---
+app.UseStaticFiles(); // Sirve archivos de wwwroot (imágenes, css)
 app.UseAntiforgery();
 
-// 5. Mapear rutas
-app.MapControllers(); // Activa las APIs
+// NUEVO: Esto soluciona el error "Mapped static asset endpoints not found"
+app.MapStaticAssets();
+
+app.MapControllers();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
-    // Esto conecta las páginas del Cliente para que corran en el Server
     .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
 
 app.Run();

@@ -22,14 +22,19 @@ namespace ITSM.WEB.Client.Auth
             if (usuario == null)
                 return new AuthenticationState(_anonimo);
 
+            // Crear los Claims (Datos de la credencial)
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                new Claim(ClaimTypes.Role, usuario.Rol ?? "Usuario"),
-                // CORRECCIÓN: Usamos NameIdentifier en lugar de "IdUsuario"
+                
+                // --- CORREGIDO: Accedemos a usuario.Rol?.Nombre ---
+                // Si usuario.Rol es nulo, usa "Usuario" por defecto
+                new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
+
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
             };
 
+            // Propiedad calculada en Usuario.cs (NombreCompleto)
             if (!string.IsNullOrEmpty(usuario.NombreCompleto))
             {
                 claims.Add(new Claim("NombreCompleto", usuario.NombreCompleto));
@@ -46,8 +51,10 @@ namespace ITSM.WEB.Client.Auth
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                new Claim(ClaimTypes.Role, usuario.Rol ?? "Usuario"),
-                // CORRECCIÓN: Aquí también usamos NameIdentifier
+
+                // --- CORREGIDO: Lo mismo aquí ---
+                new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
+
                 new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString())
             };
 

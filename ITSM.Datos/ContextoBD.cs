@@ -12,14 +12,14 @@ namespace ITSM.Datos
         public DbSet<Ticket> Tickets { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
         public DbSet<Activo> Activos { get; set; }
-
-        // FALTABAN ESTAS DOS:
         public DbSet<Prioridad> Prioridades { get; set; }
         public DbSet<EstadoTicket> EstadosTicket { get; set; }
 
+        // --- CORRECCIÓN: FALTABA LA TABLA DE ROLES ---
+        public DbSet<Rol> Roles { get; set; } // <--- AGREGAR ESTO
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Configuraciones adicionales si fueran necesarias
             base.OnModelCreating(modelBuilder);
         }
     }

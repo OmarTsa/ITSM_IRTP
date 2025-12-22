@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Authentication.Cookies; // Necesario para Cookies
 
 namespace ITSM.WEB.Controllers
 {
+
+
+
     [Route("api/[controller]")]
     [ApiController]
     public class AutenticacionController : ControllerBase
