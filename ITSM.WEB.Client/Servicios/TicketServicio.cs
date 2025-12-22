@@ -43,7 +43,14 @@ namespace ITSM.WEB.Client.Servicios
             return respuesta ?? new List<Categoria>();
         }
 
-        // NUEVO: MÉTODO DASHBOARD
+        // --- NUEVO MÉTODO ---
+        public async Task<List<Prioridad>> ObtenerPrioridades()
+        {
+            var respuesta = await _http.GetFromJsonAsync<List<Prioridad>>("api/ticket/prioridades");
+            return respuesta ?? new List<Prioridad>();
+        }
+        // --------------------
+
         public async Task<DashboardKpi> ObtenerDashboard(int idUsuario)
         {
             try
@@ -53,7 +60,7 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch
             {
-                return new DashboardKpi(); // Retornamos vacíos si falla para no romper la pantalla
+                return new DashboardKpi();
             }
         }
     }

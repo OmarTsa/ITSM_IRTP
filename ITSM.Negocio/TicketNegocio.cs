@@ -48,6 +48,13 @@ namespace ITSM.Negocio
             return await _contexto.Categorias.Where(c => c.Activo == 1).ToListAsync();
         }
 
+        // --- NUEVO: MÉTODO PRIORIDADES ---
+        public async Task<List<Prioridad>> ListarPrioridades()
+        {
+            return await _contexto.Prioridades.ToListAsync();
+        }
+        // ---------------------------------
+
         public async Task GuardarTicket(Ticket ticket)
         {
             if (ticket.IdTicket == 0)
@@ -61,8 +68,6 @@ namespace ITSM.Negocio
             }
             await _contexto.SaveChangesAsync();
         }
-
-        // --- MÉTODOS DE SOPORTE Y KPI ---
 
         public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
         {
@@ -82,22 +87,15 @@ namespace ITSM.Negocio
                 .ToListAsync();
         }
 
-        // NUEVO: CÁLCULO DE DASHBOARD
         public async Task<DashboardKpi> ObtenerKpisAsync(int idUsuario)
         {
             var kpi = new DashboardKpi();
-
-            // Traemos todos los tickets (si son muchos, optimizar con CountAsync separados)
             var todos = await _contexto.Tickets.AsNoTracking().ToListAsync();
 
             kpi.TotalTickets = todos.Count;
-            kpi.TicketsAbiertos = todos.Count(t => t.IdEstado == 1); // 1 = Abierto
-            kpi.TicketsResueltos = todos.Count(t => t.IdEstado == 4); // 4 = Resuelto
-
-            // Críticos: Prioridad 1 (Alta) y que no estén cerrados
+            kpi.TicketsAbiertos = todos.Count(t => t.IdEstado == 1);
+            kpi.TicketsResueltos = todos.Count(t => t.IdEstado == 4);
             kpi.TicketsCriticos = todos.Count(t => t.IdPrioridad == 1 && t.IdEstado != 4 && t.IdEstado != 5);
-
-            // Mis asignados (si el usuario es técnico)
             kpi.MisAsignados = todos.Count(t => t.IdEspecialista == idUsuario && t.IdEstado != 5);
 
             return kpi;

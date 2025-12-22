@@ -44,7 +44,15 @@ namespace ITSM.WEB.Controllers
             return Ok(lista);
         }
 
-        // NUEVO: ENDPOINT DASHBOARD
+        // --- NUEVO ENDPOINT ---
+        [HttpGet("prioridades")]
+        public async Task<IActionResult> GetPrioridades()
+        {
+            var lista = await _ticketNegocio.ListarPrioridades();
+            return Ok(lista);
+        }
+        // ----------------------
+
         [HttpGet("kpis/{idUsuario}")]
         public async Task<IActionResult> GetKpis(int idUsuario)
         {
