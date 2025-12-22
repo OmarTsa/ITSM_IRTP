@@ -1,5 +1,24 @@
 ﻿@using MudBlazor
 @using ITSM.Entidades
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="int?" Label="Activos Disponibles" @bind-Value="IdActivoSeleccionado">
+            @foreach (var activo in ListaActivos)
+            {
+                @* CORRECCIÓN AQUÍ: Usar CodPatrimonial *@
+                <MudSelectItem T="int?" Value="@activo.IdActivo">
+                    @activo.Nombre (@activo.CodPatrimonial)
+                </MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Confirmar">Asignar</MudButton>
+    </DialogActions>
+</MudDialog>
+
 @code {
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
@@ -13,18 +32,3 @@
 
     private void Confirmar() => MudDialog.Close(DialogResult.Ok(IdActivoSeleccionado));
 }
-
-<MudDialog>
-    <DialogContent>
-        <MudSelect T="int?" Label="Activos Disponibles" @bind-Value="IdActivoSeleccionado">
-            @foreach (var activo in ListaActivos)
-            {
-                <MudSelectItem T="int?" Value="@activo.IdActivo">@activo.Nombre (@activo.CodigoInventario)</MudSelectItem>
-            }
-        </MudSelect>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancelar">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Confirmar">Asignar</MudButton>
-    </DialogActions>
-</MudDialog>

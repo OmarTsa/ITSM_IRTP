@@ -13,7 +13,8 @@
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.Nombre</MudTd>
-        <MudTd>@context.CodigoInventario</MudTd>
+        @* CORRECCIÓN AQUÍ: Usar CodPatrimonial *@
+        <MudTd>@context.CodPatrimonial</MudTd>
         <MudTd>@(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")</MudTd>
     </RowTemplate>
 </MudTable>
@@ -23,6 +24,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Ahora este método sí existe gracias a la corrección en TicketNegocio
         listaActivos = await TicketNegocio.ListarActivosAsync();
     }
 }

@@ -1,12 +1,13 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
+@* Asegúrate de que _Imports.razor tenga: @using ITSM.WEB.Client.Layout *@
 
-<Router AppAssembly="@typeof(ITSM.WEB.Program).Assembly">
+<Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(ITSM.WEB.Components.Layout.MainLayout)" />
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
     <NotFound>
-        <LayoutView Layout="@typeof(ITSM.WEB.Components.Layout.MainLayout)">
+        <LayoutView Layout="@typeof(MainLayout)">
             <p role="alert">Lo sentimos, no hay nada en esta dirección.</p>
         </LayoutView>
     </NotFound>

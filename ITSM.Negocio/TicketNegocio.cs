@@ -13,6 +13,15 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
+        // --- MÉTODO AGREGADO PARA CORREGIR ERROR ---
+        public async Task<List<Activo>> ListarActivosAsync()
+        {
+            return await _contexto.Activos
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        // Métodos existentes conservados
         public async Task<List<Categoria>> ListarCategoriasAsync()
         {
             return await _contexto.Categorias.Where(c => c.Activo == 1).AsNoTracking().ToListAsync();
@@ -23,7 +32,6 @@ namespace ITSM.Negocio
             return await _contexto.Prioridades.AsNoTracking().ToListAsync();
         }
 
-        // NUEVO: Método que faltaba
         public async Task<List<EstadoTicket>> ListarEstadosAsync()
         {
             return await _contexto.EstadosTicket.AsNoTracking().ToListAsync();
@@ -66,7 +74,6 @@ namespace ITSM.Negocio
                 .FirstOrDefaultAsync(t => t.IdTicket == idTicket);
         }
 
-        // NUEVO: Método para reportes (Simplificado para compilar)
         public async Task<List<Ticket>> GenerarReporteTicketsAsync(DateTime inicio, DateTime fin)
         {
             return await _contexto.Tickets
