@@ -12,16 +12,23 @@ namespace ITSM.WEB.Client.Servicios
             _http = http;
         }
 
-        public async Task<List<Usuario>> ListarUsuarios()
+        public async Task<Usuario?> Login(string email, string password)
         {
-            var respuesta = await _http.GetFromJsonAsync<List<Usuario>>("api/usuario");
-            return respuesta ?? new List<Usuario>();
+            // Enviamos un objeto anónimo con las credenciales al controlador de autenticación
+            var response = await _http.PostAsJsonAsync("api/autenticacion/login", new { Email = email, Password = password });
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<Usuario>();
+            }
+            return null;
         }
 
-        public async Task<Usuario?> ObtenerPorId(int id)
-        {
-            return await _http.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
-        }
+        public async Task<List<Usuario>> ListarUsuarios() =>
+            await _http.GetFromJsonAsync<List<Usuario>>("api/usuario") ?? new List<Usuario>();
+
+        public async Task<Usuario?> ObtenerPorId(int id) =>
+            await _http.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
 
         public async Task GuardarUsuario(Usuario usuario)
         {

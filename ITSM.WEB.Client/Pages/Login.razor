@@ -1,73 +1,75 @@
 ﻿@page "/login"
 @layout LoginLayout
-@using ITSM.WEB.Client.Servicios
 @using ITSM.Entidades
-@inject ServicioSesion _servicioSesion
+@using ITSM.WEB.Client.Auth
+@using ITSM.WEB.Client.Servicios
+@using MudBlazor
+@inject UsuarioServicio _usuarioServicio
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<MudPaper Class="pa-8 d-flex flex-column align-center" Elevation="3" Style="width: 400px; border-radius: 12px;">
+@rendermode InteractiveWebAssembly
 
-    <div class="d-flex flex-column align-center mb-6">
-        <MudIcon Icon="@Icons.Material.Filled.SupportAgent" Color="Color.Primary" Style="width: 64px; height: 64px;" />
-        <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">ITSM | Acceso</MudText>
-    </div>
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudPaper Class="pa-8" Elevation="4">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">ITSM - Ingreso</MudText>
+        <MudForm @bind-IsValid="@success">
+            <MudTextField @bind-Value="loginUser" Label="Usuario o Correo" Variant="Variant.Outlined"
+                          Required="true" Class="mb-4" AdornmentIcon="@Icons.Material.Filled.Person" />
 
-    <MudForm @bind-IsValid="@success" Style="width: 100%;">
+            <MudTextField @bind-Value="loginPassword" Label="Contraseña" Variant="Variant.Outlined"
+                          InputType="InputType.Password" Required="true" Class="mb-6" />
 
-        <MudTextField @bind-Value="email" Label="Correo / Usuario" Variant="Variant.Outlined"
-                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person"
-                      Class="mb-4" Required="true" />
-
-        <MudTextField @bind-Value="password" Label="Contraseña" Variant="Variant.Outlined"
-                      InputType="InputType.Password" Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Lock"
-                      Class="mb-6" Required="true" />
-
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
-                   OnClick="IniciarSesion" Disabled="@procesando">
-            @if (procesando)
-            {
-                <MudText>Cargando...</MudText>
-            }
-            else
-            {
-
-                <MudText>INGRESAR</MudText>
-            }
-        </MudButton>
-
-    </MudForm>
-</MudPaper>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large"
+                       OnClick="EjecutarLogin" Disabled="@(cargando || !success)">
+                @if (cargando)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">Iniciando sesión...</MudText>
+                }
+                else
+                {
+                    <MudText>Entrar al Sistema</MudText>
+                }
+            </MudButton>
+        </MudForm>
+    </MudPaper>
+</MudContainer>
 
 @code {
-    bool success;
-    bool procesando = false;
-    string email = "";
-    string password = "";
+    private string loginUser = "";
+    private string loginPassword = "";
+    private bool success;
+    private bool cargando;
 
-    private async Task IniciarSesion()
+    private async Task EjecutarLogin()
     {
-        procesando = true;
+        cargando = true;
         try
         {
-            // El servicio se encarga de todo. Solo esperamos true o false.
-            var resultado = await _servicioSesion.IniciarSesion(email, password);
+            var usuario = await _usuarioServicio.Login(loginUser, loginPassword);
 
-            if (resultado)
+            if (usuario != null)
             {
+                var authProvider = (ProveedorAutenticacion)AuthStateProvider;
+                await authProvider.IniciarSesion(usuario);
+
+                // Redirección forzada para limpiar estados previos y cargar permisos
                 Navigation.NavigateTo("/", forceLoad: true);
             }
             else
             {
-                Snackbar.Add("Credenciales inválidas", Severity.Error);
-                procesando = false;
+                Snackbar.Add("Acceso denegado: Credenciales inválidas", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
-            procesando = false;
+            Snackbar.Add($"Error de comunicación: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            cargando = false;
         }
     }
 }

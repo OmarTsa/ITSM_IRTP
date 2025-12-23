@@ -2,14 +2,14 @@
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
-
-@* CORRECCIÓN 1: Usar el servicio correcto *@
 @inject InventarioServicio _inventarioServicio
 @inject NavigationManager Navigation
-@inject ISnackbar Snackbar
+
+@* Forzamos la interactividad para que los datos carguen después del renderizado inicial *@
+@rendermode InteractiveServer
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h5"><b>Inventario de Activos</b></MudText>
+    <MudText Typo="Typo.h5"><b>Inventario de Activos TI</b></MudText>
     <MudSpacer />
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                OnClick="@(() => Navigation.NavigateTo("/activos/nuevo"))">
@@ -27,7 +27,7 @@ else
         <ToolBarContent>
             <MudText Typo="Typo.h6">Equipos Registrados</MudText>
             <MudSpacer />
-            <MudTextField @bind-Value="busqueda" Placeholder="Buscar..." Adornment="Adornment.Start"
+            <MudTextField @bind-Value="busqueda" Placeholder="Buscar equipo..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
         </ToolBarContent>
         <HeaderContent>
@@ -67,21 +67,28 @@ else
 }
 
 @code {
-    private List<Activo> listaActivos = new();
+    private List<Activo>? listaActivos;
     private string busqueda = "";
 
     protected override async Task OnInitializedAsync()
     {
-        // CORRECCIÓN 2: Llamamos a ListarActivos() del servicio nuevo
-        listaActivos = await _inventarioServicio.ListarActivos();
+        try
+        {
+            // Cargamos los activos desde el servicio
+            listaActivos = await _inventarioServicio.ListarActivos();
+        }
+        catch (Exception)
+        {
+            listaActivos = new List<Activo>();
+        }
     }
 
     private bool Filtrar(Activo a)
     {
         if (string.IsNullOrWhiteSpace(busqueda)) return true;
         if (a.CodInventario.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
-        if (a.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
-        if (a.UsuarioAsignado != null && a.UsuarioAsignado.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        if (a.Marca.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        if (a.Modelo.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 }

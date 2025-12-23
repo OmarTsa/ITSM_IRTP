@@ -1,57 +1,45 @@
-﻿using System.Net.Http.Json;
-using ITSM.WEB.Client.Auth;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
+using ITSM.Entidades;
+using System.Text.Json;
 
 namespace ITSM.WEB.Client.Servicios
 {
     public class ServicioSesion
     {
-        private readonly HttpClient _http;
         private readonly IJSRuntime _js;
-        private readonly AuthenticationStateProvider _authStateProvider;
+        private const string KeySesion = "sesion_usuario";
 
-        public ServicioSesion(HttpClient http, IJSRuntime js, AuthenticationStateProvider authStateProvider)
+        public ServicioSesion(IJSRuntime js)
         {
-            _http = http;
             _js = js;
-            _authStateProvider = authStateProvider;
         }
 
-        // --- ESTE ES EL MÉTODO QUE FALTABA ---
-        public async Task<bool> IniciarSesion(string email, string password)
+        public async Task GuardarSesion(Usuario sesion)
         {
+            var sesionJson = JsonSerializer.Serialize(sesion);
+            await _js.InvokeVoidAsync("localStorage.setItem", KeySesion, sesionJson);
+        }
+
+        public async Task<Usuario?> ObtenerSesion()
+        {
+            var sesionJson = await _js.InvokeAsync<string?>("localStorage.getItem", KeySesion);
+
+            if (string.IsNullOrEmpty(sesionJson))
+                return null;
+
             try
             {
-                var response = await _http.PostAsJsonAsync("api/autenticacion/login", new { Email = email, Password = password });
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var loginResult = await response.Content.ReadFromJsonAsync<LoginResult>();
-                    if (loginResult != null && !string.IsNullOrEmpty(loginResult.Token))
-                    {
-                        await _js.InvokeVoidAsync("localStorage.setItem", "authToken", loginResult.Token);
-                        ((ProveedorAutenticacion)_authStateProvider).NotificarLogin(loginResult.Token);
-                        return true;
-                    }
-                }
-                return false;
+                return JsonSerializer.Deserialize<Usuario>(sesionJson);
             }
             catch
             {
-                return false;
+                return null;
             }
         }
 
-        public async Task CerrarSesion()
+        public async Task LimpiarSesion()
         {
-            await _js.InvokeVoidAsync("localStorage.removeItem", "authToken");
-            ((ProveedorAutenticacion)_authStateProvider).NotificarLogout();
-        }
-
-        private class LoginResult
-        {
-            public string Token { get; set; } = string.Empty;
+            await _js.InvokeVoidAsync("localStorage.removeItem", KeySesion);
         }
     }
 }

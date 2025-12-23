@@ -23,7 +23,7 @@
                         </MudChip>
                     </ActivatorContent>
                     <ChildContent>
-                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="CerrarSesion">Cerrar Sesión</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="EjecutarCerrarSesion">Cerrar Sesión</MudMenuItem>
                     </ChildContent>
                 </MudMenu>
             </Authorized>
@@ -49,11 +49,10 @@
 
     void DrawerToggle() => _drawerOpen = !_drawerOpen;
 
-    private async Task CerrarSesion()
+    private async Task EjecutarCerrarSesion()
     {
-        var proveedor = (ProveedorAutenticacion)AuthStateProvider;
-        await proveedor.CerrarSesion();
-        // Redirigir al dashboard con limitaciones o al login
-        Navigation.NavigateTo("/", forceLoad: true);
+        var authProvider = (ProveedorAutenticacion)AuthStateProvider;
+        await authProvider.CerrarSesion();
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

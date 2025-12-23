@@ -6,40 +6,41 @@ using MudBlazor.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using ITSM.WEB.Client.Servicios;
 using ITSM.WEB.Client.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configurar Blazor
+// 1. CONFIGURACIÓN DE BLAZOR (Interactive Server + WebAssembly)
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddMudServices();
 
-// 2. Conexión a Base de Datos
+// 2. CONEXIÓN A BASE DE DATOS (Oracle)
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Inyección de Negocio (Servidor)
+// 3. REGISTRO DE CAPA DE NEGOCIO (Backend)
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<ActivoNegocio>();
 
-// --- 4. CONFIGURACIÓN DEL CLIENTE (PARA PRE-RENDERIZADO) ---
+// 4. REGISTRO DE SERVICIOS DEL CLIENTE (Para Pre-renderizado en Servidor)
+// Nota: Se requiere HttpClient para que los servicios del cliente funcionen en el SSR
 builder.Services.AddScoped(sp => new HttpClient
 {
-    // Mantenemos tu IP configurada
+    // Usamos la IP configurada para asegurar consistencia en la red
     BaseAddress = new Uri("http://172.30.97.30:5244/")
 });
 
-// Servicios que usan los componentes Razor (Deben estar aquí también)
 builder.Services.AddScoped<TicketServicio>();
 builder.Services.AddScoped<ServicioSesion>();
-builder.Services.AddScoped<InventarioServicio>(); // <--- ¡ESTA LÍNEA FALTABA!
-builder.Services.AddScoped<UsuarioServicio>();    // <--- AGREGAMOS ESTA TAMBIÉN POR SI ACASO
-// -------------------------------------------------------------------
+builder.Services.AddScoped<InventarioServicio>();
+builder.Services.AddScoped<UsuarioServicio>();
 
-// 5. Configuración de Cookies
+// 5. CONFIGURACIÓN DE AUTENTICACIÓN Y ESTADO
+builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -48,11 +49,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     });
 
-builder.Services.AddAuthorization();
+// Proveedor de estado de autenticación compartido
+builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
+
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
+// 6. CONFIGURACIÓN DEL PIPELINE DE SOLICITUDES
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
