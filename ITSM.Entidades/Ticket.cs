@@ -10,50 +10,82 @@ namespace ITSM.Entidades
         [Column("ID_TICKET")]
         public int IdTicket { get; set; }
 
-        [Column("TITULO")]
-        public string Titulo { get; set; } = string.Empty;
-
-        [Column("DESCRIPCION")]
-        public string? Descripcion { get; set; }
-
         [Column("FECHA_CREACION")]
-        public DateTime FechaCreacion { get; set; }
+        public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
 
-        [ForeignKey("IdSolicitante")]
-        public Usuario? Solicitante { get; set; }
-
         [Column("ID_CATEGORIA")]
         public int IdCategoria { get; set; }
 
-        [ForeignKey("IdCategoria")]
-        public Categoria? Categoria { get; set; }
+        [Column("TITULO")]
+        [Required(ErrorMessage = "El título es obligatorio")]
+        public string? Titulo { get; set; }
 
-        [Column("ID_ESTADO")]
-        public int IdEstado { get; set; }
+        [Column("DESCRIPCION")]
+        [Required(ErrorMessage = "La descripción es obligatoria")]
+        public string? Descripcion { get; set; }
 
-        [ForeignKey("IdEstado")]
-        public Estado? Estado { get; set; }
-
-        [Column("ID_PRIORIDAD")]
-        public int IdPrioridad { get; set; }
-
-        [ForeignKey("IdPrioridad")]
-        public Prioridad? Prioridad { get; set; }
+        [Column("ID_ACTIVO_AFECTADO")]
+        public int? IdActivoAfectado { get; set; } // <--- Nombre corregido para match con Oracle
 
         [Column("ID_ESPECIALISTA")]
         public int? IdEspecialista { get; set; }
 
+        [Column("FECHA_ASIGNACION")]
+        public DateTime? FechaAsignacion { get; set; }
+
+        [Column("FECHA_CIERRE")]
+        public DateTime? FechaCierre { get; set; }
+
+        [Column("CALIFICACION")]
+        public int? Calificacion { get; set; }
+
+        [Column("ID_IMPACTO")]
+        public int IdImpacto { get; set; } = 3;
+
+        [Column("ID_URGENCIA")]
+        public int IdUrgencia { get; set; } = 3;
+
+        [Column("TIPO_TICKET")]
+        public string TipoTicket { get; set; } = "Incidente";
+
+        [Column("ORIGEN")]
+        public string Origen { get; set; } = "Web";
+
+        [Column("FECHA_LIMITE")]
+        public DateTime? FechaLimite { get; set; }
+
+        [Column("CODIGO_CIERRE")]
+        public string? CodigoCierre { get; set; }
+
+        [Column("NOTAS_CIERRE")]
+        public string? NotasCierre { get; set; }
+
+        [Column("ID_PRIORIDAD")]
+        public int IdPrioridad { get; set; } = 3;
+
+        [Column("ID_ESTADO")]
+        public int IdEstado { get; set; } = 1;
+
+        // Navegación
+        [ForeignKey("IdSolicitante")]
+        public virtual Usuario? Solicitante { get; set; }
+
         [ForeignKey("IdEspecialista")]
-        public Usuario? Especialista { get; set; }
+        public virtual Usuario? Especialista { get; set; }
 
-        // CORRECCIÓN SEGÚN TU DDL: ID_ACTIVO_AFECTADO
-        [Column("ID_ACTIVO_AFECTADO")]
-        public int? IdActivo { get; set; }
+        [ForeignKey("IdCategoria")]
+        public virtual Categoria? Categoria { get; set; }
 
-        [ForeignKey("IdActivo")]
-        public Activo? Activo { get; set; }
+        [ForeignKey("IdEstado")]
+        public virtual Estado? Estado { get; set; }
+
+        [ForeignKey("IdPrioridad")]
+        public virtual Prioridad? Prioridad { get; set; }
+
+        [ForeignKey("IdActivoAfectado")]
+        public virtual Activo? Activo { get; set; }
     }
 }

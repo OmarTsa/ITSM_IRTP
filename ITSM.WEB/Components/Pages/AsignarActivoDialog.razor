@@ -1,34 +1,84 @@
-﻿@using MudBlazor
-@using ITSM.Entidades
+﻿@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@using MudBlazor
+@inject InventarioServicio _inventarioServicio
+@inject UsuarioServicio _usuarioServicio
+@inject ISnackbar Snackbar
 
 <MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.AssignmentInd" Class="mr-3 mb-n1" />
+            Asignar Activo a Usuario
+        </MudText>
+    </TitleContent>
     <DialogContent>
-        <MudSelect T="int?" Label="Activos Disponibles" @bind-Value="IdActivoSeleccionado">
-            @foreach (var activo in ListaActivos)
-            {
-                @* CORRECCIÓN AQUÍ: Usamos CodInventario *@
-                <MudSelectItem T="int?" Value="@activo.IdActivo">
-                    @activo.Nombre (@activo.CodInventario)
-                </MudSelectItem>
-            }
-        </MudSelect>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.body2" Class="mb-4">
+                    Seleccione el usuario responsable del equipo:
+                    <b>@Activo.Marca @Activo.Modelo</b> (S/N: @Activo.Serie)
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="int?" Label="Usuario Responsable" Variant="Variant.Outlined"
+                           @bind-Value="Activo.IdUsuarioAsignado" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="int?" Value="@((int?)null)">Sin asignar</MudSelectItem>
+                    @if (listaUsuarios != null)
+                    {
+                        @foreach (var user in listaUsuarios)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)user.IdUsuario)">@user.NombreCompleto</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Activo.UbicacionFisica" Label="Ubicación Física Actual"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancelar">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Confirmar">Asignar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsignacion">Confirmar</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = null!;
+    public MudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
-    public List<Activo> ListaActivos { get; set; } = new();
+    public Activo Activo { get; set; } = new();
 
-    private int? IdActivoSeleccionado;
+    private List<Usuario>? listaUsuarios;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            listaUsuarios = await _usuarioServicio.ListarUsuarios();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar usuarios: {ex.Message}", Severity.Error);
+        }
+    }
 
     private void Cancelar() => MudDialog.Cancel();
 
-    private void Confirmar() => MudDialog.Close(DialogResult.Ok(IdActivoSeleccionado));
+    private async Task GuardarAsignacion()
+    {
+        try
+        {
+            await _inventarioServicio.GuardarActivo(Activo);
+            Snackbar.Add("Activo asignado correctamente", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
+        }
+    }
 }

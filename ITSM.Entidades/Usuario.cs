@@ -20,7 +20,7 @@ namespace ITSM.Entidades
         [Column("APELLIDOS")]
         public string? Apellidos { get; set; }
 
-        // Propiedad calculada para solucionar los errores CS1061
+        // Propiedad calculada para visualización en UI
         [NotMapped]
         public string NombreCompleto => $"{Nombres} {Apellidos}".Trim();
 

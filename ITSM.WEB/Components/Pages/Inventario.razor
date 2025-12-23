@@ -5,7 +5,6 @@
 @inject InventarioServicio _inventarioServicio
 @inject NavigationManager Navigation
 
-@* Forzamos InteractiveServer para que el enrutador del servidor tome el control *@
 @rendermode InteractiveServer
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
@@ -23,17 +22,18 @@
 }
 else
 {
-    <MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3" Filter="new Func<Activo, bool>(Filtrar)">
+    <MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3" Filter="new Func<Activo, bool>(FiltrarBusqueda)">
         <ToolBarContent>
             <MudText Typo="Typo.h6">Equipos Registrados</MudText>
             <MudSpacer />
-            <MudTextField @bind-Value="busqueda" Placeholder="Buscar..." Adornment="Adornment.Start"
+            <MudTextField @bind-Value="busqueda" Placeholder="Buscar por código, serie o marca..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
         </ToolBarContent>
         <HeaderContent>
             <MudTh>Tipo</MudTh>
-            <MudTh>Código</MudTh>
+            <MudTh>Código Patrimonial</MudTh>
             <MudTh>Marca / Modelo</MudTh>
+            <MudTh>Serie</MudTh>
             <MudTh>Usuario Asignado</MudTh>
             <MudTh>Acciones</MudTh>
         </HeaderContent>
@@ -41,10 +41,11 @@ else
             <MudTd DataLabel="Tipo">@context.Tipo?.Nombre</MudTd>
             <MudTd DataLabel="Código">
                 <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">
-                    @context.CodInventario
+                    @context.CodigoPatrimonial
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Marca">@context.Nombre</MudTd>
+            <MudTd DataLabel="Marca">@($"{context.Marca} / {context.Modelo}")</MudTd>
+            <MudTd DataLabel="Serie">@context.Serie</MudTd>
             <MudTd DataLabel="Usuario">@(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")</MudTd>
             <MudTd DataLabel="Acciones">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning"
@@ -63,15 +64,25 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // El servicio ahora funcionará porque registramos HttpClient en Program.cs
-        listaActivos = await _inventarioServicio.ListarActivos();
+        try
+        {
+            listaActivos = await _inventarioServicio.ListarActivos();
+        }
+        catch
+        {
+            listaActivos = new List<Activo>();
+        }
     }
 
-    private bool Filtrar(Activo a)
+    private bool FiltrarBusqueda(Activo a)
     {
         if (string.IsNullOrWhiteSpace(busqueda)) return true;
-        if (a.CodInventario?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
-        if (a.Nombre?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
+
+        if (a.CodigoPatrimonial?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
+        if (a.Serie?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
+        if (a.Marca?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
+        if (a.Modelo?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
+
         return false;
     }
 }

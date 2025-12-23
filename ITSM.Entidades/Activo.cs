@@ -11,32 +11,47 @@ namespace ITSM.Entidades
         public int IdActivo { get; set; }
 
         [Column("CODIGO_PATRIMONIAL")]
-        public string CodInventario { get; set; } = string.Empty;
+        [Required(ErrorMessage = "El código patrimonial es obligatorio")]
+        public string? CodigoPatrimonial { get; set; }
 
-        // --- RELACIÓN CON TIPO DE ACTIVO ---
         [Column("ID_TIPO")]
         public int IdTipo { get; set; }
 
-        [ForeignKey("IdTipo")]
-        public TipoActivo? Tipo { get; set; }
-        // -----------------------------------
-
         [Column("MARCA")]
-        public string Marca { get; set; } = string.Empty;
+        public string? Marca { get; set; }
 
         [Column("MODELO")]
-        public string Modelo { get; set; } = string.Empty;
+        public string? Modelo { get; set; }
 
         [Column("SERIE")]
-        public string Serie { get; set; } = string.Empty;
+        public string? Serie { get; set; }
+
+        [Column("FECHA_COMPRA")]
+        public DateTime? FechaCompra { get; set; }
+
+        [Column("CONDICION")]
+        public string? Condicion { get; set; }
 
         [Column("ID_USUARIO_ASIGNADO")]
         public int? IdUsuarioAsignado { get; set; }
 
-        [ForeignKey("IdUsuarioAsignado")]
-        public Usuario? UsuarioAsignado { get; set; }
+        [Column("UBICACION_FISICA")]
+        public string? UbicacionFisica { get; set; }
 
-        [NotMapped]
-        public string Nombre => $"{Marca} {Modelo}";
+        [Column("ESTADO_OPERATIVO")]
+        public string? EstadoOperativo { get; set; }
+
+        [Column("FECHA_REGISTRO")]
+        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+
+        [Column("ELIMINADO")]
+        public int Eliminado { get; set; } = 0;
+
+        // Propiedades de Navegación
+        [ForeignKey("IdTipo")]
+        public virtual TipoActivo? Tipo { get; set; }
+
+        [ForeignKey("IdUsuarioAsignado")]
+        public virtual Usuario? UsuarioAsignado { get; set; }
     }
 }

@@ -4,93 +4,88 @@
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
 @inject InventarioServicio _inventarioServicio
-@inject UsuarioServicio _usuarioServicio
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h5" Class="mb-4">@(IdActivo == 0 ? "Registrar Nuevo Activo" : "Editar Activo")</MudText>
+@rendermode InteractiveWebAssembly
 
-<MudPaper Class="pa-6" Elevation="3">
-    <MudForm @bind-IsValid="@success">
-        <MudGrid>
-            <MudItem xs="12" md="6">
-                <MudSelect T="int" Label="Tipo de Bien" @bind-Value="activo.IdTipo"
-                           Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true">
-                    @foreach (var tipo in listaTipos)
-                    {
-                        <MudSelectItem Value="@tipo.IdTipo">@tipo.Nombre</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
+    <MudText Typo="Typo.h5" Class="mb-4"><b>@(IdActivo == 0 ? "Registrar Nuevo Activo" : "Editar Activo")</b></MudText>
 
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="activo.CodInventario" Label="Código Patrimonial / Etiqueta"
-                              Variant="Variant.Outlined" Required="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.QrCode" />
-            </MudItem>
+    <MudPaper Class="pa-6" Elevation="3">
+        <MudForm @bind-IsValid="@success">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="activo.CodigoPatrimonial" Label="Código Patrimonial"
+                                  Variant="Variant.Outlined" Required="true" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="int" Label="Tipo de Activo" Variant="Variant.Outlined" @bind-Value="activo.IdTipo" Required="true">
+                        @if (listaTipos != null)
+                        {
+                            @foreach (var tipo in listaTipos)
+                            {
+                                <MudSelectItem Value="@tipo.IdTipo">@tipo.Nombre</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="activo.Serie" Label="Número de Serie" Variant="Variant.Outlined" Required="true" />
+                </MudItem>
 
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="activo.Marca" Label="Marca" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="activo.Modelo" Label="Modelo" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="activo.Serie" Label="Número de Serie" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="activo.Marca" Label="Marca" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="activo.Modelo" Label="Modelo" Variant="Variant.Outlined" />
+                </MudItem>
 
-            <MudItem xs="12">
-                <MudSelect T="int?" Label="Asignar a Usuario (Opcional)" @bind-Value="activo.IdUsuarioAsignado"
-                           Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true" SearchBox="true">
-                    @foreach (var user in listaUsuarios)
-                    {
-                        <MudSelectItem T="int?" Value="@user.IdUsuario">@user.NombreCompleto (@user.Cargo)</MudSelectItem>
-                    }
-                </MudSelect>
-            </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="activo.UbicacionFisica" Label="Ubicación Física" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="activo.EstadoOperativo" Label="Estado Operativo" Variant="Variant.Outlined" />
+                </MudItem>
 
-            <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
-                <MudButton Variant="Variant.Text" OnClick="Cancelar">Cancelar</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" Disabled="@(!success)">Guardar Activo</MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudForm>
-</MudPaper>
+                <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/activos/inventario"))">Cancelar</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" Disabled="@(!success)">
+                        Guardar Activo
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudPaper>
+</MudContainer>
 
 @code {
     [Parameter] public int IdActivo { get; set; }
-    Activo activo = new();
-    List<TipoActivo> listaTipos = new();
-    List<Usuario> listaUsuarios = new();
-    bool success;
+    private Activo activo = new();
+    private List<TipoActivo>? listaTipos;
+    private bool success;
 
     protected override async Task OnInitializedAsync()
     {
-        var t1 = _inventarioServicio.ListarTipos();
-        var t2 = _usuarioServicio.ListarUsuarios();
-        await Task.WhenAll(t1, t2);
-        listaTipos = t1.Result;
-        listaUsuarios = t2.Result;
-
+        listaTipos = await _inventarioServicio.ListarTipos();
         if (IdActivo != 0)
         {
-            var encontrado = await _inventarioServicio.ObtenerActivo(IdActivo);
+            var encontrado = await _inventarioServicio.ObtenerPorId(IdActivo);
             if (encontrado != null) activo = encontrado;
         }
     }
 
-    async Task Guardar()
+    private async Task Guardar()
     {
         try
         {
             await _inventarioServicio.GuardarActivo(activo);
-            Snackbar.Add("Activo guardado con éxito", Severity.Success);
+            Snackbar.Add("Cambios guardados correctamente", Severity.Success);
             Navigation.NavigateTo("/activos/inventario");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error al procesar: {ex.Message}", Severity.Error);
         }
     }
-
-    void Cancelar() => Navigation.NavigateTo("/activos/inventario");
 }

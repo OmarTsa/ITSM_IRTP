@@ -2,111 +2,101 @@
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
-
+@using Microsoft.AspNetCore.Components.Authorization
 @inject TicketServicio _ticketServicio
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 
-<MudText Typo="Typo.h5" Class="mb-4"><b>Mis Solicitudes</b></MudText>
+@rendermode InteractiveWebAssembly
 
-<MudTable Items="@tickets" Hover="true" Striped="true" Filter="new Func<Ticket, bool>(Filtrar)" Elevation="3" Loading="@cargando">
-    <ToolBarContent>
-        <MudText Typo="Typo.h6">Bandeja de Entrada</MudText>
-        <MudSpacer />
-        <MudTextField @bind-Value="busqueda" Placeholder="Buscar por asunto, código..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-    </ToolBarContent>
-    <HeaderContent>
-        <MudTh>ID</MudTh>
-        <MudTh>Prioridad</MudTh>
-        <MudTh>Asunto / Activo</MudTh>
-        <MudTh>Estado</MudTh>
-        <MudTh>Fecha</MudTh>
-        <MudTh>Acciones</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="ID"><b>#@context.IdTicket</b></MudTd>
+<MudText Typo="Typo.h5" Class="mb-4">Mis Tickets de Soporte</MudText>
 
-        <MudTd DataLabel="Prioridad">
-            <div class="d-flex align-center">
-                <MudIcon Icon="@Icons.Material.Filled.Flag" Color="@ObtenerColorPrioridad(context.Prioridad?.Nombre)" Size="Size.Small" Class="mr-2" />
-                @context.Prioridad?.Nombre
-            </div>
-        </MudTd>
-
-        <MudTd DataLabel="Asunto">
-            <MudText Typo="Typo.body2" Style="font-weight:bold;">@context.Titulo</MudText>
-
-            @if (context.Activo != null)
-            {
-                <MudChip T="string" Variant="Variant.Text" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.QrCode">
-                    @context.Activo.CodInventario
+@if (tickets == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+}
+else
+{
+    <MudTable Items="@tickets" Hover="true" Bordered="true" Striped="true" Elevation="2" Filter="new Func<Ticket, bool>(FiltrarBusqueda)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Historial de Solicitudes</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="busqueda" Placeholder="Buscar por título o código..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>ID</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Título</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh>Prioridad</MudTh>
+            <MudTh>Activo</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.IdTicket</MudTd>
+            <MudTd DataLabel="Fecha">@context.FechaCreacion.ToShortDateString()</MudTd>
+            <MudTd DataLabel="Título">@context.Titulo</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Size="Size.Small" Color="@ObtenerColorEstado(context.IdEstado)">
+                    @(context.Estado?.Nombre ?? "Pendiente")
                 </MudChip>
-            }
-        </MudTd>
-
-        <MudTd DataLabel="Estado">
-            <MudChip T="string" Color="@ObtenerColorEstado(context.Estado?.Nombre)" Size="Size.Small" Variant="Variant.Filled">
-                @context.Estado?.Nombre
-            </MudChip>
-        </MudTd>
-
-        <MudTd DataLabel="Fecha">@context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</MudTd>
-
-        <MudTd DataLabel="Acciones">
-            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" OnClick="@(() => VerDetalle(context.IdTicket))" />
-        </MudTd>
-    </RowTemplate>
-    <PagerContent>
-        <MudTablePager />
-    </PagerContent>
-</MudTable>
+            </MudTd>
+            <MudTd DataLabel="Prioridad">
+                <MudText Color="@ObtenerColorPrioridad(context.IdPrioridad)">
+                    @(context.Prioridad?.Nombre ?? "Baja")
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Activo">@(context.Activo?.CodigoPatrimonial ?? "N/A")</MudTd>
+            <MudTd DataLabel="Acciones">
+                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info"
+                               OnClick="@(() => Navigation.NavigateTo($"/helpdesk/ticket/{context.IdTicket}"))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
 
 @code {
-    private List<Ticket> tickets = new List<Ticket>();
+    private List<Ticket>? tickets;
     private string busqueda = "";
-    private bool cargando = true;
 
     protected override async Task OnInitializedAsync()
     {
-        // Traemos todos los tickets. Gracias al fix en TicketNegocio, ahora traerá los Activos.
-        tickets = await _ticketServicio.ObtenerTickets();
-        cargando = false;
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var idClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+
+        if (idClaim != null && int.TryParse(idClaim.Value, out int idUsuario))
+        {
+            tickets = await _ticketServicio.ObtenerTicketsPorUsuario(idUsuario);
+        }
     }
 
-    private bool Filtrar(Ticket t)
+    private bool FiltrarBusqueda(Ticket t)
     {
         if (string.IsNullOrWhiteSpace(busqueda)) return true;
-        if (t.Titulo.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        if (t.Titulo?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
         if (t.IdTicket.ToString().Contains(busqueda)) return true;
-
-        // Filtramos también por código de inventario si existe
-        if (t.Activo != null && t.Activo.CodInventario.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
-
+        if (t.Activo?.CodigoPatrimonial?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
         return false;
     }
 
-    private void VerDetalle(int id)
+    private Color ObtenerColorEstado(int idEstado) => idEstado switch
     {
-        Navigation.NavigateTo($"/helpdesk/ticket/{id}");
-    }
+        1 => Color.Info,     // Abierto
+        2 => Color.Warning,  // En Proceso
+        4 => Color.Success,  // Resuelto
+        5 => Color.Default,  // Cerrado
+        _ => Color.Default
+    };
 
-    private Color ObtenerColorPrioridad(string? nombre)
+    private Color ObtenerColorPrioridad(int idPrioridad) => idPrioridad switch
     {
-        if (string.IsNullOrEmpty(nombre)) return Color.Default;
-        if (nombre.Contains("Alta", StringComparison.OrdinalIgnoreCase)) return Color.Error;
-        if (nombre.Contains("Media", StringComparison.OrdinalIgnoreCase)) return Color.Warning;
-        return Color.Success;
-    }
-
-    private Color ObtenerColorEstado(string? nombre)
-    {
-        if (string.IsNullOrEmpty(nombre)) return Color.Default;
-        return nombre.ToUpper() switch
-        {
-            "ABIERTO" => Color.Info,
-            "EN PROCESO" => Color.Warning,
-            "RESUELTO" => Color.Success,
-            "CERRADO" => Color.Dark,
-            _ => Color.Default
-        };
-    }
+        1 => Color.Error,    // Alta
+        2 => Color.Warning,  // Media
+        _ => Color.Success   // Baja
+    };
 }

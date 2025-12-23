@@ -1,72 +1,52 @@
 ﻿@page "/helpdesk/gestion"
 @using ITSM.Entidades
-@using ITSM.Negocio
+@using ITSM.WEB.Client.Servicios
+@using MudBlazor
+@inject TicketServicio _ticketServicio
+@inject NavigationManager Navigation
+
 @rendermode InteractiveServer
-@inject TicketNegocio TicketNegocio
-@inject NavigationManager Nav
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
-    <MudText Typo="Typo.h4" Class="mb-4">Bandeja de Gestión de Tickets (OTIC)</MudText>
+<MudText Typo="Typo.h5" Class="mb-4">Gestión de Tickets OTIC</MudText>
 
-    <MudTable Items="@tickets" Hover="true" Elevation="2" Filter="new Func<Ticket, bool>(FilterFunc1)">
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Tickets del Sistema</MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="searchString" Placeholder="Buscar ticket..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-        </ToolBarContent>
+@if (listaTickets == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="@listaTickets" Hover="true" Striped="true" Elevation="2">
         <HeaderContent>
             <MudTh>ID</MudTh>
+            <MudTh>Fecha</MudTh>
             <MudTh>Solicitante</MudTh>
             <MudTh>Título</MudTh>
-            <MudTh>Prioridad</MudTh>
             <MudTh>Estado</MudTh>
             <MudTh>Acciones</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.IdTicket</MudTd>
+            <MudTd>@context.FechaCreacion.ToShortDateString()</MudTd>
             <MudTd>@context.Solicitante?.NombreCompleto</MudTd>
             <MudTd>@context.Titulo</MudTd>
             <MudTd>
-                <MudChip T="string" Color="@(context.IdPrioridad == 1 ? Color.Error : Color.Default)" Size="Size.Small">
-                    @context.Prioridad?.Nombre
-                </MudChip>
-            </MudTd>
-            <MudTd>
-                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                <MudChip T="string" Size="Size.Small" Color="@(context.IdEstado == 4 ? Color.Success : Color.Info)">
                     @context.Estado?.Nombre
                 </MudChip>
             </MudTd>
             <MudTd>
-                @* CORRECCIÓN: Se eliminó 'Title' y se usa 'MudTooltip' *@
-                <MudTooltip Text="Gestionar Ticket">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                   Color="Color.Primary"
-                                   OnClick="@(() => Nav.NavigateTo($"/helpdesk/detalle/{context.IdTicket}"))" />
-                </MudTooltip>
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
+                               OnClick="@(() => Navigation.NavigateTo($"/helpdesk/ticket/{context.IdTicket}"))" />
             </MudTd>
         </RowTemplate>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
     </MudTable>
-</MudContainer>
+}
 
 @code {
-    private List<Ticket> tickets = new();
-    private string searchString = "";
+    private List<Ticket>? listaTickets;
 
     protected override async Task OnInitializedAsync()
     {
-        tickets = await TicketNegocio.ListarTodosLosTicketsAsync();
-    }
-
-    private bool FilterFunc1(Ticket element) => FilterFunc(element, searchString);
-
-    private bool FilterFunc(Ticket element, string searchString)
-    {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (element.Titulo != null && element.Titulo.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
-        if (element.Solicitante?.NombreCompleto != null && element.Solicitante.NombreCompleto.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
+        listaTickets = await _ticketServicio.ListarTodosLosTicketsAsync();
     }
 }
