@@ -1,10 +1,21 @@
 ﻿@page "/reportes"
+@using ITSM.WEB.Client.Servicios
 @using ITSM.Entidades
 @inject TicketServicio _ticketServicio
 
-<MudText Typo="Typo.h4">Reportes</MudText>
-<MudAlert Severity="Severity.Info">Módulo en construcción (Conectado a API)</MudAlert>
+@rendermode InteractiveWebAssembly
+
+<MudText Typo="Typo.h5" Class="mb-4">Reportes del Sistema</MudText>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudPaper Class="pa-4">
+            <MudText>Resumen ejecutivo de tickets e inventario.</MudText>
+            @* Aquí puedes agregar gráficos o tablas de resumen *@
+        </MudPaper>
+    </MudItem>
+</MudGrid>
 
 @code {
-    // Código limpio sin llamadas a Negocio directo
+    // Lógica para cargar datos de reportes
 }

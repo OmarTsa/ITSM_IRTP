@@ -1,29 +1,38 @@
-﻿@using MudBlazor
+﻿@using ITSM.WEB.Client.Auth
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
 
 <MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0" Style="background-color: transparent;">
     <MudNavMenu Class="mud-width-full">
 
         <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-2"><b>PRINCIPAL</b></MudText>
-
         <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
 
         <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>OPERACIONES</b></MudText>
 
         <MudNavGroup Title="Mesa de Ayuda" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
-
             <MudNavLink Href="helpdesk/nuevo-ticket" Icon="@Icons.Material.Filled.AddCircleOutline">Nueva Solicitud</MudNavLink>
-
             <MudNavLink Href="helpdesk/mis-tickets" Icon="@Icons.Material.Filled.ViewList">Mis Solicitudes</MudNavLink>
-
         </MudNavGroup>
 
-        <MudNavGroup Title="Activos TI" Icon="@Icons.Material.Filled.Devices" Expanded="false">
-            <MudNavLink Href="activos/inventario" Icon="@Icons.Material.Filled.Computer">Inventario</MudNavLink>
-        </MudNavGroup>
+        <AuthorizeView Roles="ADMINISTRADOR,SOPORTE,TECNICO">
+            <Authorized>
+                <MudNavGroup Title="Activos TI" Icon="@Icons.Material.Filled.Devices" Expanded="true">
+                    <MudNavLink Href="activos/inventario" Icon="@Icons.Material.Filled.Inventory">Inventario General</MudNavLink>
+                    <MudNavLink Href="activos/nuevo" Icon="@Icons.Material.Filled.PostAdd">Registrar Equipo</MudNavLink>
+                </MudNavGroup>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="ADMINISTRADOR">
+            <Authorized>
+                <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>CONFIGURACIÓN</b></MudText>
+                <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.Settings" Expanded="false">
+                    <MudNavLink Href="admin/usuarios" Icon="@Icons.Material.Filled.People">Usuarios</MudNavLink>
+                    <MudNavLink Href="admin/tipos-activo" Icon="@Icons.Material.Filled.Category">Tipos de Bienes</MudNavLink>
+                </MudNavGroup>
+            </Authorized>
+        </AuthorizeView>
 
     </MudNavMenu>
 </MudPaper>
-
-@code {
-    // No se requiere lógica C# aquí por ahora
-}

@@ -1,66 +1,42 @@
-﻿@page "/helpdesk/nuevo-ticket"
+﻿@page "/tickets/nuevo"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
+@using ITSM.WEB.Client.Auth
+@using System.Security.Claims
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
 
 @inject TicketServicio _ticketServicio
+@inject InventarioServicio _inventarioServicio
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
+@* CORRECCIÓN: Usamos RenderMode.InteractiveWebAssembly para evitar el error CS0103 *@
+@rendermode RenderMode.InteractiveWebAssembly
+
 <MudText Typo="Typo.h5" Class="mb-4"><b>Nueva Solicitud de Servicio</b></MudText>
-<MudText Typo="Typo.body2" Class="mb-6" Color="Color.Secondary">Completa los detalles para garantizar la trazabilidad del incidente.</MudText>
+<MudText Typo="Typo.body2" Class="mb-6" Color="Color.Secondary">Completa los detalles del incidente.</MudText>
 
 <MudForm @bind-IsValid="@success">
     <MudGrid>
-
         <MudItem xs="12" md="8">
             <MudPaper Class="pa-6" Elevation="3">
-                <MudText Typo="Typo.h6" Class="mb-4">Detalles del Incidente</MudText>
+                <MudText Typo="Typo.h6" Class="mb-4">Detalles</MudText>
 
-                <MudTextField @bind-Value="ticket.Titulo"
-                              Label="Asunto"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Title"
-                              Required="true"
-                              RequiredError="Obligatorio"
-                              Class="mb-4" />
+                <MudTextField @bind-Value="ticket.Titulo" Label="Asunto" Variant="Variant.Outlined"
+                              Required="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Title" Class="mb-4" />
 
-                <MudTextField @bind-Value="ticket.Descripcion"
-                              Label="Descripción detallada"
-                              Variant="Variant.Outlined"
-                              Lines="5"
-                              Required="true"
-                              RequiredError="Describe el problema"
-                              Class="mb-4" />
+                <MudTextField @bind-Value="ticket.Descripcion" Label="Descripción detallada" Variant="Variant.Outlined"
+                              Lines="5" Required="true" Class="mb-4" />
 
-                <MudDivider Class="my-4" />
-
-                <MudText Typo="Typo.subtitle2" Color="Color.Primary">Trazabilidad</MudText>
-
-                <MudSelect T="int" Label="Usuario Afectado / Solicitante"
-                           @bind-Value="ticket.IdSolicitante"
-                           Variant="Variant.Outlined"
-                           AnchorOrigin="Origin.BottomCenter"
-                           Class="mt-3">
-                    @foreach (var u in usuarios)
+                <MudSelect T="int?" Label="¿El problema es con un equipo asignado? (Opcional)"
+                           @bind-Value="ticket.IdActivo" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter"
+                           Clearable="true" HelperText="Selecciona tu equipo si corresponde" AdornmentIcon="@Icons.Material.Filled.Computer">
+                    @foreach (var activo in listaMisActivos)
                     {
-                        <MudSelectItem T="int" Value="@u.IdUsuario">@u.NombreCompleto</MudSelectItem>
-                    }
-                </MudSelect>
-
-                <MudSelect T="int?" Label="Código Inventario / Activo"
-                           @bind-Value="ticket.IdActivo"
-                           Variant="Variant.Outlined"
-                           AnchorOrigin="Origin.BottomCenter"
-                           Clearable="true"
-                           Class="mt-4"
-                           AdornmentIcon="@Icons.Material.Filled.QrCode"
-                           HelperText="Selecciona el equipo por su código de etiqueta">
-                    @foreach (var act in activos)
-                    {
-                        <MudSelectItem T="int?" Value="@act.IdActivo">
-                            <b>@act.CodInventario</b> - @act.Nombre
+                        <MudSelectItem T="int?" Value="@activo.IdActivo">
+                            @activo.Tipo?.Nombre - @activo.Marca @activo.Modelo (@activo.CodInventario)
                         </MudSelectItem>
                     }
                 </MudSelect>
@@ -72,100 +48,75 @@
             <MudPaper Class="pa-6" Elevation="3">
                 <MudText Typo="Typo.h6" Class="mb-4">Clasificación</MudText>
 
-                <MudSelect T="int" Label="Categoría" @bind-Value="ticket.IdCategoria"
-                           Variant="Variant.Outlined"
-                           AnchorOrigin="Origin.BottomCenter"
-                           Class="mb-4"
-                           Required="true">
-                    @foreach (var cat in categorias)
+                <MudSelect T="int" Label="Categoría" @bind-Value="ticket.IdCategoria" Variant="Variant.Outlined" Required="true">
+                    @foreach (var cat in listaCategorias)
                     {
-                        <MudSelectItem T="int" Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                        <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
                     }
                 </MudSelect>
 
-                <MudSelect T="int" Label="Prioridad" @bind-Value="ticket.IdPrioridad"
-                           Variant="Variant.Outlined"
-                           AnchorOrigin="Origin.BottomCenter"
-                           Class="mb-6">
-                    @foreach (var prio in prioridades)
+                <MudSelect T="int" Label="Prioridad" @bind-Value="ticket.IdPrioridad" Variant="Variant.Outlined" Class="mt-4">
+                    @foreach (var prio in listaPrioridades)
                     {
-                        <MudSelectItem T="int" Value="@prio.IdPrioridad">
-                            <div class="d-flex align-center">
-                                <MudIcon Icon="@Icons.Material.Filled.Flag" Color="@ObtenerColorPrioridad(prio.Nombre)" Class="mr-2" />
-                                @prio.Nombre
-                            </div>
-                        </MudSelectItem>
+                        <MudSelectItem Value="@prio.IdPrioridad">@prio.Nombre</MudSelectItem>
                     }
                 </MudSelect>
 
                 <MudDivider Class="my-4" />
 
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           Size="Size.Large"
-                           FullWidth="true"
-                           StartIcon="@Icons.Material.Filled.Save"
-                           OnClick="Guardar"
-                           Disabled="@(!success || enviando)">
-                    @if (enviando)
-                    {
-                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                        <MudText Class="ms-2">Enviando...</MudText>
-                    }
-                    else
-                    {
-                        <MudText>Registrar Ticket</MudText>
-                    }
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.Save" OnClick="Guardar" Disabled="@(!success || enviando)">
+                    @(enviando ? "Enviando..." : "Crear Ticket")
                 </MudButton>
 
-                <MudButton Variant="Variant.Text"
-                           Color="Color.Secondary"
-                           FullWidth="true"
-                           Class="mt-2"
-                           Href="/helpdesk/mis-tickets">
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="Cancelar">
                     Cancelar
                 </MudButton>
-
             </MudPaper>
         </MudItem>
-
     </MudGrid>
 </MudForm>
 
 @code {
-    bool success;
-    bool enviando = false;
-    Ticket ticket = new Ticket();
-
-    List<Categoria> categorias = new();
-    List<Prioridad> prioridades = new();
-    List<Activo> activos = new();
-    List<Usuario> usuarios = new();
+    private Ticket ticket = new();
+    private List<Categoria> listaCategorias = new();
+    private List<Prioridad> listaPrioridades = new();
+    private List<Activo> listaMisActivos = new();
+    private bool success;
+    private bool enviando = false;
+    private int idUsuarioActual;
 
     protected override async Task OnInitializedAsync()
     {
-        var t1 = _ticketServicio.ObtenerCategorias();
-        var t2 = _ticketServicio.ObtenerPrioridades();
-        var t3 = _ticketServicio.ObtenerActivos();
-        var t4 = _ticketServicio.ObtenerTodosUsuarios();
+        // 1. Obtener ID del usuario logueado
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
 
-        await Task.WhenAll(t1, t2, t3, t4);
-
-        categorias = t1.Result;
-        prioridades = t2.Result;
-        activos = t3.Result;
-        usuarios = t4.Result;
-
-        if (prioridades.Any())
+        if (user.Identity != null && user.Identity.IsAuthenticated)
         {
-            var media = prioridades.FirstOrDefault(p => p.Nombre.Contains("Media"));
-            ticket.IdPrioridad = media?.IdPrioridad ?? prioridades.First().IdPrioridad;
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out int id))
+            {
+                idUsuarioActual = id;
+                ticket.IdSolicitante = id;
+            }
         }
 
-        if (categorias.Any()) ticket.IdCategoria = categorias.First().IdCategoria;
+        // 2. Cargar datos en paralelo
+        var t1 = _ticketServicio.ObtenerCategorias();
+        var t2 = _ticketServicio.ObtenerPrioridades();
+        var t3 = _inventarioServicio.ListarMisActivos(idUsuarioActual);
 
-        // Seleccionamos al primer usuario de la lista por defecto (temporal)
-        if (usuarios.Any()) ticket.IdSolicitante = usuarios.First().IdUsuario;
+        await Task.WhenAll(t1, t2, t3);
+
+        listaCategorias = t1.Result;
+        listaPrioridades = t2.Result;
+        listaMisActivos = t3.Result;
+
+        // Valores por defecto
+        if (listaCategorias.Any()) ticket.IdCategoria = listaCategorias.First().IdCategoria;
+        if (listaPrioridades.Any()) ticket.IdPrioridad = listaPrioridades.Last().IdPrioridad;
+        ticket.IdEstado = 1; // Abierto
     }
 
     private async Task Guardar()
@@ -173,12 +124,8 @@
         enviando = true;
         try
         {
-            ticket.IdEstado = 1;
-            ticket.IdEspecialista = null;
-
             await _ticketServicio.GuardarTicket(ticket);
-
-            Snackbar.Add("Ticket creado con éxito", Severity.Success);
+            Snackbar.Add("Ticket creado exitosamente", Severity.Success);
             Navigation.NavigateTo("/helpdesk/mis-tickets");
         }
         catch (Exception ex)
@@ -188,11 +135,5 @@
         }
     }
 
-    private Color ObtenerColorPrioridad(string nombre)
-    {
-        if (string.IsNullOrEmpty(nombre)) return Color.Default;
-        if (nombre.Contains("Alta", StringComparison.OrdinalIgnoreCase)) return Color.Error;
-        if (nombre.Contains("Media", StringComparison.OrdinalIgnoreCase)) return Color.Warning;
-        return Color.Success;
-    }
+    private void Cancelar() => Navigation.NavigateTo("/");
 }

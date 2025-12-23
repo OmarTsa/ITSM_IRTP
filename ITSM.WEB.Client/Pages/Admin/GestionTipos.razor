@@ -6,87 +6,79 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
+@rendermode InteractiveWebAssembly
+
 <AuthorizeView Roles="ADMINISTRADOR">
     <Authorized>
-        <MudText Typo="Typo.h5" Class="mb-4">Catálogo de Tipos de Activo</MudText>
-        <MudText Typo="Typo.body2" Class="mb-4">Aquí puedes definir qué tipos de bienes gestionará la institución.</MudText>
+        <MudText Typo="Typo.h5" Class="mb-4">Gestión de Tipos de Bienes</MudText>
 
         <MudGrid>
-            <MudItem xs="12" md="5">
+            <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="3">
-                    <MudText Typo="Typo.h6">@(editando ? "Editar Tipo" : "Nuevo Tipo")</MudText>
-
+                    <MudText Typo="Typo.h6" Class="mb-3">@(editando ? "Editar Tipo" : "Nuevo Tipo")</MudText>
                     <MudForm @ref="form">
-                        <MudTextField @bind-Value="tipoActual.Nombre" Label="Nombre del Tipo (Ej: PROYECTOR)"
-                                      Required="true" RequiredError="El nombre es obligatorio" Variant="Variant.Outlined" Class="mb-3" />
+                        <MudTextField @bind-Value="tipoActual.Nombre" Label="Nombre (Ej: PROYECTOR)"
+                                      Required="true" Variant="Variant.Outlined" Class="mb-4" />
 
-                        <div class="d-flex gap-2">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar">Guardar</MudButton>
-                            @if (editando)
-                            {
-                                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="Cancelar">Cancelar</MudButton>
-                            }
-                        </div>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" FullWidth="true">Guardar</MudButton>
+                        @if (editando)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="Cancelar" FullWidth="true" Class="mt-2">Cancelar</MudButton>
+                        }
                     </MudForm>
                 </MudPaper>
             </MudItem>
 
-            <MudItem xs="12" md="7">
-                <MudTable Items="@listaTipos" Hover="true" Striped="true" Elevation="3">
+            <MudItem xs="12" md="8">
+                <MudTable Items="@listaTipos" Hover="true" Striped="true" Elevation="3" Dense="true">
                     <HeaderContent>
                         <MudTh>ID</MudTh>
-                        <MudTh>Nombre</MudTh>
+                        <MudTh>Descripción del Bien</MudTh>
                         <MudTh>Acciones</MudTh>
                     </HeaderContent>
-
-                    @* CORRECCIÓN RZ9999: Renombramos 'context' a 'tipo' para evitar conflicto con AuthorizeView *@
                     <RowTemplate Context="tipo">
-                        <MudTd DataLabel="ID">@tipo.IdTipo</MudTd>
-                        <MudTd DataLabel="Nombre"><b>@tipo.Nombre</b></MudTd>
+                        <MudTd>@tipo.IdTipo</MudTd>
+                        <MudTd><b>@tipo.Nombre</b></MudTd>
                         <MudTd>
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" OnClick="@(() => Editar(tipo))" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => Eliminar(tipo))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => Editar(tipo))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Eliminar(tipo))" />
                         </MudTd>
                     </RowTemplate>
-
                 </MudTable>
             </MudItem>
         </MudGrid>
     </Authorized>
     <NotAuthorized>
-        <MudAlert Severity="Severity.Error">No tienes permisos para ver esta página.</MudAlert>
+        <MudAlert Severity="Severity.Error">Acceso denegado. Solo administradores.</MudAlert>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
-    // Inicializaciones para evitar warnings de nulidad
-    List<TipoActivo> listaTipos = new();
-    TipoActivo tipoActual = new();
-    bool editando = false;
-
-    // CORRECCIÓN CS8618: Usamos default! porque Blazor asignará esto en tiempo de ejecución
-    MudForm form = default!;
+    private List<TipoActivo> listaTipos = new();
+    private TipoActivo tipoActual = new();
+    private bool editando = false;
+    private MudForm form = default!;
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
     }
 
-    async Task CargarDatos() => listaTipos = await _inventarioServicio.ListarTipos();
+    private async Task CargarDatos() => listaTipos = await _inventarioServicio.ListarTipos();
 
-    void Editar(TipoActivo tipo)
+    private void Editar(TipoActivo tipo)
     {
         tipoActual = new TipoActivo { IdTipo = tipo.IdTipo, Nombre = tipo.Nombre };
         editando = true;
     }
 
-    void Cancelar()
+    private void Cancelar()
     {
         tipoActual = new TipoActivo();
         editando = false;
     }
 
-    async Task Guardar()
+    private async Task Guardar()
     {
         await form.Validate();
         if (!form.IsValid) return;
@@ -94,7 +86,7 @@
         try
         {
             await _inventarioServicio.GuardarTipo(tipoActual);
-            Snackbar.Add("Tipo guardado correctamente", Severity.Success);
+            Snackbar.Add("Guardado exitosamente", Severity.Success);
             Cancelar();
             await CargarDatos();
         }
@@ -104,24 +96,19 @@
         }
     }
 
-    async Task Eliminar(TipoActivo tipo)
+    private async Task Eliminar(TipoActivo tipo)
     {
-        bool? result = await DialogService.ShowMessageBox(
-            "Eliminar",
-            $"¿Seguro que deseas eliminar '{tipo.Nombre}'?",
-            yesText: "Sí", cancelText: "No");
-
-        if (result == true)
+        var confirm = await DialogService.ShowMessageBox("Confirmar", $"¿Eliminar '{tipo.Nombre}'?", yesText: "Sí", cancelText: "No");
+        if (confirm == true)
         {
             try
             {
                 await _inventarioServicio.EliminarTipo(tipo.IdTipo);
-                Snackbar.Add("Eliminado", Severity.Success);
                 await CargarDatos();
             }
             catch (Exception ex)
             {
-                Snackbar.Add(ex.Message, Severity.Error);
+                Snackbar.Add($"No se puede eliminar: {ex.Message}", Severity.Error);
             }
         }
     }

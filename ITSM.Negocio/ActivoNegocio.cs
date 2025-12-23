@@ -33,13 +33,12 @@ namespace ITSM.Negocio
         public async Task GuardarActivo(Activo activo)
         {
             // Validaciones básicas
-            activo.Marca = activo.Marca.ToUpper();
-            activo.Modelo = activo.Modelo.ToUpper();
-            activo.Serie = activo.Serie.ToUpper();
+            activo.Marca = activo.Marca?.ToUpper() ?? string.Empty;
+            activo.Modelo = activo.Modelo?.ToUpper() ?? string.Empty;
+            activo.Serie = activo.Serie?.ToUpper() ?? string.Empty;
 
             if (activo.IdActivo == 0)
             {
-                // Asignar fecha registro si fuera necesario, o dejar que la BD lo haga
                 _contexto.Activos.Add(activo);
             }
             else
@@ -87,6 +86,16 @@ namespace ITSM.Negocio
                 _contexto.TiposActivo.Remove(tipo);
                 await _contexto.SaveChangesAsync();
             }
+        }
+
+        // --- NUEVO MÉTODO PARA VINCULAR CON TICKETS ---
+        public async Task<List<Activo>> ListarPorUsuario(int idUsuario)
+        {
+            return await _contexto.Activos
+                .Include(a => a.Tipo)
+                .Where(a => a.IdUsuarioAsignado == idUsuario)
+                .OrderBy(a => a.IdActivo)
+                .ToListAsync();
         }
     }
 }

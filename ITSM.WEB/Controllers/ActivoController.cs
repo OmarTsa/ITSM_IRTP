@@ -27,6 +27,14 @@ namespace ITSM.WEB.Controllers
             return activo != null ? Ok(activo) : NotFound();
         }
 
+        // NUEVO: Para cargar en el combo del ticket
+        [HttpGet("usuario/{idUsuario}")]
+        public async Task<IActionResult> GetPorUsuario(int idUsuario)
+        {
+            var lista = await _activoNegocio.ListarPorUsuario(idUsuario);
+            return Ok(lista);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Activo activo)
         {
@@ -48,7 +56,6 @@ namespace ITSM.WEB.Controllers
         public async Task<IActionResult> GetTipos() => Ok(await _activoNegocio.ListarTipos());
 
         [HttpPost("tipos")]
-        // [Authorize(Roles = "ADMINISTRADOR")] // Descomentar cuando la seguridad esté 100% activa
         public async Task<IActionResult> PostTipo([FromBody] TipoActivo tipo)
         {
             try

@@ -22,6 +22,13 @@ namespace ITSM.WEB.Client.Servicios
             else await _http.PutAsJsonAsync($"api/activo/{activo.IdActivo}", activo);
         }
 
+        // NUEVO: Obtener solo los activos de un usuario
+        public async Task<List<Activo>> ListarMisActivos(int idUsuario)
+        {
+            return await _http.GetFromJsonAsync<List<Activo>>($"api/activo/usuario/{idUsuario}")
+                   ?? new List<Activo>();
+        }
+
         // --- TIPOS ---
         public async Task<List<TipoActivo>> ListarTipos() =>
             await _http.GetFromJsonAsync<List<TipoActivo>>("api/activo/tipos") ?? new List<TipoActivo>();
