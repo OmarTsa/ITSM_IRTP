@@ -14,9 +14,18 @@ namespace ITSM.WEB.Client.Servicios
             _js = js;
         }
 
-        public async Task GuardarSesion(Usuario sesion)
+        public async Task GuardarSesion(Usuario usuario)
         {
-            var sesionJson = JsonSerializer.Serialize(sesion);
+            // SEGURIDAD: No guardamos todo el objeto Usuario (evitamos datos sensibles)
+            var datosSesion = new
+            {
+                usuario.IdUsuario,
+                usuario.Username,
+                usuario.Email,
+                RolNombre = usuario.Rol?.Nombre ?? "USUARIO_FINAL"
+            };
+
+            var sesionJson = JsonSerializer.Serialize(datosSesion);
             await _js.InvokeVoidAsync("localStorage.setItem", KeySesion, sesionJson);
         }
 
@@ -29,7 +38,17 @@ namespace ITSM.WEB.Client.Servicios
 
             try
             {
-                return JsonSerializer.Deserialize<Usuario>(sesionJson);
+                // Reconstruimos un objeto Usuario mínimo para el estado de la App
+                using var doc = JsonDocument.Parse(sesionJson);
+                var root = doc.RootElement;
+
+                return new Usuario
+                {
+                    IdUsuario = root.GetProperty("IdUsuario").GetInt32(),
+                    Username = root.GetProperty("Username").GetString(),
+                    Email = root.GetProperty("Email").GetString(),
+                    Rol = new Rol { Nombre = root.GetProperty("RolNombre").GetString() ?? "USUARIO_FINAL" }
+                };
             }
             catch
             {
