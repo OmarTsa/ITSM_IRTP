@@ -5,11 +5,11 @@
 @inject InventarioServicio _inventarioServicio
 @inject NavigationManager Navigation
 
-@* Forzamos la interactividad para que los datos carguen después del renderizado inicial *@
+@* Forzamos el modo interactivo de servidor para evitar el error 404 en la carga *@
 @rendermode InteractiveServer
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h5"><b>Inventario de Activos TI</b></MudText>
+    <MudText Typo="Typo.h5"><b>Inventario de Activos</b></MudText>
     <MudSpacer />
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                OnClick="@(() => Navigation.NavigateTo("/activos/nuevo"))">
@@ -23,38 +23,25 @@
 }
 else
 {
-    <MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3" Filter="new Func<Activo, bool>(Filtrar)">
+    <MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3">
         <ToolBarContent>
             <MudText Typo="Typo.h6">Equipos Registrados</MudText>
             <MudSpacer />
-            <MudTextField @bind-Value="busqueda" Placeholder="Buscar equipo..." Adornment="Adornment.Start"
+            <MudTextField @bind-Value="busqueda" Placeholder="Buscar..." Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
         </ToolBarContent>
         <HeaderContent>
             <MudTh>Tipo</MudTh>
             <MudTh>Código</MudTh>
             <MudTh>Marca / Modelo</MudTh>
-            <MudTh>Usuario Asignado</MudTh>
+            <MudTh>Usuario</MudTh>
             <MudTh>Acciones</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Tipo">
-                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">@context.Tipo?.Nombre</MudChip>
-            </MudTd>
-            <MudTd DataLabel="Código">
-                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">
-                    @context.CodInventario
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Marca">
-                <div class="d-flex flex-column">
-                    <MudText Typo="Typo.body2" Style="font-weight:bold;">@context.Nombre</MudText>
-                    <MudText Typo="Typo.caption">S/N: @context.Serie</MudText>
-                </div>
-            </MudTd>
-            <MudTd DataLabel="Usuario">
-                @(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")
-            </MudTd>
+            <MudTd DataLabel="Tipo">@context.Tipo?.Nombre</MudTd>
+            <MudTd DataLabel="Código">@context.CodInventario</MudTd>
+            <MudTd DataLabel="Marca">@context.Nombre</MudTd>
+            <MudTd DataLabel="Usuario">@(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")</MudTd>
             <MudTd DataLabel="Acciones">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning"
                                OnClick="@(() => Navigation.NavigateTo($"/activos/editar/{context.IdActivo}"))" />
@@ -72,23 +59,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            // Cargamos los activos desde el servicio
-            listaActivos = await _inventarioServicio.ListarActivos();
-        }
-        catch (Exception)
-        {
-            listaActivos = new List<Activo>();
-        }
-    }
-
-    private bool Filtrar(Activo a)
-    {
-        if (string.IsNullOrWhiteSpace(busqueda)) return true;
-        if (a.CodInventario.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
-        if (a.Marca.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
-        if (a.Modelo.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
-        return false;
+        // Se cargan los datos desde el API a través del servicio
+        listaActivos = await _inventarioServicio.ListarActivos();
     }
 }

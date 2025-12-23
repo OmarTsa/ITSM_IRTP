@@ -10,27 +10,26 @@ using Microsoft.AspNetCore.Components.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. CONFIGURACIÓN DE BLAZOR (Interactive Server + WebAssembly)
+// 1. Configuración de Blazor con soporte Interactivo
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddMudServices();
 
-// 2. CONEXIÓN A BASE DE DATOS (Oracle)
+// 2. Base de Datos
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. REGISTRO DE CAPA DE NEGOCIO (Backend)
+// 3. Registro de Capa de Negocio
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<ActivoNegocio>();
 
-// 4. REGISTRO DE SERVICIOS DEL CLIENTE (Para Pre-renderizado en Servidor)
-// Nota: Se requiere HttpClient para que los servicios del cliente funcionen en el SSR
+// 4. Registro de Servicios del Cliente (Necesario para el renderizado inicial)
 builder.Services.AddScoped(sp => new HttpClient
 {
-    // Usamos la IP configurada para asegurar consistencia en la red
+    // IMPORTANTE: Verifica que este puerto coincida con tu launchSettings.json
     BaseAddress = new Uri("http://172.30.97.30:5244/")
 });
 
@@ -39,24 +38,21 @@ builder.Services.AddScoped<ServicioSesion>();
 builder.Services.AddScoped<InventarioServicio>();
 builder.Services.AddScoped<UsuarioServicio>();
 
-// 5. CONFIGURACIÓN DE AUTENTICACIÓN Y ESTADO
+// 5. Seguridad y Autenticación
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.Name = "AuthCookie_ITSM";
         options.LoginPath = "/login";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
     });
 
-// Proveedor de estado de autenticación compartido
 builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// 6. CONFIGURACIÓN DEL PIPELINE DE SOLICITUDES
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -77,6 +73,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// CORRECCIÓN CRÍTICA: Asegurarse de mapear ambos modos y las asambleas adicionales
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
