@@ -1,41 +1,57 @@
-﻿using Microsoft.JSInterop;
-using System.Text.Json;
-using ITSM.Entidades;
+﻿using System.Net.Http.Json;
+using ITSM.WEB.Client.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.JSInterop;
 
 namespace ITSM.WEB.Client.Servicios
 {
     public class ServicioSesion
     {
+        private readonly HttpClient _http;
         private readonly IJSRuntime _js;
+        private readonly AuthenticationStateProvider _authStateProvider;
 
-        public ServicioSesion(IJSRuntime js)
+        public ServicioSesion(HttpClient http, IJSRuntime js, AuthenticationStateProvider authStateProvider)
         {
+            _http = http;
             _js = js;
+            _authStateProvider = authStateProvider;
         }
 
-        public async Task<Usuario?> ObtenerUsuario()
+        // --- ESTE ES EL MÉTODO QUE FALTABA ---
+        public async Task<bool> IniciarSesion(string email, string password)
         {
             try
             {
-                var json = await _js.InvokeAsync<string>("localStorage.getItem", "usuario_sesion");
-                if (string.IsNullOrEmpty(json)) return null;
-                return JsonSerializer.Deserialize<Usuario>(json);
+                var response = await _http.PostAsJsonAsync("api/autenticacion/login", new { Email = email, Password = password });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var loginResult = await response.Content.ReadFromJsonAsync<LoginResult>();
+                    if (loginResult != null && !string.IsNullOrEmpty(loginResult.Token))
+                    {
+                        await _js.InvokeVoidAsync("localStorage.setItem", "authToken", loginResult.Token);
+                        ((ProveedorAutenticacion)_authStateProvider).NotificarLogin(loginResult.Token);
+                        return true;
+                    }
+                }
+                return false;
             }
             catch
             {
-                return null;
+                return false;
             }
-        }
-
-        public async Task GuardarUsuario(Usuario usuario)
-        {
-            var json = JsonSerializer.Serialize(usuario);
-            await _js.InvokeVoidAsync("localStorage.setItem", "usuario_sesion", json);
         }
 
         public async Task CerrarSesion()
         {
-            await _js.InvokeVoidAsync("localStorage.removeItem", "usuario_sesion");
+            await _js.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            ((ProveedorAutenticacion)_authStateProvider).NotificarLogout();
+        }
+
+        private class LoginResult
+        {
+            public string Token { get; set; } = string.Empty;
         }
     }
 }

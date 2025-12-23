@@ -15,8 +15,8 @@ namespace ITSM.Negocio
 
         public async Task<Usuario?> Login(string email, string password)
         {
-            // Mapea a las columnas de tu BD (CORREO, PASSWORD_HASH, ESTADO)
-            // Nota: En la entidad 'Usuario' mapeamos ESTADO -> Activo
+            // Login usando Email (CORREO en BD)
+            // Si quieres login por Username, cambia u.Email por u.Username
             return await _contexto.Usuarios
                 .Include(u => u.Rol)
                 .Where(u => u.Email == email && u.Password == password && u.Activo == 1)
@@ -42,7 +42,7 @@ namespace ITSM.Negocio
         {
             if (usuario.IdUsuario == 0)
             {
-                usuario.Activo = 1; // Default activo
+                usuario.Activo = 1;
                 _contexto.Usuarios.Add(usuario);
             }
             else

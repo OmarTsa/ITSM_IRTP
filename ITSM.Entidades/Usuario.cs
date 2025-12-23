@@ -19,17 +19,12 @@ namespace ITSM.Entidades
         [Column("APELLIDOS")]
         public string Apellidos { get; set; } = string.Empty;
 
-        // Propiedad calculada para que no rompa el resto del código
-        [NotMapped]
-        public string NombreCompleto => $"{Nombres} {Apellidos}".Trim();
-
         [Column("CORREO")]
         public string Email { get; set; } = string.Empty;
 
         [Column("USERNAME")]
         public string Username { get; set; } = string.Empty;
 
-        // Mapeamos el campo de la BD a nuestra propiedad Password
         [Column("PASSWORD_HASH")]
         public string Password { get; set; } = string.Empty;
 
@@ -39,7 +34,17 @@ namespace ITSM.Entidades
         [ForeignKey("IdRol")]
         public Rol? Rol { get; set; }
 
+        [Column("ID_AREA")]
+        public int? IdArea { get; set; }
+
+        [Column("CARGO")]
+        public string? Cargo { get; set; }
+
         [Column("ESTADO")]
-        public int? Activo { get; set; } // 1 = Activo
+        public int? Activo { get; set; }
+
+        // Propiedad calculada para facilitar la visualización
+        [NotMapped]
+        public string NombreCompleto => $"{Nombres} {Apellidos}".Trim();
     }
 }

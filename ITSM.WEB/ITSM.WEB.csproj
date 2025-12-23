@@ -10,6 +10,7 @@
 		<ProjectReference Include="..\ITSM.WEB.Client\ITSM.WEB.Client.csproj" />
 		<ProjectReference Include="..\ITSM.Negocio\ITSM.Negocio.csproj" />
 		<ProjectReference Include="..\ITSM.Datos\ITSM.Datos.csproj" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
 
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.*" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />

@@ -2,22 +2,24 @@
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
-@inject UsuarioServicio _usuarioServicio 
+
+@inject UsuarioServicio _usuarioServicio
 
 <MudText Typo="Typo.h5" Class="mb-4">Gestión de Usuarios</MudText>
 
 <MudTable Items="@usuarios" Hover="true" Striped="true" Elevation="3">
     <HeaderContent>
         <MudTh>ID</MudTh>
-        <MudTh>Usuario (Login)</MudTh>
-        <MudTh>Nombre Completo</MudTh>
+        <MudTh>Usuario</MudTh>
+        <MudTh>Nombre</MudTh>
         <MudTh>Correo</MudTh>
         <MudTh>Rol</MudTh>
         <MudTh>Estado</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="ID">@context.IdUsuario</MudTd>
-        <MudTd DataLabel="Usuario"><b>@context.Username</b></MudTd> <MudTd DataLabel="Nombre">@context.NombreCompleto</MudTd>
+        <MudTd DataLabel="Usuario"><b>@context.Username</b></MudTd>
+        <MudTd DataLabel="Nombre">@context.NombreCompleto</MudTd>
         <MudTd DataLabel="Correo">@context.Email</MudTd>
         <MudTd DataLabel="Rol">@context.Rol?.Nombre</MudTd>
         <MudTd DataLabel="Estado">
@@ -36,18 +38,8 @@
 @code {
     private List<Usuario> usuarios = new();
 
-    // Simulación rápida si no tienes UsuarioServicio creado aun
-    [Inject] HttpClient Http { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            usuarios = await Http.GetFromJsonAsync<List<Usuario>>("api/usuario") ?? new List<Usuario>();
-        }
-        catch
-        {
-            // Manejo de error silencioso o log
-        }
+        usuarios = await _usuarioServicio.ListarUsuarios();
     }
 }

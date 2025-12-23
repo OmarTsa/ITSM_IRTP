@@ -13,8 +13,24 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
+        // Método estándar para obtener tickets
         public async Task<List<Ticket>> ObtenerTickets()
         {
+            return await _contexto.Tickets
+                .Include(t => t.Categoria)
+                .Include(t => t.Estado)
+                .Include(t => t.Prioridad)
+                .Include(t => t.Solicitante)
+                .Include(t => t.Especialista)
+                .Include(t => t.Activo) // Incluir Inventario
+                .OrderByDescending(t => t.FechaCreacion)
+                .ToListAsync();
+        }
+
+        // --- ESTE ES EL MÉTODO QUE FALTABA Y CAUSABA EL ERROR ---
+        public async Task<List<Ticket>> ListarTodosLosTicketsAsync()
+        {
+            // Hace lo mismo que ObtenerTickets, pero a veces se usa por convención de nombres
             return await _contexto.Tickets
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
@@ -25,6 +41,7 @@ namespace ITSM.Negocio
                 .OrderByDescending(t => t.FechaCreacion)
                 .ToListAsync();
         }
+        // ---------------------------------------------------------
 
         public async Task<Ticket?> ObtenerTicketPorId(int id)
         {
@@ -34,7 +51,7 @@ namespace ITSM.Negocio
                 .Include(t => t.Prioridad)
                 .Include(t => t.Solicitante)
                 .Include(t => t.Especialista)
-                .Include(t => t.Activo) // Vital para ver el Código de Inventario
+                .Include(t => t.Activo)
                 .FirstOrDefaultAsync(t => t.IdTicket == id);
         }
 
@@ -67,9 +84,9 @@ namespace ITSM.Negocio
 
         // --- LISTAS Y CATÁLOGOS ---
 
-        // Aquí estaba el error: Ahora funcionará porque Usuario.cs ya tiene "Activo"
         public async Task<List<Usuario>> ListarTodosUsuarios()
         {
+            // Filtramos por Activo == 1 (según tu entidad Usuario mapeada a ESTADO)
             return await _contexto.Usuarios.Where(u => u.Activo == 1).ToListAsync();
         }
 
@@ -79,19 +96,27 @@ namespace ITSM.Negocio
         }
 
         public async Task<List<Categoria>> ListarCategorias() => await _contexto.Categorias.Where(c => c.Activo == 1).ToListAsync();
+
         public async Task<List<Prioridad>> ListarPrioridades() => await _contexto.Prioridades.ToListAsync();
+
         public async Task<List<Estado>> ListarEstados() => await _contexto.Estados.ToListAsync();
+
         public async Task<List<Activo>> ListarActivosAsync() => await _contexto.Activos.Include(a => a.UsuarioAsignado).ToListAsync();
+
+        // --- DASHBOARD Y DETALLES ---
 
         public async Task<DashboardKpi> ObtenerKpisAsync(int idUsuario)
         {
             var kpi = new DashboardKpi();
             var todos = await _contexto.Tickets.AsNoTracking().ToListAsync();
+
             kpi.TotalTickets = todos.Count;
+            // Ajusta los IDs de estado según tu tabla ESTADOS_TICKET (1=Abierto, 4=Resuelto, etc.)
             kpi.TicketsAbiertos = todos.Count(t => t.IdEstado == 1);
             kpi.TicketsResueltos = todos.Count(t => t.IdEstado == 4);
             kpi.TicketsCriticos = todos.Count(t => t.IdPrioridad == 1 && t.IdEstado != 4 && t.IdEstado != 5);
             kpi.MisAsignados = todos.Count(t => t.IdEspecialista == idUsuario && t.IdEstado != 5);
+
             return kpi;
         }
 

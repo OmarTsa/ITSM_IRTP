@@ -19,8 +19,6 @@ namespace ITSM.Entidades
         [Column("FECHA_CREACION")]
         public DateTime FechaCreacion { get; set; }
 
-        // --- RELACIONES ---
-
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
 
@@ -33,7 +31,6 @@ namespace ITSM.Entidades
         [ForeignKey("IdCategoria")]
         public Categoria? Categoria { get; set; }
 
-        // En tu BD tienes ID_ESTADO (numérico) y ESTADO (texto). Usamos el ID.
         [Column("ID_ESTADO")]
         public int IdEstado { get; set; }
 
@@ -52,7 +49,7 @@ namespace ITSM.Entidades
         [ForeignKey("IdEspecialista")]
         public Usuario? Especialista { get; set; }
 
-        // CORRECCIÓN CLAVE SEGÚN TU DDL
+        // CORRECCIÓN SEGÚN TU DDL: ID_ACTIVO_AFECTADO
         [Column("ID_ACTIVO_AFECTADO")]
         public int? IdActivo { get; set; }
 

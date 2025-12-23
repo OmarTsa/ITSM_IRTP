@@ -48,7 +48,8 @@ namespace ITSM.WEB.Client.Auth
             var jsonBytes = ParseBase64WithoutPadding(payload);
             var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
-            return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()));
+            // CORRECCIÓN DE NULOS
+            return keyValuePairs?.Select(kvp => new Claim(kvp.Key, kvp.Value?.ToString() ?? "")) ?? new List<Claim>();
         }
 
         private byte[] ParseBase64WithoutPadding(string base64)
