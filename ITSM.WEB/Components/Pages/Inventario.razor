@@ -2,38 +2,85 @@
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
-@inject TicketServicio _ticketServicio
-@inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h4" Class="mb-4">Inventario de Activos</MudText>
+@* CORRECCIÓN: Usamos el servicio correcto *@
+@inject InventarioServicio _inventarioServicio
+@inject NavigationManager Navigation
 
-<MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3">
-    <HeaderContent>
-        <MudTh>Código</MudTh>
-        <MudTh>Nombre / Descripción</MudTh>
-        <MudTh>Usuario Asignado</MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd DataLabel="Código">
-            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">
-                @context.CodInventario
-            </MudChip>
-        </MudTd>
-        <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
-        <MudTd DataLabel="Usuario Asignado">
-            @(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")
-        </MudTd>
-    </RowTemplate>
-    <PagerContent>
-        <MudTablePager />
-    </PagerContent>
-</MudTable>
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5"><b>Inventario de Activos</b></MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Navigation.NavigateTo("/activos/nuevo"))">
+        Nuevo Activo
+    </MudButton>
+</MudStack>
+
+@if (listaActivos == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+}
+else
+{
+    <MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3" Filter="new Func<Activo, bool>(Filtrar)">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Equipos Registrados</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="busqueda" Placeholder="Buscar..." Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Código</MudTh>
+            <MudTh>Marca / Modelo</MudTh>
+            <MudTh>Usuario Asignado</MudTh>
+            <MudTh>Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Tipo">
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">@context.Tipo?.Nombre</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Código">
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">
+                    @context.CodInventario
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Marca">
+                <div class="d-flex flex-column">
+                    <MudText Typo="Typo.body2" Style="font-weight:bold;">@context.Nombre</MudText>
+                    <MudText Typo="Typo.caption">S/N: @context.Serie</MudText>
+                </div>
+            </MudTd>
+            <MudTd DataLabel="Usuario">
+                @(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")
+            </MudTd>
+            <MudTd DataLabel="Acciones">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning"
+                               OnClick="@(() => Navigation.NavigateTo($"/activos/editar/{context.IdActivo}"))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
 
 @code {
     private List<Activo> listaActivos = new();
+    private string busqueda = "";
 
     protected override async Task OnInitializedAsync()
     {
-        listaActivos = await _ticketServicio.ObtenerActivos();
+        // CORRECCIÓN: Llamamos al endpoint correcto (api/activo) a través del nuevo servicio
+        listaActivos = await _inventarioServicio.ListarActivos();
+    }
+
+    private bool Filtrar(Activo a)
+    {
+        if (string.IsNullOrWhiteSpace(busqueda)) return true;
+        if (a.CodInventario.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        if (a.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        if (a.UsuarioAsignado != null && a.UsuarioAsignado.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
     }
 }

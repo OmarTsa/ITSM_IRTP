@@ -17,5 +17,6 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 
 builder.Services.AddMudServices();
+builder.Services.AddScoped<InventarioServicio>();
 
 await builder.Build().RunAsync();

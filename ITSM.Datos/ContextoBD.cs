@@ -10,20 +10,16 @@ namespace ITSM.Datos
         // TABLAS PRINCIPALES
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Ticket> Tickets { get; set; }
+        public DbSet<TicketDetalle> TicketDetalles { get; set; }
+
+        // INVENTARIO
         public DbSet<Activo> Activos { get; set; }
+        public DbSet<TipoActivo> TiposActivo { get; set; } // <--- ESTA LÍNEA ES VITAL
 
         // CATÁLOGOS
         public DbSet<Estado> Estados { get; set; }
         public DbSet<Prioridad> Prioridades { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
         public DbSet<Rol> Roles { get; set; }
-
-        // --- NUEVO: DETALLES/HISTORIAL ---
-        public DbSet<TicketDetalle> TicketDetalles { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-        }
     }
 }
