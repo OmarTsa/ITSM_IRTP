@@ -3,9 +3,10 @@
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
 
-@* CORRECCIÓN: Usamos el servicio correcto *@
+@* CORRECCIÓN 1: Usar el servicio correcto *@
 @inject InventarioServicio _inventarioServicio
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
     <MudText Typo="Typo.h5"><b>Inventario de Activos</b></MudText>
@@ -71,7 +72,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // CORRECCIÓN: Llamamos al endpoint correcto (api/activo) a través del nuevo servicio
+        // CORRECCIÓN 2: Llamamos a ListarActivos() del servicio nuevo
         listaActivos = await _inventarioServicio.ListarActivos();
     }
 

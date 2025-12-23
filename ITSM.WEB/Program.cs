@@ -23,17 +23,20 @@ builder.Services.AddDbContext<ContextoBD>(options =>
 // 3. Inyección de Negocio (Servidor)
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<UsuarioNegocio>();
+builder.Services.AddScoped<ActivoNegocio>();
 
-// --- 4. CONFIGURACIÓN DEL CLIENTE ---
+// --- 4. CONFIGURACIÓN DEL CLIENTE (PARA PRE-RENDERIZADO) ---
 builder.Services.AddScoped(sp => new HttpClient
 {
-    // AQUÍ MANTENEMOS TU IP REAL DE LA RED
-    // Esto asegura que el cliente WebAssembly sepa dónde buscar la API
+    // Mantenemos tu IP configurada
     BaseAddress = new Uri("http://172.30.97.30:5244/")
 });
 
+// Servicios que usan los componentes Razor (Deben estar aquí también)
 builder.Services.AddScoped<TicketServicio>();
 builder.Services.AddScoped<ServicioSesion>();
+builder.Services.AddScoped<InventarioServicio>(); // <--- ¡ESTA LÍNEA FALTABA!
+builder.Services.AddScoped<UsuarioServicio>();    // <--- AGREGAMOS ESTA TAMBIÉN POR SI ACASO
 // -------------------------------------------------------------------
 
 // 5. Configuración de Cookies
@@ -75,5 +78,4 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
 
-// IMPORTANTE: .Run() toma la configuración del launchSettings.json
 app.Run();
