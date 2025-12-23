@@ -5,28 +5,29 @@
 <MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0" Style="background-color: transparent;">
     <MudNavMenu Class="mud-width-full">
 
-        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-2"><b>PRINCIPAL</b></MudText>
+        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-2"><b>SISTEMA</b></MudText>
         <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
 
-        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>OPERACIONES</b></MudText>
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>OPERACIONES</b></MudText>
+                <MudNavGroup Title="Mesa de Ayuda" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
+                    <MudNavLink Href="/helpdesk/nuevo-ticket" Icon="@Icons.Material.Filled.AddCircleOutline">Nueva Solicitud</MudNavLink>
+                    <MudNavLink Href="/helpdesk/mis-tickets" Icon="@Icons.Material.Filled.ViewList">Mis Solicitudes</MudNavLink>
+                </MudNavGroup>
 
-        <MudNavGroup Title="Mesa de Ayuda" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
-            @* CORRECCIÓN: Se agrega '/' al inicio para evitar errores de ruta no encontrada *@
-            <MudNavLink Href="/helpdesk/nuevo-ticket" Icon="@Icons.Material.Filled.AddCircleOutline">Nueva Solicitud</MudNavLink>
-            <MudNavLink Href="/helpdesk/mis-tickets" Icon="@Icons.Material.Filled.ViewList">Mis Solicitudes</MudNavLink>
-        </MudNavGroup>
+                <MudNavGroup Title="Activos TI" Icon="@Icons.Material.Filled.Devices" Expanded="false">
+                    <MudNavLink Href="/activos/inventario" Icon="@Icons.Material.Filled.Computer">Inventario</MudNavLink>
+                </MudNavGroup>
+            </Authorized>
+        </AuthorizeView>
 
-        @* Se quita temporalmente el AuthorizeView para verificar que los botones aparezcan *@
-        <MudNavGroup Title="Activos TI" Icon="@Icons.Material.Filled.Devices" Expanded="false">
-            <MudNavLink Href="/activos/inventario" Icon="@Icons.Material.Filled.Computer">Inventario</MudNavLink>
-            <MudNavLink Href="/activos/nuevo" Icon="@Icons.Material.Filled.PostAdd">Registrar Equipo</MudNavLink>
-        </MudNavGroup>
-
+        @* Solo visible para tu usuario 'otito' con rol ADMIN *@
         <AuthorizeView Roles="ADMINISTRADOR">
             <Authorized>
                 <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>CONFIGURACIÓN</b></MudText>
                 <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.Settings" Expanded="false">
-                    <MudNavLink Href="/admin/usuarios" Icon="@Icons.Material.Filled.People">Usuarios</MudNavLink>
+                    <MudNavLink Href="/admin/usuarios" Icon="@Icons.Material.Filled.People">Gestión Usuarios</MudNavLink>
                     <MudNavLink Href="/admin/tipos-activo" Icon="@Icons.Material.Filled.Category">Tipos de Bienes</MudNavLink>
                 </MudNavGroup>
             </Authorized>
@@ -34,6 +35,3 @@
 
     </MudNavMenu>
 </MudPaper>
-
-@code {
-}

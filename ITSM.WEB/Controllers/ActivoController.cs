@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ITSM.Negocio;
 using ITSM.Entidades;
-using Microsoft.AspNetCore.Authorization;
 
 namespace ITSM.WEB.Controllers
 {
@@ -16,7 +15,6 @@ namespace ITSM.WEB.Controllers
             _activoNegocio = activoNegocio;
         }
 
-        // --- ENDPOINTS DE ACTIVOS ---
         [HttpGet]
         public async Task<IActionResult> Get() => Ok(await _activoNegocio.ListarActivos());
 
@@ -27,7 +25,6 @@ namespace ITSM.WEB.Controllers
             return activo != null ? Ok(activo) : NotFound();
         }
 
-        // NUEVO: Para cargar en el combo del ticket
         [HttpGet("usuario/{idUsuario}")]
         public async Task<IActionResult> GetPorUsuario(int idUsuario)
         {
@@ -49,8 +46,6 @@ namespace ITSM.WEB.Controllers
             await _activoNegocio.GuardarActivo(activo);
             return Ok();
         }
-
-        // --- ENDPOINTS DE TIPOS (SOLO ADMIN) ---
 
         [HttpGet("tipos")]
         public async Task<IActionResult> GetTipos() => Ok(await _activoNegocio.ListarTipos());

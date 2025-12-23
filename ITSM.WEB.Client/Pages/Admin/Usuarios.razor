@@ -2,26 +2,35 @@
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
-
 @inject UsuarioServicio _usuarioServicio
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h5" Class="mb-4">Gestión de Usuarios</MudText>
+@rendermode InteractiveWebAssembly
 
-<MudTable Items="@usuarios" Hover="true" Striped="true" Elevation="3">
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5"><b>Gestión de Usuarios</b></MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="@(() => Navigation.NavigateTo("/admin/usuarios/nuevo"))">
+        Nuevo Usuario
+    </MudButton>
+</MudStack>
+
+<MudTable Items="@usuarios" Hover="true" Bordered="true" Striped="true" Elevation="3" Loading="@loading">
     <HeaderContent>
-        <MudTh>ID</MudTh>
-        <MudTh>Usuario</MudTh>
-        <MudTh>Nombre</MudTh>
+        <MudTh>DNI</MudTh>
+        <MudTh>Nombres y Apellidos</MudTh>
+        <MudTh>Nombre de Usuario</MudTh>
         <MudTh>Correo</MudTh>
-        <MudTh>Rol</MudTh>
         <MudTh>Estado</MudTh>
+        <MudTh>Acciones</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="ID">@context.IdUsuario</MudTd>
-        <MudTd DataLabel="Usuario"><b>@context.Username</b></MudTd>
-        <MudTd DataLabel="Nombre">@context.NombreCompleto</MudTd>
+        <MudTd DataLabel="DNI">@context.Dni</MudTd>
+        <MudTd DataLabel="Nombre"><b>@context.NombreCompleto</b></MudTd>
+        <MudTd DataLabel="Username">@context.Username</MudTd>
         <MudTd DataLabel="Correo">@context.Email</MudTd>
-        <MudTd DataLabel="Rol">@context.Rol?.Nombre</MudTd>
         <MudTd DataLabel="Estado">
             @if (context.Activo == 1)
             {
@@ -32,14 +41,26 @@
                 <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactivo</MudChip>
             }
         </MudTd>
+        <MudTd DataLabel="Acciones">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning"
+                           OnClick="@(() => Navigation.NavigateTo($"/admin/usuarios/editar/{context.IdUsuario}"))" />
+        </MudTd>
     </RowTemplate>
 </MudTable>
 
 @code {
     private List<Usuario> usuarios = new();
+    private bool loading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        usuarios = await _usuarioServicio.ListarUsuarios();
+        try
+        {
+            usuarios = await _usuarioServicio.ListarUsuarios();
+        }
+        finally
+        {
+            loading = false;
+        }
     }
 }

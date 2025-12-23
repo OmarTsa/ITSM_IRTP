@@ -18,25 +18,19 @@ namespace ITSM.WEB.Controllers
         [HttpGet]
         public async Task<IActionResult> Get()
         {
-            var lista = await _usuarioNegocio.ListarUsuarios();
-            return Ok(lista);
+            return Ok(await _usuarioNegocio.ListarUsuarios());
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
             var usuario = await _usuarioNegocio.ObtenerPorId(id);
-            if (usuario == null) return NotFound();
-            return Ok(usuario);
+            return usuario != null ? Ok(usuario) : NotFound();
         }
 
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Usuario usuario)
         {
-            if (string.IsNullOrEmpty(usuario.Username) || string.IsNullOrEmpty(usuario.Password))
-            {
-                return BadRequest("Datos incompletos");
-            }
             await _usuarioNegocio.GuardarUsuario(usuario);
             return Ok();
         }

@@ -1,63 +1,59 @@
 ﻿@inherits LayoutComponentBase
+@using ITSM.WEB.Client.Auth
 @using MudBlazor
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
 
-<MudThemeProvider Theme="CorporativoTheme" />
-<MudPopoverProvider />
+<MudThemeProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="2" Color="Color.Primary" Dense="false" Class="px-4">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@ToggleDrawer" />
-        <MudIcon Icon="@Icons.Material.Filled.SupportAgent" Class="ml-3 mr-2" Size="Size.Large" />
-        <MudText Typo="Typo.h6" Style="font-weight: 600;">ITSM | Centro de Servicios</MudText>
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h6" Class="ml-3">ITSM - Sistema de Gestión TI</MudText>
         <MudSpacer />
 
-        <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
-            <ActivatorContent>
-                <MudAvatar Color="Color.Secondary" Variant="Variant.Outlined">U</MudAvatar>
-            </ActivatorContent>
-            <ChildContent>
-                <MudMenuItem Icon="@Icons.Material.Filled.Person">Mi Perfil</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Filled.Logout" Href="/logout">Cerrar Sesión</MudMenuItem>
-            </ChildContent>
-        </MudMenu>
+        <AuthorizeView>
+            <Authorized>
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Secondary">
+                            @context.User.Identity?.Name
+                        </MudChip>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="CerrarSesion">Cerrar Sesión</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/login"))">Iniciar Sesión</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
         <NavMenu />
     </MudDrawer>
 
-    <MudMainContent Class="mud-background-gray">
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
-            <div class="animate__animated animate__fadeIn">
-                @Body
-            </div>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+            @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
-    private bool _drawerOpen = true;
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    bool _drawerOpen = true;
 
-    // TEMA SIMPLIFICADO (Sin Typography para evitar errores de versión)
-    private MudTheme CorporativoTheme = new MudTheme()
+    void DrawerToggle() => _drawerOpen = !_drawerOpen;
+
+    private async Task CerrarSesion()
     {
-        PaletteLight = new PaletteLight()
-        {
-            Primary = "#0D47A1",
-            Secondary = "#E91E63",
-            AppbarBackground = "#0D47A1",
-            Background = "#F4F6F8",
-            Surface = "#FFFFFF"
-        }
-    };
-}
-
-<style>
-    .mud-background-gray {
-        background-color: #F4F6F8;
-        min-height: 100vh;
+        var proveedor = (ProveedorAutenticacion)AuthStateProvider;
+        await proveedor.CerrarSesion();
+        // Redirigir al dashboard con limitaciones o al login
+        Navigation.NavigateTo("/", forceLoad: true);
     }
-</style>
+}

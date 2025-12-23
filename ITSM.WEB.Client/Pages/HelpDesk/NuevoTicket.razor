@@ -4,28 +4,31 @@
 @using ITSM.WEB.Client.Auth
 @using System.Security.Claims
 @using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+
 @inject TicketServicio _ticketServicio
 @inject InventarioServicio _inventarioServicio
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
-@* Soporte para Blazor 8 Interactive *@
 @rendermode InteractiveWebAssembly
 
-<MudText Typo="Typo.h5" Class="mb-4"><b>Nueva Solicitud de Soporte</b></MudText>
+<MudText Typo="Typo.h5" Class="mb-4"><b>Nueva Solicitud de Servicio</b></MudText>
 
 <MudForm @bind-IsValid="@success">
     <MudGrid>
         <MudItem xs="12" md="8">
             <MudPaper Class="pa-6" Elevation="3">
                 <MudTextField @bind-Value="ticket.Titulo" Label="Asunto" Variant="Variant.Outlined" Required="true" Class="mb-4" />
-                <MudTextField @bind-Value="ticket.Descripcion" Label="Descripción" Variant="Variant.Outlined" Lines="5" Required="true" Class="mb-4" />
+                <MudTextField @bind-Value="ticket.Descripcion" Label="Descripción detallada" Variant="Variant.Outlined" Lines="5" Required="true" Class="mb-4" />
 
-                <MudSelect T="int?" Label="Equipo Relacionado (Opcional)" @bind-Value="ticket.IdActivo" Variant="Variant.Outlined" Clearable="true">
-                    @foreach (var act in activos)
+                <MudSelect T="int?" Label="¿El problema es con un equipo asignado? (Opcional)"
+                           @bind-Value="ticket.IdActivo" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter"
+                           Clearable="true" HelperText="Selecciona el equipo que presenta fallas" AdornmentIcon="@Icons.Material.Filled.Computer">
+                    @foreach (var act in activosUsuario)
                     {
-                        <MudSelectItem T="int?" Value="@act.IdActivo">@act.CodInventario - @act.Nombre</MudSelectItem>
+                        <MudSelectItem T="int?" Value="@act.IdActivo">@act.Tipo?.Nombre - @act.Marca @act.Modelo (@act.CodInventario)</MudSelectItem>
                     }
                 </MudSelect>
             </MudPaper>
@@ -33,13 +36,14 @@
 
         <MudItem xs="12" md="4">
             <MudPaper Class="pa-6" Elevation="3">
-                <MudSelect T="int" Label="Categoría" @bind-Value="ticket.IdCategoria" Variant="Variant.Outlined">
+                <MudSelect T="int" Label="Categoría" @bind-Value="ticket.IdCategoria" Variant="Variant.Outlined" Required="true">
                     @foreach (var cat in categorias)
                     {
                         <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
                     }
                 </MudSelect>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="mt-4" OnClick="Guardar" Disabled="@(!success)">Registrar Solicitud</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Secondary" FullWidth="true" Class="mt-2" OnClick="Cancelar">Cancelar</MudButton>
             </MudPaper>
         </MudItem>
     </MudGrid>
@@ -47,7 +51,7 @@
 
 @code {
     private Ticket ticket = new();
-    private List<Activo> activos = new();
+    private List<Activo> activosUsuario = new();
     private List<Categoria> categorias = new();
     private bool success;
 
@@ -63,19 +67,30 @@
             if (claim != null) idUsuario = int.Parse(claim.Value);
         }
 
-        var t1 = _inventarioServicio.ListarActivos();
+        var t1 = _inventarioServicio.ListarPorUsuario(idUsuario);
         var t2 = _ticketServicio.ObtenerCategorias();
         await Task.WhenAll(t1, t2);
 
-        activos = t1.Result;
+        activosUsuario = t1.Result;
         categorias = t2.Result;
         ticket.IdSolicitante = idUsuario;
+        ticket.IdEstado = 1; // Abierto
+        ticket.IdPrioridad = 3; // Baja por defecto
     }
 
     private async Task Guardar()
     {
-        await _ticketServicio.GuardarTicket(ticket);
-        Snackbar.Add("Solicitud creada exitosamente", Severity.Success);
-        Navigation.NavigateTo("/helpdesk/mis-tickets");
+        try
+        {
+            await _ticketServicio.GuardarTicket(ticket);
+            Snackbar.Add("Solicitud creada correctamente", Severity.Success);
+            Navigation.NavigateTo("/helpdesk/mis-tickets");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
     }
+
+    private void Cancelar() => Navigation.NavigateTo("/");
 }
