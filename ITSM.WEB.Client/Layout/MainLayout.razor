@@ -48,6 +48,7 @@
     private async Task CerrarSesion()
     {
         await _servicioSesion.CerrarSesion();
+        // Usamos forceLoad: true para limpiar el estado de la aplicación
         _nav.NavigateTo("/login", true);
     }
 }

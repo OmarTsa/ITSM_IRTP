@@ -20,43 +20,52 @@
     </MudCardHeader>
 
     <MudCardContent>
-        <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion" FormName="loginform">
-            <DataAnnotationsValidator />
+        @if (loginModel == null)
+        {
+            <div class="d-flex justify-center">
+                <MudProgressCircular Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion" FormName="loginform">
+                <DataAnnotationsValidator />
 
-            <MudTextField @bind-Value="loginModel.Username"
-                          Label="Usuario"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Person"
-                          Class="mb-4"
-                          Required="true" />
+                <MudTextField @bind-Value="loginModel.Username"
+                              Label="Usuario"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              Class="mb-4"
+                              Required="true" />
 
-            <MudTextField @bind-Value="loginModel.Password"
-                          Label="Contraseña"
-                          Variant="Variant.Outlined"
-                          InputType="InputType.Password"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Lock"
-                          Class="mb-4"
-                          Required="true" />
+                <MudTextField @bind-Value="loginModel.Password"
+                              Label="Contraseña"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Lock"
+                              Class="mb-4"
+                              Required="true" />
 
-            <MudButton ButtonType="ButtonType.Submit"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       FullWidth="true"
-                       Size="Size.Large"
-                       Disabled="@procesando">
-                @if (procesando)
-                {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
-                    <MudText Class="ms-2">Verificando...</MudText>
-                }
-                else
-                {
-                    <MudText>INGRESAR</MudText>
-                }
-            </MudButton>
-        </EditForm>
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           Disabled="@procesando">
+                    @if (procesando)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                        <MudText Class="ms-2">Verificando...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>INGRESAR</MudText>
+                    }
+                </MudButton>
+            </EditForm>
+        }
     </MudCardContent>
 
     <MudCardActions Class="d-flex justify-center pb-4 pt-0">
@@ -68,20 +77,28 @@
 
 @code {
     [SupplyParameterFromForm]
-    private LoginDto loginModel { get; set; } = new LoginDto();
+    private LoginDto? loginModel { get; set; }
 
     private bool procesando = false;
+
+    // ESTE MÉTODO ES LA SOLUCIÓN AL ERROR "EditForm requires Model"
+    protected override void OnInitialized()
+    {
+        // Si viene nulo del sistema, lo inicializamos nosotros
+        loginModel ??= new LoginDto();
+    }
 
     private async Task IniciarSesion()
     {
         procesando = true;
         try
         {
-            var sesion = await _servicioSesion.IniciarSesion(loginModel);
+            var sesion = await _servicioSesion.IniciarSesion(loginModel!);
             if (sesion != null)
             {
                 Snackbar.Add($"Bienvenido, {sesion.Nombre}", Severity.Success);
-                _nav.NavigateTo("/", true);
+                // forceLoad: true limpia la memoria y asegura que el estado de autenticación se refresque
+                _nav.NavigateTo("/", forceLoad: true);
             }
             else
             {

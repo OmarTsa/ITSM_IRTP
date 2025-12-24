@@ -1,7 +1,6 @@
 ﻿@using ITSM.WEB.Client.Layout
 @using Microsoft.AspNetCore.Components.Authorization
 @using MudBlazor
-@inject NavigationManager _nav
 
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
@@ -13,12 +12,9 @@
                     <MudText Typo="Typo.h4" Class="mb-2">Acceso Restringido</MudText>
                     <MudText Typo="Typo.body1" Class="mb-4">Debes iniciar sesión para acceder.</MudText>
 
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Size="Size.Large"
-                               OnClick="@(() => _nav.NavigateTo("/login", true))">
-                        Ir al Login
-                    </MudButton>
+                    <a href="login" class="mud-button-root mud-button mud-button-filled mud-button-filled-primary mud-button-lg mud-ripple">
+                        <span class="mud-button-label">Ir al Login</span>
+                    </a>
                 </div>
             </NotAuthorized>
             <Authorizing>

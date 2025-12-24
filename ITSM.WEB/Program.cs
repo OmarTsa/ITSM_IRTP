@@ -2,32 +2,31 @@ using ITSM.Datos;
 using ITSM.Negocio;
 using ITSM.WEB.Components;
 using Microsoft.EntityFrameworkCore;
-using MudBlazor.Services; // NECESARIO PARA DISEÑO
-using Blazored.LocalStorage; // NECESARIO PARA LOGIN
-using ITSM.WEB.Client.Servicios; // NECESARIO PARA LOGIN
-using ITSM.WEB.Client.Auth; // NECESARIO PARA LOGIN
-using Microsoft.AspNetCore.Components.Authorization; // NECESARIO PARA LOGIN
+using Blazored.LocalStorage;
+using ITSM.WEB.Client.Servicios;
+using ITSM.WEB.Client.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Servicios Base de Blazor
+// Servicios de Blazor
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-// 2. Servicios de Diseño (MudBlazor) - VITAL
 builder.Services.AddMudServices();
 
-// 3. Base de Datos
+// Base de Datos
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 4. Lógica de Negocio (Servidor)
+// Servicios de Negocio
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<ActivoNegocio>();
 
-// 5. Servicios Cliente en el Servidor (VITAL PARA QUE NO EXPLOTE AL CARGAR)
+// Servicios Cliente
 builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 builder.Services.AddScoped<ServicioSesion>();
@@ -35,18 +34,15 @@ builder.Services.AddScoped<UsuarioServicio>();
 builder.Services.AddScoped<TicketServicio>();
 builder.Services.AddScoped<InventarioServicio>();
 
-// Configurar HttpClient para que el servidor pueda "hablarse a sí mismo"
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("https://localhost:7233") // Asegúrate que este puerto coincida con tu launchSettings.json
+    BaseAddress = new Uri("https://localhost:7233")
 });
 
-// 6. Controladores
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -58,6 +54,12 @@ else
 }
 
 app.UseHttpsRedirection();
+
+// --- CORRECCIÓN CRÍTICA PARA .NET 10 ---
+// Esta es la línea que soluciona el error 404 del blazor.web.js
+app.MapStaticAssets();
+
+// Mantenemos UseStaticFiles para tus archivos CSS/imágenes normales
 app.UseStaticFiles();
 app.UseAntiforgery();
 
