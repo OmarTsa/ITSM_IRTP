@@ -7,39 +7,46 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using ITSM.WEB.Client.Servicios;
 using ITSM.WEB.Client.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Routing;
+using ITSM.WEB.Helpers;
+using Microsoft.AspNetCore.Builder;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuración de Blazor (Interactive Server + WebAssembly)
+// Register a mutable EndpointDataSource early so AuthorizationPolicyCache and other
+// services that depend on EndpointDataSource can be constructed safely during startup.
+var mutableDataSource = new MutableEndpointDataSource();
+builder.Services.AddSingleton<EndpointDataSource>(mutableDataSource);
+
+// Register routing services
+builder.Services.AddRouting();
+
+// Blazor Interactive configuration
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
 builder.Services.AddMudServices();
 
-// 2. Conexión a Base de Datos
+// Database
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 3. Registro de Capa de Negocio (Backend)
+// Business layer
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<ActivoNegocio>();
 
-// 4. Registro de Servicios del Cliente (Vital para que Inventario.razor funcione en el servidor)
-builder.Services.AddScoped(sp => new HttpClient
-{
-    // Asegúrate de que este puerto sea el que usas en ejecución
-    BaseAddress = new Uri("http://172.30.97.30:5244/")
-});
+// Client services (HttpClient base address from config)
+var apiBase = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5244/";
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiBase) });
 
 builder.Services.AddScoped<TicketServicio>();
 builder.Services.AddScoped<ServicioSesion>();
 builder.Services.AddScoped<InventarioServicio>();
 builder.Services.AddScoped<UsuarioServicio>();
 
-// 5. Configuración de Autenticación
-builder.Services.AddAuthorization();
+// Authentication & Authorization
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -47,13 +54,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/login";
     });
 
+builder.Services.AddAuthorization();
+
+// Blazor authentication state provider (client side)
 builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// 6. Pipeline de Solicitudes
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -69,15 +78,37 @@ app.UseStaticFiles();
 app.MapStaticAssets();
 app.UseAntiforgery();
 
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllers();
+// Map endpoints and then populate the mutable endpoint data source with the created endpoints
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapControllers();
 
-// CORRECCIÓN CRÍTICA: Mapeo de componentes y asambleas adicionales
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
+    // Map Razor components (no additional assemblies to avoid duplicates)
+    endpoints.MapRazorComponents<App>()
+        .AddInteractiveServerRenderMode()
+        .AddInteractiveWebAssemblyRenderMode();
+
+    // Serve SPA fallback (Blazor WebAssembly client index.html)
+    endpoints.MapFallbackToFile("index.html");
+
+    // After the framework has created underlying endpoints, collect them from all sources
+    var allDataSources = app.Services.GetServices<EndpointDataSource>().ToList();
+    var collected = new List<Endpoint>();
+    foreach (var ds in allDataSources)
+    {
+        try
+        {
+            collected.AddRange(ds.Endpoints ?? Array.Empty<Endpoint>());
+        }
+        catch { }
+    }
+
+    // Populate the mutable data source used during DI construction with the real endpoints
+    mutableDataSource.SetEndpoints(collected);
+});
 
 app.Run();

@@ -1,9 +1,11 @@
 ﻿@using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
+@using ITSM.WEB.Helpers
 @inject InventarioServicio _inventarioServicio
 @inject UsuarioServicio _usuarioServicio
 @inject ISnackbar Snackbar
+@inject ILogger<Microsoft.AspNetCore.Components.ComponentBase> Logger
 
 <MudDialog>
     <TitleContent>
@@ -46,8 +48,9 @@
 </MudDialog>
 
 @code {
+    // Use object to avoid compile-time dependency on MudBlazor dialog instance type
     [CascadingParameter]
-    public MudDialogInstance MudDialog { get; set; } = default!;
+    public object? MudDialogInstance { get; set; }
 
     [Parameter]
     public Activo Activo { get; set; } = new();
@@ -63,10 +66,17 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error al cargar usuarios: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error cargando lista de usuarios");
         }
     }
 
-    private void Cancelar() => MudDialog.Cancel();
+    private void Cancelar()
+    {
+        if (!DialogInvoker.SafeCancel(MudDialogInstance, Logger))
+        {
+            Snackbar.Add("No se pudo cancelar el diálogo", Severity.Warning);
+        }
+    }
 
     private async Task GuardarAsignacion()
     {
@@ -74,11 +84,17 @@
         {
             await _inventarioServicio.GuardarActivo(Activo);
             Snackbar.Add("Activo asignado correctamente", Severity.Success);
-            MudDialog.Close(DialogResult.Ok(true));
+
+            var closed = DialogInvoker.SafeClose(MudDialogInstance, true, Logger);
+            if (!closed)
+            {
+                Snackbar.Add("No se pudo cerrar el diálogo automáticamente", Severity.Warning);
+            }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error al guardar asignación: {ex.Message}", Severity.Error);
+            Logger.LogError(ex, "Error guardando asignación de activo");
         }
     }
 }

@@ -25,8 +25,43 @@ namespace ITSM.Negocio
             // 2. Si el usuario existe, verificamos el hash de la contraseña
             if (usuario != null && !string.IsNullOrEmpty(usuario.Password))
             {
-                bool claveValida = BCrypt.Net.BCrypt.Verify(password, usuario.Password);
-                if (claveValida) return usuario;
+                try
+                {
+                    var stored = usuario.Password ?? string.Empty;
+
+                    // Detect simple BCrypt hashes (start with $2a$, $2b$, $2y$, etc.)
+                    if (stored.StartsWith("$2a$") || stored.StartsWith("$2b$") || stored.StartsWith("$2y$") || stored.StartsWith("$2x$") || stored.StartsWith("$2z$"))
+                    {
+                        bool claveValida = BCrypt.Net.BCrypt.Verify(password, stored);
+                        if (claveValida) return usuario;
+                    }
+                    else
+                    {
+                        // Legacy plaintext password stored. Compare directly and migrate to hashed password.
+                        if (stored == password)
+                        {
+                            // Re-hash and update stored password securely
+                            var hashed = BCrypt.Net.BCrypt.HashPassword(password);
+                            var usuarioExistente = await _contexto.Usuarios.FindAsync(usuario.IdUsuario);
+                            if (usuarioExistente != null)
+                            {
+                                usuarioExistente.Password = hashed;
+                                _contexto.Usuarios.Update(usuarioExistente);
+                                await _contexto.SaveChangesAsync();
+
+                                // Update object to reflect new hashed password
+                                usuario.Password = hashed;
+                            }
+
+                            return usuario;
+                        }
+                    }
+                }
+                catch
+                {
+                    // If verification process fails for any reason, treat as authentication failure
+                    return null;
+                }
             }
 
             return null;

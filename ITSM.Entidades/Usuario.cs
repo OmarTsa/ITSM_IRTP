@@ -20,7 +20,7 @@ namespace ITSM.Entidades
         [Column("APELLIDOS")]
         public string? Apellidos { get; set; }
 
-        // Propiedad calculada para visualización en UI
+        // SEGURIDAD: Propiedad calculada para visualización, no se guarda en BD
         [NotMapped]
         public string NombreCompleto => $"{Nombres} {Apellidos}".Trim();
 

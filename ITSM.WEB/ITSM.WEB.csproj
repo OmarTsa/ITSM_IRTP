@@ -14,7 +14,36 @@
 
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.*" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
-		<PackageReference Include="MudBlazor" Version="8.0.0" />
+		<PackageReference Include="MudBlazor" Version="8.15.0" />
 	</ItemGroup>
+
+	<!-- Explicit reference to local NuGet MudBlazor assembly to help Razor compilation resolve types -->
+	<ItemGroup>
+	  <Reference Include="MudBlazor">
+	    <HintPath>$(UserProfile)\.nuget\packages\mudblazor\8.0.0\lib\net8.0\MudBlazor.dll</HintPath>
+	    <Private>true</Private>
+	  </Reference>
+	</ItemGroup>
+
+	<!-- Ensure the Blazor WebAssembly client's wwwroot is copied into the server output wwwroot -->
+	<Target Name="CopyBlazorClientStaticAssets" AfterTargets="Build">
+	  <PropertyGroup>
+	    <!-- Copy directly from the client project's wwwroot (source) to server output -->
+	    <ClientWwwRoot>..\ITSM.WEB.Client\wwwroot</ClientWwwRoot>
+	    <ServerWwwRoot>$(OutputPath)wwwroot</ServerWwwRoot>
+	  </PropertyGroup>
+
+	  <Message Importance="Normal" Text="Copying Blazor client static assets from '$(ClientWwwRoot)' to '$(ServerWwwRoot)'..." />
+
+	  <ItemGroup>
+	    <_ClientFiles Include="$(ClientWwwRoot)\**\*" Condition="Exists('$(ClientWwwRoot)')" />
+	  </ItemGroup>
+
+	  <MakeDir Directories="$(ServerWwwRoot)" Condition="!Exists('$(ServerWwwRoot)')" />
+
+	  <Copy SourceFiles="@(_ClientFiles)" 
+	        DestinationFiles="@(_ClientFiles->'$(ServerWwwRoot)\%(RecursiveDir)%(Filename)%(Extension)')" 
+	        SkipUnchangedFiles="true" />
+	</Target>
 
 </Project>
