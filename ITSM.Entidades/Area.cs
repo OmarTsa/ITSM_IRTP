@@ -3,16 +3,20 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("ESTADOS_TICKET")]
-    public class EstadoTicket
+    [Table("SEG_AREAS")]
+    public class Area
     {
         [Key]
-        [Column("ID_ESTADO")]
-        public int IdEstado { get; set; }
+        [Column("ID_AREA")]
+        public int IdArea { get; set; }
 
         [Column("NOMBRE")]
         [Required]
-        [StringLength(50)]
+        [StringLength(100)]
         public string Nombre { get; set; }
+
+        [Column("SIGLAS")]
+        [StringLength(20)]
+        public string? Siglas { get; set; }
     }
 }

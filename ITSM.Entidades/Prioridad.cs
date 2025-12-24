@@ -11,12 +11,14 @@ namespace ITSM.Entidades
         public int IdPrioridad { get; set; }
 
         [Column("NOMBRE")]
-        public string Nombre { get; set; } = string.Empty;
+        [StringLength(50)]
+        public string Nombre { get; set; }
 
         [Column("HORAS_SLA")]
-        public int? HorasSla { get; set; }
+        public int HorasSla { get; set; }
 
         [Column("COLOR")]
+        [StringLength(20)]
         public string? Color { get; set; }
     }
 }

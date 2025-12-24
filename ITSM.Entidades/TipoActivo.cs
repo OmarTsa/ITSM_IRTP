@@ -11,6 +11,7 @@ namespace ITSM.Entidades
         public int IdTipo { get; set; }
 
         [Column("NOMBRE")]
-        public string Nombre { get; set; } = string.Empty;
+        [StringLength(50)]
+        public string Nombre { get; set; }
     }
 }

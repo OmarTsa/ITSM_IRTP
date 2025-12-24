@@ -1,64 +1,50 @@
-﻿using Microsoft.JSInterop;
-using ITSM.Entidades;
-using System.Text.Json;
+﻿using ITSM.Entidades.DTOs;
+using System.Net.Http.Json;
+using Blazored.LocalStorage;
+using ITSM.WEB.Client.Auth;
+using Microsoft.AspNetCore.Components.Authorization;
 
 namespace ITSM.WEB.Client.Servicios
 {
     public class ServicioSesion
     {
-        private readonly IJSRuntime _js;
-        private const string KeySesion = "sesion_usuario";
+        private readonly HttpClient _http;
+        private readonly ILocalStorageService _localStorage;
+        private readonly AuthenticationStateProvider _authStateProvider;
 
-        public ServicioSesion(IJSRuntime js)
+        public ServicioSesion(HttpClient http, ILocalStorageService localStorage, AuthenticationStateProvider authStateProvider)
         {
-            _js = js;
+            _http = http;
+            _localStorage = localStorage;
+            _authStateProvider = authStateProvider;
         }
 
-        public async Task GuardarSesion(Usuario usuario)
+        public async Task<SesionDto> IniciarSesion(LoginDto login)
         {
-            // SEGURIDAD: No guardamos todo el objeto Usuario (evitamos datos sensibles)
-            var datosSesion = new
+            var response = await _http.PostAsJsonAsync("api/autenticacion/login", login);
+
+            if (response.IsSuccessStatusCode)
             {
-                usuario.IdUsuario,
-                usuario.Username,
-                usuario.Email,
-                RolNombre = usuario.Rol?.Nombre ?? "USUARIO_FINAL"
-            };
+                var sesion = await response.Content.ReadFromJsonAsync<SesionDto>();
 
-            var sesionJson = JsonSerializer.Serialize(datosSesion);
-            await _js.InvokeVoidAsync("localStorage.setItem", KeySesion, sesionJson);
-        }
+                // Guardamos el token y los datos
+                await _localStorage.SetItemAsync("sesionUsuario", sesion);
 
-        public async Task<Usuario?> ObtenerSesion()
-        {
-            var sesionJson = await _js.InvokeAsync<string?>("localStorage.getItem", KeySesion);
+                // Notificamos al proveedor de autenticación que el estado cambió
+                ((ProveedorAutenticacion)_authStateProvider).NotificarUsuarioLogueado(sesion.Token);
 
-            if (string.IsNullOrEmpty(sesionJson))
-                return null;
-
-            try
-            {
-                // Reconstruimos un objeto Usuario mínimo para el estado de la App
-                using var doc = JsonDocument.Parse(sesionJson);
-                var root = doc.RootElement;
-
-                return new Usuario
-                {
-                    IdUsuario = root.GetProperty("IdUsuario").GetInt32(),
-                    Username = root.GetProperty("Username").GetString(),
-                    Email = root.GetProperty("Email").GetString(),
-                    Rol = new Rol { Nombre = root.GetProperty("RolNombre").GetString() ?? "USUARIO_FINAL" }
-                };
+                return sesion;
             }
-            catch
+            else
             {
                 return null;
             }
         }
 
-        public async Task LimpiarSesion()
+        public async Task CerrarSesion()
         {
-            await _js.InvokeVoidAsync("localStorage.removeItem", KeySesion);
+            await _localStorage.RemoveItemAsync("sesionUsuario");
+            ((ProveedorAutenticacion)_authStateProvider).NotificarUsuarioDeslogueado();
         }
     }
 }

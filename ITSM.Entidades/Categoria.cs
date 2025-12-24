@@ -11,9 +11,15 @@ namespace ITSM.Entidades
         public int IdCategoria { get; set; }
 
         [Column("NOMBRE")]
-        public string Nombre { get; set; } = string.Empty;
+        [Required]
+        [StringLength(100)]
+        public string Nombre { get; set; }
+
+        [Column("TIPO")]
+        [StringLength(20)]
+        public string? Tipo { get; set; } // 'Incidente' o 'Requerimiento'
 
         [Column("ACTIVO")]
-        public int? Activo { get; set; }
+        public int Activo { get; set; } = 1;
     }
 }

@@ -1,75 +1,79 @@
 ﻿@page "/login"
 @layout LoginLayout
-@using ITSM.Entidades
-@using ITSM.WEB.Client.Auth
+@using ITSM.Entidades.DTOs
 @using ITSM.WEB.Client.Servicios
-@using MudBlazor
-@inject UsuarioServicio _usuarioServicio
-@inject AuthenticationStateProvider AuthStateProvider
-@inject NavigationManager Navigation
-@inject ISnackbar Snackbar
+@inject ServicioSesion _servicioSesion
+@inject NavigationManager _nav
 
-@rendermode InteractiveWebAssembly
+<div class="d-flex justify-content-center align-items-center vh-100 bg-light">
+    <div class="card shadow p-4" style="width: 400px;">
+        <div class="text-center mb-4">
+            <h3 class="text-primary fw-bold">ITSM - IRTP</h3>
+            <p class="text-muted">Ingrese sus credenciales</p>
+        </div>
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
-    <MudPaper Class="pa-8" Elevation="4">
-        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">ITSM - Ingreso</MudText>
-        <MudForm @bind-IsValid="@success">
-            <MudTextField @bind-Value="loginUser" Label="Usuario o Correo" Variant="Variant.Outlined"
-                          Required="true" Class="mb-4" AdornmentIcon="@Icons.Material.Filled.Person" />
+        @if (mostrarError)
+        {
+            <div class="alert alert-danger" role="alert">
+                Usuario o contraseña incorrectos.
+            </div>
+        }
 
-            <MudTextField @bind-Value="loginPassword" Label="Contraseña" Variant="Variant.Outlined"
-                          InputType="InputType.Password" Required="true" Class="mb-6" />
+        <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion">
+            <DataAnnotationsValidator />
 
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large"
-                       OnClick="EjecutarLogin" Disabled="@(cargando || !success)">
+            <div class="mb-3">
+                <label class="form-label">Usuario</label>
+                <InputText @bind-Value="loginModel.Username" class="form-control" placeholder="Ej: otito" />
+                <ValidationMessage For="@(() => loginModel.Username)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <InputText @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="******" />
+                <ValidationMessage For="@(() => loginModel.Password)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@cargando">
                 @if (cargando)
                 {
-                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                    <MudText Class="ms-2">Iniciando sesión...</MudText>
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Cargando...</span>
                 }
                 else
                 {
-                    <MudText>Entrar al Sistema</MudText>
+                    <span>Ingresar</span>
                 }
-            </MudButton>
-        </MudForm>
-    </MudPaper>
-</MudContainer>
+            </button>
+        </EditForm>
+
+        <div class="text-center mt-3">
+            <small class="text-muted">Oficina de Tecnologías de la Información</small>
+        </div>
+    </div>
+</div>
 
 @code {
-    private string loginUser = "";
-    private string loginPassword = "";
-    private bool success;
-    private bool cargando;
+    private LoginDto loginModel = new LoginDto();
+    private bool mostrarError = false;
+    private bool cargando = false;
 
-    private async Task EjecutarLogin()
+    private async Task IniciarSesion()
     {
         cargando = true;
-        try
-        {
-            var usuario = await _usuarioServicio.Login(loginUser, loginPassword);
+        mostrarError = false;
 
-            if (usuario != null)
-            {
-                var authProvider = (ProveedorAutenticacion)AuthStateProvider;
-                await authProvider.IniciarSesion(usuario);
+        var sesion = await _servicioSesion.IniciarSesion(loginModel);
 
-                // Redirección forzada para limpiar estados previos y cargar permisos
-                Navigation.NavigateTo("/", forceLoad: true);
-            }
-            else
-            {
-                Snackbar.Add("Acceso denegado: Credenciales inválidas", Severity.Error);
-            }
-        }
-        catch (Exception ex)
+        if (sesion != null)
         {
-            Snackbar.Add($"Error de comunicación: {ex.Message}", Severity.Error);
+            _nav.NavigateTo("/"); // Redirigir al Home/Dashboard
         }
-        finally
+        else
         {
-            cargando = false;
+            mostrarError = true;
         }
+
+        cargando = false;
     }
 }

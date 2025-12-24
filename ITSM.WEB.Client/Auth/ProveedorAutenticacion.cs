@@ -1,61 +1,72 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+﻿using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components.Authorization;
+using System.Net.Http.Headers;
 using System.Security.Claims;
-using ITSM.WEB.Client.Servicios;
-using ITSM.Entidades;
+using System.Text.Json;
+using ITSM.Entidades.DTOs;
 
 namespace ITSM.WEB.Client.Auth
 {
     public class ProveedorAutenticacion : AuthenticationStateProvider
     {
-        private readonly ServicioSesion _servicioSesion;
-        private readonly ClaimsPrincipal _anonimo = new ClaimsPrincipal(new ClaimsIdentity());
+        private readonly ILocalStorageService _localStorage;
+        private readonly HttpClient _http;
+        private readonly AuthenticationState _anonimo;
 
-        public ProveedorAutenticacion(ServicioSesion servicioSesion)
+        public ProveedorAutenticacion(ILocalStorageService localStorage, HttpClient http)
         {
-            _servicioSesion = servicioSesion;
+            _localStorage = localStorage;
+            _http = http;
+            _anonimo = new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            try
+            var sesionUsuario = await _localStorage.GetItemAsync<SesionDto>("sesionUsuario");
+
+            if (sesionUsuario == null)
+                return _anonimo;
+
+            // Inyectar el token en las cabeceras HTTP para futuras peticiones
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sesionUsuario.Token);
+
+            var claims = ParseClaimsFromJwt(sesionUsuario.Token);
+            var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
+
+            return new AuthenticationState(user);
+        }
+
+        public void NotificarUsuarioLogueado(string token)
+        {
+            var claims = ParseClaimsFromJwt(token);
+            var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
+            var authState = Task.FromResult(new AuthenticationState(user));
+            NotifyAuthenticationStateChanged(authState);
+        }
+
+        public void NotificarUsuarioDeslogueado()
+        {
+            var authState = Task.FromResult(_anonimo);
+            NotifyAuthenticationStateChanged(authState);
+        }
+
+        // Método auxiliar para leer el Token sin librerías externas pesadas
+        private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+        {
+            var payload = jwt.Split('.')[1];
+            var jsonBytes = ParseBase64WithoutPadding(payload);
+            var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+            return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()));
+        }
+
+        private byte[] ParseBase64WithoutPadding(string base64)
+        {
+            switch (base64.Length % 4)
             {
-                var sesionUsuario = await _servicioSesion.ObtenerSesion();
-
-                if (sesionUsuario == null)
-                    return new AuthenticationState(_anonimo);
-
-                return new AuthenticationState(CrearClaimsPrincipal(sesionUsuario));
+                case 2: base64 += "=="; break;
+                case 3: base64 += "="; break;
             }
-            catch
-            {
-                return new AuthenticationState(_anonimo);
-            }
-        }
-
-        public async Task IniciarSesion(Usuario sesionUsuario)
-        {
-            await _servicioSesion.GuardarSesion(sesionUsuario);
-            var claimsPrincipal = CrearClaimsPrincipal(sesionUsuario);
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claimsPrincipal)));
-        }
-
-        public async Task CerrarSesion()
-        {
-            await _servicioSesion.LimpiarSesion();
-            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_anonimo)));
-        }
-
-        private ClaimsPrincipal CrearClaimsPrincipal(Usuario usuario)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
-                new Claim(ClaimTypes.Name, usuario.Username ?? ""),
-                new Claim(ClaimTypes.Email, usuario.Email ?? ""),
-                new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "USUARIO_FINAL")
-            };
-
-            return new ClaimsPrincipal(new ClaimsIdentity(claims, "JwtAuth"));
+            return Convert.FromBase64String(base64);
         }
     }
 }
