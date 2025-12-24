@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ITSM.Datos;
 using ITSM.Entidades;
+// Asegúrate de haber instalado el paquete NuGet: BCrypt.Net-Next
 using BCrypt.Net;
 
 namespace ITSM.Negocio
@@ -19,7 +20,7 @@ namespace ITSM.Negocio
         }
 
         // =================================================================================
-        // 1. AUTENTICACIÓN Y SEGURIDAD
+        // 1. AUTENTICACIÓN Y SEGURIDAD (CON BCRYPT)
         // =================================================================================
 
         public async Task<Usuario?> LoginAsync(string username, string password)
@@ -35,13 +36,24 @@ namespace ITSM.Negocio
             // Si no existe o está inactivo
             if (usuario == null) return null;
 
-            // Verificamos contraseña hash
-            // Nota: BCrypt maneja internamente el salt, por eso solo pasamos el password plano y el hash
-            bool esValido = BCrypt.Net.BCrypt.Verify(password, usuario.PasswordHash);
+            // Verificamos contraseña usando BCrypt
+            // Verify compara el texto plano con el hash almacenado
+            bool esValido = false;
+            try
+            {
+                // Manejo de errores por si hay hashes antiguos no compatibles o nulos
+                if (!string.IsNullOrEmpty(usuario.PasswordHash))
+                {
+                    esValido = BCrypt.Net.BCrypt.Verify(password, usuario.PasswordHash);
+                }
+            }
+            catch
+            {
+                esValido = false;
+            }
 
             if (esValido)
             {
-                // Aquí podrías registrar un log de acceso exitoso en la tabla SEG_INTENTOS_ACCESO
                 return usuario;
             }
 
@@ -53,21 +65,19 @@ namespace ITSM.Negocio
             var usuario = await _contexto.Usuarios.FindAsync(idUsuario);
             if (usuario == null) throw new Exception("El usuario no existe.");
 
+            // Hasheamos la nueva contraseña antes de guardar
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(nuevaContrasena);
             await _contexto.SaveChangesAsync();
         }
 
         // =================================================================================
-        // 2. GESTIÓN DE USUARIOS (CRUD)
+        // 2. GESTIÓN DE USUARIOS (CRUD COMPLETO)
         // =================================================================================
 
         public async Task<List<Usuario>> ListarUsuariosAsync()
         {
-            // Traemos la lista completa con sus relaciones (Rol y Área) para mostrar en la grilla
-            // Usamos AsNoTracking() para mejorar el rendimiento ya que es solo lectura
             return await _contexto.Usuarios
                 .Include(u => u.Rol)
-                //.Include(u => u.Area) // Descomentar cuando hayas agregado la propiedad virtual Area en Usuario.cs
                 .AsNoTracking()
                 .OrderBy(u => u.Apellidos)
                 .ToListAsync();
@@ -92,18 +102,21 @@ namespace ITSM.Negocio
             if (await ExisteCorreoAsync(usuario.Correo))
                 throw new Exception($"El correo '{usuario.Correo}' ya está registrado.");
 
-            // 2. Preparar datos por defecto
+            // 2. Seguridad: Hashear contraseña
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordPlano);
+
+            // 3. Datos por defecto
             usuario.Estado = 1; // Activo
             usuario.FechaBaja = null;
+            usuario.FechaCreacion = DateTime.Now;
 
-            // Convertir a mayúsculas para estandarizar
+            // Estandarización de texto
             usuario.Nombres = usuario.Nombres.ToUpper();
             usuario.Apellidos = usuario.Apellidos.ToUpper();
-            usuario.Username = usuario.Username.ToLower(); // Usernames en minúscula
-            usuario.Correo = usuario.Correo.ToLower();
+            usuario.Username = usuario.Username.ToLower().Trim();
+            usuario.Correo = usuario.Correo.ToLower().Trim();
 
-            // 3. Guardar
+            // 4. Guardar
             _contexto.Usuarios.Add(usuario);
             await _contexto.SaveChangesAsync();
         }
@@ -113,19 +126,19 @@ namespace ITSM.Negocio
             var usuarioDb = await _contexto.Usuarios.FindAsync(usuario.IdUsuario);
             if (usuarioDb == null) throw new Exception("El usuario que intenta editar no existe.");
 
-            // 1. Validaciones de duplicados (Excluyendo al propio usuario)
+            // Validaciones de duplicados (Excluyendo al propio usuario)
             if (await _contexto.Usuarios.AnyAsync(u => u.Username == usuario.Username && u.IdUsuario != usuario.IdUsuario))
                 throw new Exception($"El usuario '{usuario.Username}' ya pertenece a otra persona.");
 
             if (await _contexto.Usuarios.AnyAsync(u => u.Dni == usuario.Dni && u.IdUsuario != usuario.IdUsuario))
                 throw new Exception($"El DNI '{usuario.Dni}' ya pertenece a otra persona.");
 
-            // 2. Actualizar campos permitidos
+            // Actualizar campos permitidos (NO tocamos el PasswordHash aquí)
             usuarioDb.Nombres = usuario.Nombres.ToUpper();
             usuarioDb.Apellidos = usuario.Apellidos.ToUpper();
             usuarioDb.Dni = usuario.Dni;
-            usuarioDb.Correo = usuario.Correo.ToLower();
-            usuarioDb.Username = usuario.Username.ToLower();
+            usuarioDb.Correo = usuario.Correo.ToLower().Trim();
+            usuarioDb.Username = usuario.Username.ToLower().Trim();
             usuarioDb.IdRol = usuario.IdRol;
             usuarioDb.IdArea = usuario.IdArea;
             usuarioDb.Cargo = usuario.Cargo;
@@ -140,8 +153,6 @@ namespace ITSM.Negocio
                     usuarioDb.FechaBaja = null;
             }
 
-            // Nota: NO actualizamos el PasswordHash aquí. Eso se hace en CambiarContrasenaAsync.
-
             await _contexto.SaveChangesAsync();
         }
 
@@ -150,8 +161,6 @@ namespace ITSM.Negocio
             var usuario = await _contexto.Usuarios.FindAsync(idUsuario);
             if (usuario == null) throw new Exception("Usuario no encontrado.");
 
-            // Validación: No permitir dar de baja al propio admin si es el único (regla de seguridad opcional)
-
             usuario.Estado = 0; // Inactivo
             usuario.FechaBaja = DateTime.Now;
 
@@ -159,7 +168,7 @@ namespace ITSM.Negocio
         }
 
         // =================================================================================
-        // 3. MÉTODOS AUXILIARES (Validaciones y Combos)
+        // 3. MÉTODOS AUXILIARES
         // =================================================================================
 
         public async Task<bool> ExisteUsernameAsync(string username)
@@ -177,19 +186,14 @@ namespace ITSM.Negocio
             return await _contexto.Usuarios.AnyAsync(u => u.Correo == correo);
         }
 
-        // Para llenar los ComboBox (Selects) en la interfaz
         public async Task<List<Rol>> ListarRolesActivosAsync()
         {
-            return await _contexto.Roles
-                .Where(r => r.Estado == 1)
-                .ToListAsync();
+            return await _contexto.Roles.Where(r => r.Estado == 1).ToListAsync();
         }
 
         public async Task<List<Area>> ListarAreasAsync()
         {
-            return await _contexto.Areas
-                .OrderBy(a => a.Nombre)
-                .ToListAsync();
+            return await _contexto.Areas.OrderBy(a => a.Nombre).ToListAsync();
         }
     }
 }
