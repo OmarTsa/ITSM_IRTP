@@ -17,16 +17,23 @@ namespace ITSM.WEB.Client.Servicios
             return await _http.GetFromJsonAsync<List<Usuario>>("api/usuario") ?? new List<Usuario>();
         }
 
-        public async Task<Usuario> Obtener(int id)
+        // CORRECCIÓN: Cambiamos a Task<Usuario?> para permitir null si no existe
+        public async Task<Usuario?> Obtener(int id)
         {
-            return await _http.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
+            try
+            {
+                return await _http.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
+            }
+            catch
+            {
+                return null; // Si falla o es 404, retornamos null
+            }
         }
 
         public async Task Guardar(Usuario usuario)
         {
             if (usuario.IdUsuario == 0)
             {
-                // Crear
                 var response = await _http.PostAsJsonAsync("api/usuario", usuario);
                 if (!response.IsSuccessStatusCode)
                 {
@@ -36,7 +43,6 @@ namespace ITSM.WEB.Client.Servicios
             }
             else
             {
-                // Editar
                 var response = await _http.PutAsJsonAsync("api/usuario", usuario);
                 if (!response.IsSuccessStatusCode)
                 {

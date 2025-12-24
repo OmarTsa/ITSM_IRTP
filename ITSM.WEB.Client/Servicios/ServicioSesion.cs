@@ -19,7 +19,7 @@ namespace ITSM.WEB.Client.Servicios
             _authStateProvider = authStateProvider;
         }
 
-        public async Task<SesionDto> IniciarSesion(LoginDto login)
+        public async Task<SesionDto?> IniciarSesion(LoginDto login)
         {
             var response = await _http.PostAsJsonAsync("api/autenticacion/login", login);
 
@@ -27,18 +27,16 @@ namespace ITSM.WEB.Client.Servicios
             {
                 var sesion = await response.Content.ReadFromJsonAsync<SesionDto>();
 
-                // Guardamos el token y los datos
-                await _localStorage.SetItemAsync("sesionUsuario", sesion);
-
-                // Notificamos al proveedor de autenticación que el estado cambió
-                ((ProveedorAutenticacion)_authStateProvider).NotificarUsuarioLogueado(sesion.Token);
-
-                return sesion;
+                // Validación de robustez (CS8602)
+                if (sesion != null)
+                {
+                    await _localStorage.SetItemAsync("sesionUsuario", sesion);
+                    ((ProveedorAutenticacion)_authStateProvider).NotificarUsuarioLogueado(sesion.Token);
+                    return sesion;
+                }
             }
-            else
-            {
-                return null;
-            }
+
+            return null;
         }
 
         public async Task CerrarSesion()

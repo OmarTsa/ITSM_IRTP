@@ -1,52 +1,91 @@
 ﻿@page "/helpdesk/gestion"
 @using ITSM.Entidades
-@using ITSM.WEB.Client.Servicios
+@using ITSM.Negocio
 @using MudBlazor
-@inject TicketServicio _ticketServicio
+@inject TicketNegocio _ticketNegocio
 @inject NavigationManager Navigation
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 @rendermode InteractiveServer
 
-<MudText Typo="Typo.h5" Class="mb-4">Gestión de Tickets OTIC</MudText>
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h5" Class="mb-4">Gestión de Tickets OTIC</MudText>
 
-@if (listaTickets == null)
-{
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-}
-else
-{
-    <MudTable Items="@listaTickets" Hover="true" Striped="true" Elevation="2">
-        <HeaderContent>
-            <MudTh>ID</MudTh>
-            <MudTh>Fecha</MudTh>
-            <MudTh>Solicitante</MudTh>
-            <MudTh>Título</MudTh>
-            <MudTh>Estado</MudTh>
-            <MudTh>Acciones</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.IdTicket</MudTd>
-            <MudTd>@context.FechaCreacion.ToShortDateString()</MudTd>
-            <MudTd>@context.Solicitante?.NombreCompleto</MudTd>
-            <MudTd>@context.Titulo</MudTd>
-            <MudTd>
-                <MudChip T="string" Size="Size.Small" Color="@(context.IdEstado == 4 ? Color.Success : Color.Info)">
-                    @context.Estado?.Nombre
-                </MudChip>
-            </MudTd>
-            <MudTd>
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
-                               OnClick="@(() => Navigation.NavigateTo($"/helpdesk/ticket/{context.IdTicket}"))" />
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
-}
+    @if (listaTickets == null)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        <MudText Align="Align.Center" Class="mt-2">Cargando tickets...</MudText>
+    }
+    else if (listaTickets.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">No se encontraron tickets registrados en el sistema.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="@listaTickets" Hover="true" Striped="true" Elevation="2" Dense="true">
+            <HeaderContent>
+                <MudTh>ID</MudTh>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Solicitante</MudTh>
+                <MudTh>Título</MudTh>
+                <MudTh>Prioridad</MudTh>
+                <MudTh>Estado</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="ID">@context.IdTicket</MudTd>
+                <MudTd DataLabel="Fecha">@context.FechaCreacion.ToShortDateString()</MudTd>
+                <MudTd DataLabel="Solicitante">@(context.Solicitante?.NombreCompleto ?? "Sin Solicitante")</MudTd>
+                <MudTd DataLabel="Título">@context.Titulo</MudTd>
+                <MudTd DataLabel="Prioridad">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Style="@($"color:{context.Prioridad?.Color ?? "#000"}; border-color:{context.Prioridad?.Color ?? "#ccc"}")">
+                        @context.Prioridad?.Nombre
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Estado">
+                    <MudChip T="string" Size="Size.Small" Color="@ObtenerColorEstado(context.IdEstado)">
+                        @context.Estado?.Nombre
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Acciones">
+                    <MudTooltip Text="Ver Detalles / Gestionar">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                       OnClick="@(() => IrADetalle(context.IdTicket))" />
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+</MudContainer>
 
 @code {
     private List<Ticket>? listaTickets;
 
     protected override async Task OnInitializedAsync()
     {
-        listaTickets = await _ticketServicio.ListarTodosLosTicketsAsync();
+        // Usamos el método robusto del Negocio directamente
+        listaTickets = await _ticketNegocio.ListarTicketsAsync();
+    }
+
+    private void IrADetalle(int id)
+    {
+        Navigation.NavigateTo($"/helpdesk/ticket/{id}");
+    }
+
+    private Color ObtenerColorEstado(int idEstado)
+    {
+        return idEstado switch
+        {
+            1 => Color.Success, // Abierto
+            2 => Color.Warning, // En Proceso
+            3 => Color.Info,    // Por Proveedor
+            4 => Color.Primary, // Resuelto
+            5 => Color.Dark,    // Cerrado
+            _ => Color.Default
+        };
     }
 }

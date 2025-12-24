@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ITSM.Negocio;
 using ITSM.Entidades;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace ITSM.WEB.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TicketController : ControllerBase
     {
         private readonly TicketNegocio _ticketNegocio;
@@ -16,78 +19,92 @@ namespace ITSM.WEB.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Listar()
         {
-            var lista = await _ticketNegocio.ObtenerTickets();
+            // CORREGIDO: Coincide con TicketNegocio.cs
+            var lista = await _ticketNegocio.ListarTicketsAsync();
             return Ok(lista);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<IActionResult> Obtener(int id)
         {
-            var ticket = await _ticketNegocio.ObtenerTicketPorId(id);
+            var ticket = await _ticketNegocio.ObtenerTicketPorIdAsync(id);
             if (ticket == null) return NotFound();
             return Ok(ticket);
         }
 
-        [HttpGet("usuario/{id}")]
-        public async Task<IActionResult> GetPorUsuario(int id)
+        [HttpGet("mis-tickets")]
+        public async Task<IActionResult> MisTickets()
         {
-            var lista = await _ticketNegocio.ObtenerTicketsPorUsuario(id);
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return Unauthorized();
+
+            int idUsuario = int.Parse(userIdClaim.Value);
+
+            // CORREGIDO: Coincide con TicketNegocio.cs
+            var lista = await _ticketNegocio.ListarMisTicketsAsync(idUsuario);
             return Ok(lista);
         }
 
-        [HttpGet("categorias")]
-        public async Task<IActionResult> GetCategorias()
+        [HttpPost]
+        public async Task<IActionResult> Crear([FromBody] Ticket ticket)
         {
-            var lista = await _ticketNegocio.ListarCategorias();
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim != null)
+                {
+                    ticket.IdSolicitante = int.Parse(userIdClaim.Value);
+                }
+
+                // CORREGIDO: Coincide con TicketNegocio.cs
+                await _ticketNegocio.RegistrarTicketAsync(ticket);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("comentario")]
+        public async Task<IActionResult> AgregarComentario([FromBody] TicketDetalle detalle)
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim != null) detalle.IdUsuario = int.Parse(userIdClaim.Value);
+
+                await _ticketNegocio.AgregarComentarioAsync(detalle);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("categorias")]
+        public async Task<IActionResult> ListarCategorias()
+        {
+            var lista = await _ticketNegocio.ListarCategoriasAsync();
             return Ok(lista);
         }
 
         [HttpGet("prioridades")]
-        public async Task<IActionResult> GetPrioridades()
+        public async Task<IActionResult> ListarPrioridades()
         {
-            var lista = await _ticketNegocio.ListarPrioridades();
+            var lista = await _ticketNegocio.ListarPrioridadesAsync();
             return Ok(lista);
         }
 
-        [HttpGet("kpis/{idUsuario}")]
-        public async Task<IActionResult> GetKpis(int idUsuario)
+        [HttpGet("kpis")]
+        public async Task<IActionResult> ObtenerKpis()
         {
-            var kpis = await _ticketNegocio.ObtenerKpisAsync(idUsuario);
+            // Ahora funcionará porque arreglamos el DTO en el paso 1
+            var kpis = await _ticketNegocio.ObtenerKpisAsync();
             return Ok(kpis);
-        }
-
-        // --- NUEVOS ENDPOINTS DETALLE ---
-
-        [HttpGet("{id}/detalles")]
-        public async Task<IActionResult> GetDetalles(int id)
-        {
-            var lista = await _ticketNegocio.ListarDetallesTicket(id);
-            return Ok(lista);
-        }
-
-        [HttpPost("comentario")]
-        public async Task<IActionResult> PostComentario([FromBody] TicketDetalle detalle)
-        {
-            await _ticketNegocio.AgregarComentario(detalle);
-            return Ok();
-        }
-        // --------------------------------
-
-        [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Ticket ticket)
-        {
-            await _ticketNegocio.GuardarTicket(ticket);
-            return Ok();
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] Ticket ticket)
-        {
-            if (id != ticket.IdTicket) return BadRequest();
-            await _ticketNegocio.GuardarTicket(ticket);
-            return Ok();
         }
     }
 }

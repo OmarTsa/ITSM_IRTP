@@ -1,11 +1,11 @@
 ﻿@using ITSM.Entidades
-@using ITSM.WEB.Client.Servicios
+@using ITSM.Negocio
 @using MudBlazor
 @using ITSM.WEB.Helpers
-@inject InventarioServicio _inventarioServicio
-@inject UsuarioServicio _usuarioServicio
+@inject ActivoNegocio _activoNegocio
+@inject UsuarioNegocio _usuarioNegocio
 @inject ISnackbar Snackbar
-@inject ILogger<Microsoft.AspNetCore.Components.ComponentBase> Logger
+@inject ILogger<AsignarActivoDialog> Logger
 
 <MudDialog>
     <TitleContent>
@@ -25,7 +25,7 @@
             <MudItem xs="12">
                 <MudSelect T="int?" Label="Usuario Responsable" Variant="Variant.Outlined"
                            @bind-Value="Activo.IdUsuarioAsignado" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem T="int?" Value="@((int?)null)">Sin asignar</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@((int?)null)">-- Sin asignar --</MudSelectItem>
                     @if (listaUsuarios != null)
                     {
                         @foreach (var user in listaUsuarios)
@@ -43,14 +43,14 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancelar">Cancelar</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsignacion">Confirmar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsignacion">Confirmar Asignación</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
-    // Use object to avoid compile-time dependency on MudBlazor dialog instance type
+    // CORRECCIÓN: Usamos el nombre completo para evitar el error CS0246
     [CascadingParameter]
-    public object? MudDialogInstance { get; set; }
+    public MudBlazor.IMudDialogInstance MudDialog { get; set; }
 
     [Parameter]
     public Activo Activo { get; set; } = new();
@@ -61,7 +61,7 @@
     {
         try
         {
-            listaUsuarios = await _usuarioServicio.ListarUsuarios();
+            listaUsuarios = await _usuarioNegocio.ListarUsuariosAsync();
         }
         catch (Exception ex)
         {
@@ -72,24 +72,17 @@
 
     private void Cancelar()
     {
-        if (!DialogInvoker.SafeCancel(MudDialogInstance, Logger))
-        {
-            Snackbar.Add("No se pudo cancelar el diálogo", Severity.Warning);
-        }
+        MudDialog.Cancel();
     }
 
     private async Task GuardarAsignacion()
     {
         try
         {
-            await _inventarioServicio.GuardarActivo(Activo);
-            Snackbar.Add("Activo asignado correctamente", Severity.Success);
+            await _activoNegocio.GuardarActivoAsync(Activo);
 
-            var closed = DialogInvoker.SafeClose(MudDialogInstance, true, Logger);
-            if (!closed)
-            {
-                Snackbar.Add("No se pudo cerrar el diálogo automáticamente", Severity.Warning);
-            }
+            Snackbar.Add("Activo asignado y actualizado correctamente", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {

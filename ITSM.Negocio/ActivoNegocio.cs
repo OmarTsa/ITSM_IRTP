@@ -6,96 +6,96 @@ namespace ITSM.Negocio
 {
     public class ActivoNegocio
     {
-        private readonly ContextoBD _contexto;
+        private readonly ContextoBD _context;
 
-        public ActivoNegocio(ContextoBD contexto)
+        public ActivoNegocio(ContextoBD context)
         {
-            _contexto = contexto;
+            _context = context;
         }
 
-        // --- GESTIÓN DE BIENES (ACTIVOS) ---
-        public async Task<List<Activo>> ListarActivos()
+        // --- GESTIÓN DE ACTIVOS ---
+
+        public async Task<List<Activo>> ListarActivosAsync()
         {
-            return await _contexto.Activos
-                .Include(a => a.Tipo)
+            return await _context.Activos
+                .Include(a => a.TipoActivo)
                 .Include(a => a.UsuarioAsignado)
-                .OrderBy(a => a.IdActivo)
+                .Where(a => a.Eliminado == 0)
                 .ToListAsync();
         }
 
-        public async Task<Activo?> ObtenerPorId(int id)
+        // IMPLEMENTADO: Requerido por ActivoController
+        public async Task<List<Activo>> ListarActivosPorUsuarioAsync(int idUsuario)
         {
-            return await _contexto.Activos
-                .Include(a => a.Tipo)
+            return await _context.Activos
+                .Include(a => a.TipoActivo)
+                .Where(a => a.IdUsuarioAsignado == idUsuario && a.Eliminado == 0)
+                .ToListAsync();
+        }
+
+        public async Task<Activo?> ObtenerPorIdAsync(int id)
+        {
+            return await _context.Activos
+                .Include(a => a.TipoActivo)
+                .Include(a => a.UsuarioAsignado)
                 .FirstOrDefaultAsync(a => a.IdActivo == id);
         }
 
-        public async Task GuardarActivo(Activo activo)
+        public async Task GuardarActivoAsync(Activo activo)
         {
-            // Validaciones básicas
-            activo.Marca = activo.Marca?.ToUpper() ?? string.Empty;
-            activo.Modelo = activo.Modelo?.ToUpper() ?? string.Empty;
-            activo.Serie = activo.Serie?.ToUpper() ?? string.Empty;
-
             if (activo.IdActivo == 0)
             {
-                _contexto.Activos.Add(activo);
+                activo.FechaRegistro = DateTime.Now;
+                activo.Eliminado = 0;
+                _context.Activos.Add(activo);
             }
             else
             {
-                _contexto.Activos.Update(activo);
+                _context.Activos.Update(activo);
             }
-            await _contexto.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        // --- GESTIÓN DE TIPOS (CATÁLOGO DINÁMICO) ---
-        public async Task<List<TipoActivo>> ListarTipos()
+        public async Task EliminarActivoAsync(int id)
         {
-            return await _contexto.TiposActivo.OrderBy(t => t.Nombre).ToListAsync();
+            var activo = await _context.Activos.FindAsync(id);
+            if (activo != null)
+            {
+                activo.Eliminado = 1;
+                await _context.SaveChangesAsync();
+            }
         }
 
-        public async Task GuardarTipo(TipoActivo tipo)
+        // --- GESTIÓN DE TIPOS DE ACTIVO ---
+
+        public async Task<List<TipoActivo>> ListarTiposAsync()
         {
-            if (string.IsNullOrWhiteSpace(tipo.Nombre)) throw new Exception("El nombre es obligatorio");
+            return await _context.TiposActivo.ToListAsync();
+        }
 
-            tipo.Nombre = tipo.Nombre.ToUpper().Trim();
-
+        // IMPLEMENTADO: Requerido por ActivoController (GestiónTipos.razor)
+        public async Task GuardarTipoAsync(TipoActivo tipo)
+        {
             if (tipo.IdTipo == 0)
             {
-                if (await _contexto.TiposActivo.AnyAsync(t => t.Nombre == tipo.Nombre))
-                    throw new Exception("Ya existe un tipo con este nombre");
-
-                _contexto.TiposActivo.Add(tipo);
+                _context.TiposActivo.Add(tipo);
             }
             else
             {
-                _contexto.TiposActivo.Update(tipo);
+                _context.TiposActivo.Update(tipo);
             }
-            await _contexto.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        public async Task EliminarTipo(int id)
+        // IMPLEMENTADO: Requerido por ActivoController
+        public async Task EliminarTipoAsync(int id)
         {
-            // Validamos que no tenga activos asignados antes de borrar
-            bool tieneActivos = await _contexto.Activos.AnyAsync(a => a.IdTipo == id);
-            if (tieneActivos) throw new Exception("No se puede eliminar: Hay activos registrados de este tipo.");
-
-            var tipo = await _contexto.TiposActivo.FindAsync(id);
+            var tipo = await _context.TiposActivo.FindAsync(id);
             if (tipo != null)
             {
-                _contexto.TiposActivo.Remove(tipo);
-                await _contexto.SaveChangesAsync();
+                _context.TiposActivo.Remove(tipo);
+                await _context.SaveChangesAsync();
             }
-        }
-
-        // --- NUEVO MÉTODO PARA VINCULAR CON TICKETS ---
-        public async Task<List<Activo>> ListarPorUsuario(int idUsuario)
-        {
-            return await _contexto.Activos
-                .Include(a => a.Tipo)
-                .Where(a => a.IdUsuarioAsignado == idUsuario)
-                .OrderBy(a => a.IdActivo)
-                .ToListAsync();
         }
     }
 }

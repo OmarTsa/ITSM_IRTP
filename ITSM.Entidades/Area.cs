@@ -13,7 +13,7 @@ namespace ITSM.Entidades
         [Column("NOMBRE")]
         [Required]
         [StringLength(100)]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty; // Inicializado
 
         [Column("SIGLAS")]
         [StringLength(20)]

@@ -1,88 +1,75 @@
-﻿@page "/activos/inventario"
+﻿@page "/inventario"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@using MudBlazor
 @inject InventarioServicio _inventarioServicio
-@inject NavigationManager Navigation
+@inject NavigationManager _nav
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-@rendermode InteractiveServer
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <MudText Typo="Typo.h5">Inventario de Activos</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/inventario/nuevo">Nuevo Activo</MudButton>
+    </div>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h5"><b>Inventario de Activos TI</b></MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-               OnClick="@(() => Navigation.NavigateTo("/activos/nuevo"))">
-        Nuevo Activo
-    </MudButton>
-</MudStack>
-
-@if (listaActivos == null)
-{
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
-}
-else
-{
-    <MudTable Items="@listaActivos" Hover="true" Bordered="true" Striped="true" Elevation="3"
-              Filter="new Func<Activo, bool>(FiltrarBusqueda)">
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Equipos Registrados</MudText>
-            <MudSpacer />
-            <MudTextField @bind-Value="busqueda" Placeholder="Buscar por código, serie o marca..." Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-        </ToolBarContent>
-        <HeaderContent>
-            <MudTh>Tipo</MudTh>
-            <MudTh>Código Patrimonial</MudTh>
-            <MudTh>Marca / Modelo</MudTh>
-            <MudTh>Serie</MudTh>
-            <MudTh>Usuario Asignado</MudTh>
-            <MudTh>Acciones</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Tipo">@context.Tipo?.Nombre</MudTd>
-            <MudTd DataLabel="Código">
-                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Outlined">
-                    @context.CodigoPatrimonial
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Marca">@($"{context.Marca} / {context.Modelo}")</MudTd>
-            <MudTd DataLabel="Serie">@context.Serie</MudTd>
-            <MudTd DataLabel="Usuario">@(context.UsuarioAsignado?.NombreCompleto ?? "Sin asignar")</MudTd>
-            <MudTd DataLabel="Acciones">
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning"
-                               OnClick="@(() => Navigation.NavigateTo($"/activos/editar/{context.IdActivo}"))" />
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
-}
+    @if (listaActivos == null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="@listaActivos" Hover="true" Filter="new Func<Activo, bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Equipos</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString" Placeholder="Buscar..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Código Pat.</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Marca/Modelo</MudTh>
+                <MudTh>Usuario Asignado</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Código">@context.CodigoPatrimonial</MudTd>
+                <MudTd DataLabel="Tipo">
+                    @context.TipoActivo?.Nombre
+                </MudTd>
+                <MudTd DataLabel="Equipo">@context.Marca @context.Modelo</MudTd>
+                <MudTd DataLabel="Usuario">@(context.UsuarioAsignado?.NombreCompleto ?? "Sin Asignar")</MudTd>
+                <MudTd DataLabel="Acciones">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Href="@($"/inventario/editar/{context.IdActivo}")" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+</MudContainer>
 
 @code {
     private List<Activo>? listaActivos;
-    private string busqueda = "";
+    private string searchString = "";
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            listaActivos = await _inventarioServicio.ListarActivos();
-        }
-        catch
-        {
-            listaActivos = new List<Activo>();
-        }
+        listaActivos = await _inventarioServicio.ListarActivos();
     }
 
-    private bool FiltrarBusqueda(Activo a)
-    {
-        if (string.IsNullOrWhiteSpace(busqueda)) return true;
+    private bool FilterFunc(Activo element) => FilterFunc1(element, searchString);
 
-        if (a.CodigoPatrimonial?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
-        if (a.Serie?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
-        if (a.Marca?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
-        if (a.Modelo?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) return true;
+    private bool FilterFunc1(Activo element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.CodigoPatrimonial.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (element.Marca != null && element.Marca.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        // CORREGIDO: Búsqueda también por nombre de tipo
+        if (element.TipoActivo != null && element.TipoActivo.Nombre.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
 
         return false;
     }

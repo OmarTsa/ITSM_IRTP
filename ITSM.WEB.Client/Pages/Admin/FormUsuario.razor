@@ -1,68 +1,110 @@
-﻿@page "/admin/usuarios/nuevo"
-@page "/admin/usuarios/editar/{IdUsuario:int}"
+﻿@page "/admin/usuario/{Id:int?}"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@using MudBlazor
 @inject UsuarioServicio _usuarioServicio
-@inject NavigationManager Navigation
+@inject NavigationManager _nav
 @inject ISnackbar Snackbar
 
-@rendermode InteractiveWebAssembly
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">@(Id == null ? "Nuevo Usuario" : "Editar Usuario")</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <EditForm Model="@usuario" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuario.Username" Label="Usuario (Login)" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuario.Dni" Label="DNI" MaxLength="8" Required="true" />
+                    </MudItem>
 
-<MudText Typo="Typo.h5" Class="mb-4">@(IdUsuario == 0 ? "Registrar Nuevo Usuario" : "Editar Usuario")</MudText>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuario.Nombres" Label="Nombres" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuario.Apellidos" Label="Apellidos" Required="true" />
+                    </MudItem>
 
-<MudPaper Class="pa-6" Elevation="3">
-    <MudForm @bind-IsValid="@success">
-        <MudGrid>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="usuario.Dni" Label="DNI" Variant="Variant.Outlined" Required="true" MaxLength="8" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="usuario.Nombres" Label="Nombres" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="usuario.Apellidos" Label="Apellidos" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="usuario.Email" Label="Correo Institucional" Variant="Variant.Outlined" Required="true" InputType="InputType.Email" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="usuario.Username" Label="Nombre de Usuario" Variant="Variant.Outlined" Required="true" />
-            </MudItem>
-            @if (IdUsuario == 0)
-            {
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="usuario.Password" Label="Contraseña" Variant="Variant.Outlined" Required="true" InputType="InputType.Password" />
-                </MudItem>
-            }
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="usuario.Cargo" Label="Cargo" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudSelect T="int" Label="Estado" @bind-Value="usuario.Activo" Variant="Variant.Outlined">
-                    <MudSelectItem Value="1">Activo</MudSelectItem>
-                    <MudSelectItem Value="0">Inactivo</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
-                <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/admin/usuarios"))">Cancelar</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" Disabled="@(!success)">Guardar Usuario</MudButton>
-            </MudItem>
-        </MudGrid>
-    </MudForm>
-</MudPaper>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuario.Correo" Label="Correo Institucional" InputType="InputType.Email" Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuario.Cargo" Label="Cargo" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" Label="Rol" @bind-Value="usuario.IdRol" AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var rol in listaRoles)
+                            {
+                                <MudSelectItem Value="@rol.IdRol">@rol.Nombre</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" Label="Área" @bind-Value="usuario.IdArea" AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var area in listaAreas)
+                            {
+                                <MudSelectItem Value="@area.IdArea">@area.Nombre</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="usuario.Password" Label="Contraseña" InputType="InputType.Password" HelperText="Dejar en blanco si no desea cambiarla (en edición)" />
+                    </MudItem>
+
+                    @if (Id != null)
+                    {
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="int" Label="Estado" @bind-Value="usuario.Estado">
+                                <MudSelectItem Value="1">Activo</MudSelectItem>
+                                <MudSelectItem Value="0">Inactivo</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    }
+
+                </MudGrid>
+
+                <div class="d-flex justify-content-end mt-3">
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Class="me-2" OnClick="Cancelar">Cancelar</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Guardar</MudButton>
+                </div>
+            </EditForm>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
 
 @code {
-    [Parameter] public int IdUsuario { get; set; }
-    private Usuario usuario = new() { IdRol = 5, Activo = 1 };
-    private bool success;
+    [Parameter] public int? Id { get; set; }
+
+    private Usuario usuario = new Usuario();
+    private List<Rol> listaRoles = new();
+    private List<Area> listaAreas = new();
 
     protected override async Task OnInitializedAsync()
     {
-        if (IdUsuario != 0)
+        listaRoles = await _usuarioServicio.ListarRoles();
+        listaAreas = await _usuarioServicio.ListarAreas();
+
+        if (Id != null)
         {
-            var encontrado = await _usuarioServicio.ObtenerPorId(IdUsuario);
-            if (encontrado != null) usuario = encontrado;
+            // CORREGIDO: El método en UsuarioServicio.cs se llama 'Obtener', no 'ObtenerPorId'
+            var usuarioDb = await _usuarioServicio.Obtener(Id.Value);
+            if (usuarioDb != null)
+            {
+                usuario = usuarioDb;
+                usuario.PasswordHash = "";
+            }
+        }
+        else
+        {
+            usuario.Estado = 1;
         }
     }
 
@@ -70,13 +112,19 @@
     {
         try
         {
-            await _usuarioServicio.GuardarUsuario(usuario);
-            Snackbar.Add("Operación exitosa", Severity.Success);
-            Navigation.NavigateTo("/admin/usuarios");
+            // CORREGIDO: El método en UsuarioServicio.cs se llama 'Guardar', no 'GuardarUsuario'
+            await _usuarioServicio.Guardar(usuario);
+            Snackbar.Add("Usuario guardado correctamente", Severity.Success);
+            _nav.NavigateTo("/admin/usuarios");
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
+    }
+
+    private void Cancelar()
+    {
+        _nav.NavigateTo("/admin/usuarios");
     }
 }

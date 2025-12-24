@@ -1,82 +1,124 @@
-﻿@page "/helpdesk/nuevo-ticket"
+﻿@page "/helpdesk/nuevo"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@using MudBlazor
-@using Microsoft.AspNetCore.Components.Authorization
 @inject TicketServicio _ticketServicio
-@inject InventarioServicio _inventarioServicio
-@inject AuthenticationStateProvider AuthStateProvider
-@inject NavigationManager Navigation
+@inject NavigationManager _nav
 @inject ISnackbar Snackbar
-
-@rendermode InteractiveWebAssembly
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h5" Class="mb-4">Nueva Solicitud de Soporte</MudText>
-    <MudPaper Class="pa-6" Elevation="3">
-        <MudForm @bind-IsValid="@success">
-            <MudTextField @bind-Value="ticket.Titulo" Label="Asunto" Variant="Variant.Outlined" Required="true" />
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Nuevo Ticket de Atención</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
 
-            <MudGrid Class="mt-2">
-                <MudItem xs="12" md="6">
-                    <MudSelect T="int" Label="Categoría" Variant="Variant.Outlined" @bind-Value="ticket.IdCategoria" Required="true">
-                        @foreach (var cat in categorias)
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="nuevoTicket.Titulo" Label="Título del Incidente/Requerimiento" Required="true" Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" Label="Tipo" @bind-Value="nuevoTicket.TipoTicket" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("Incidente")">Incidente (Fallo)</MudSelectItem>
+                            <MudSelectItem Value="@("Requerimiento")">Requerimiento (Solicitud)</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                            <MudSelectItem Value="0">-- Seleccione --</MudSelectItem>
+                            @foreach (var cat in listaCategorias)
+                            {
+                                <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" Label="Prioridad" @bind-Value="nuevoTicket.IdPrioridad" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                            <MudSelectItem Value="3">Baja</MudSelectItem>
+                            <MudSelectItem Value="2">Media</MudSelectItem>
+                            <MudSelectItem Value="1">Alta</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="nuevoTicket.Descripcion" Label="Descripción Detallada" Lines="5" Required="true" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancelar" Class="me-2">Cancelar</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@cargando">
+                        @if (cargando)
                         {
-                            <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <MudText Class="ms-2">Procesando...</MudText>
                         }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudSelect T="int?" Label="Equipo Afectado" Variant="Variant.Outlined" @bind-Value="ticket.IdActivoAfectado">
-                        <MudSelectItem Value="@((int?)null)">Ninguno</MudSelectItem>
-                        @foreach (var activo in misActivos)
+                        else
                         {
-                            <MudSelectItem Value="@((int?)activo.IdActivo)">@($"{activo.CodigoPatrimonial} - {activo.Marca}")</MudSelectItem>
+                            <MudText>Registrar Ticket</MudText>
                         }
-                    </MudSelect>
-                </MudItem>
-            </MudGrid>
-
-            <MudTextField @bind-Value="ticket.Descripcion" Label="Descripción" Lines="5" Variant="Variant.Outlined" Class="mt-4" Required="true" />
-
-            <div class="d-flex justify-end gap-2 mt-6">
-                <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/helpdesk/mis-tickets"))">Cancelar</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="EnviarTicket" Disabled="@(!success)">Enviar</MudButton>
-            </div>
-        </MudForm>
-    </MudPaper>
+                    </MudButton>
+                </div>
+            </EditForm>
+        </MudCardContent>
+    </MudCard>
 </MudContainer>
 
 @code {
-    private Ticket ticket = new() { IdEstado = 1, IdPrioridad = 3 };
-    private List<Categoria> categorias = new();
-    private List<Activo> misActivos = new();
-    private bool success;
+    private Ticket nuevoTicket = new Ticket();
+    private List<Categoria> listaCategorias = new();
+    private bool cargando = false;
 
     protected override async Task OnInitializedAsync()
     {
-        categorias = await _ticketServicio.ListarCategorias();
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var idClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-
-        if (idClaim != null && int.TryParse(idClaim.Value, out int idUsuario))
+        try
         {
-            ticket.IdSolicitante = idUsuario;
-            misActivos = await _inventarioServicio.ListarActivosPorUsuario(idUsuario);
+            listaCategorias = await _ticketServicio.ListarCategorias();
+
+            // Valores por defecto
+            nuevoTicket.FechaCreacion = DateTime.Now;
+            nuevoTicket.IdEstado = 1; // Abierto
+            nuevoTicket.IdPrioridad = 3; // Baja por defecto
+            // El IdSolicitante se asigna en el Backend basado en el Token del usuario logueado
+            // O podemos capturarlo aquí si tenemos el estado de autenticación
+            nuevoTicket.IdSolicitante = 1; // Temporal, el backend debe sobrescribirlo con el usuario real
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error al cargar datos iniciales", Severity.Warning);
         }
     }
 
-    private async Task EnviarTicket()
+    private async Task Guardar()
     {
+        cargando = true;
         try
         {
-            await _ticketServicio.GuardarTicket(ticket);
-            Snackbar.Add("Ticket creado", Severity.Success);
-            Navigation.NavigateTo("/helpdesk/mis-tickets");
+            // CORRECCIÓN PRINCIPAL: Usamos el método que existe en el servicio 'RegistrarTicket'
+            await _ticketServicio.RegistrarTicket(nuevoTicket);
+
+            Snackbar.Add("Ticket registrado exitosamente", Severity.Success);
+            _nav.NavigateTo("/helpdesk/mistickets");
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        _nav.NavigateTo("/helpdesk/mistickets");
     }
 }

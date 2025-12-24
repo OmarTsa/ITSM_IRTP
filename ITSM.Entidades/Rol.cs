@@ -11,14 +11,15 @@ namespace ITSM.Entidades
         public int IdRol { get; set; }
 
         [Column("NOMBRE")]
+        [Required]
         [StringLength(50)]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty; // Inicializado para robustez
 
         [Column("DESCRIPCION")]
         [StringLength(200)]
         public string? Descripcion { get; set; }
 
         [Column("ESTADO")]
-        public int Estado { get; set; }
+        public int Estado { get; set; } = 1;
     }
 }

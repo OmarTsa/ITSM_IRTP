@@ -1,35 +1,27 @@
 ﻿@inherits LayoutComponentBase
-@using ITSM.WEB.Client.Auth
-@using MudBlazor
-@inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthStateProvider
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ServicioSesion _servicioSesion
+@inject NavigationManager _nav
 
 <MudThemeProvider />
-<MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
+<MudPopoverProvider />
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h6" Class="ml-3">ITSM - Sistema de Gestión TI</MudText>
+        <MudText Typo="Typo.h6" Class="ml-3">ITSM - IRTP</MudText>
         <MudSpacer />
 
         <AuthorizeView>
             <Authorized>
-                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                    <ActivatorContent>
-                        <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Secondary">
-                            @context.User.Identity?.Name
-                        </MudChip>
-                    </ActivatorContent>
-                    <ChildContent>
-                        <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="EjecutarCerrarSesion">Cerrar Sesión</MudMenuItem>
-                    </ChildContent>
-                </MudMenu>
+                <MudText Typo="Typo.body2" Class="mr-3">Hola, @context.User.Identity?.Name</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" Title="Cerrar Sesión" />
             </Authorized>
             <NotAuthorized>
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@(() => Navigation.NavigateTo("/login"))">Iniciar Sesión</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="login">Iniciar Sesión</MudButton>
             </NotAuthorized>
         </AuthorizeView>
     </MudAppBar>
@@ -39,7 +31,7 @@
     </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
             @Body
         </MudContainer>
     </MudMainContent>
@@ -48,12 +40,15 @@
 @code {
     bool _drawerOpen = true;
 
-    void DrawerToggle() => _drawerOpen = !_drawerOpen;
-
-    private async Task EjecutarCerrarSesion()
+    void DrawerToggle()
     {
-        var authProvider = (ProveedorAutenticacion)AuthStateProvider;
-        await authProvider.CerrarSesion();
-        Navigation.NavigateTo("/login", forceLoad: true);
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private async Task CerrarSesion()
+    {
+        await _servicioSesion.CerrarSesion();
+        // El 'true' fuerza la recarga de la página para limpiar cualquier estado en memoria
+        _nav.NavigateTo("/login", true);
     }
 }

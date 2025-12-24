@@ -13,12 +13,12 @@ namespace ITSM.Entidades
 
         [Column("TITULO")]
         [Required(ErrorMessage = "El título es obligatorio")]
-        [StringLength(200, ErrorMessage = "El título no puede exceder los 200 caracteres")]
-        public string Titulo { get; set; }
+        [StringLength(200)]
+        public string Titulo { get; set; } = string.Empty;
 
         [Column("DESCRIPCION")]
         [Required(ErrorMessage = "La descripción es obligatoria")]
-        public string Descripcion { get; set; }
+        public string Descripcion { get; set; } = string.Empty;
 
         [Column("FECHA_CREACION")]
         public DateTime FechaCreacion { get; set; } = DateTime.Now;
@@ -32,8 +32,7 @@ namespace ITSM.Entidades
         [Column("FECHA_ASIGNACION")]
         public DateTime? FechaAsignacion { get; set; }
 
-        // --- RELACIONES Y CLAVES FORÁNEAS ---
-
+        // --- RELACIONES CON USUARIOS ---
         [Column("ID_SOLICITANTE")]
         public int IdSolicitante { get; set; }
 
@@ -46,46 +45,43 @@ namespace ITSM.Entidades
         [ForeignKey("IdEspecialista")]
         public virtual Usuario? Especialista { get; set; }
 
+        // --- RELACIÓN CON ACTIVOS ---
         [Column("ID_ACTIVO_AFECTADO")]
         public int? IdActivoAfectado { get; set; }
 
         [ForeignKey("IdActivoAfectado")]
         public virtual Activo? ActivoAfectado { get; set; }
 
-        // --- CLASIFICACIÓN ITIL (Impacto, Urgencia, Prioridad) ---
-
+        // --- CLASIFICACIÓN ---
         [Column("TIPO_TICKET")]
-        public string TipoTicket { get; set; } = "Incidente"; // Valores: 'Incidente' o 'Requerimiento'
+        public string TipoTicket { get; set; } = "Incidente";
 
         [Column("ID_CATEGORIA")]
         public int IdCategoria { get; set; }
 
-        // Asumiendo que existe la entidad Categoria, descomenta si la tienes
-        // [ForeignKey("IdCategoria")]
-        // public virtual Categoria? Categoria { get; set; }
+        [ForeignKey("IdCategoria")]
+        public virtual Categoria? Categoria { get; set; }
 
         [Column("ID_ESTADO")]
-        public int IdEstado { get; set; } = 1; // 1 = Abierto por defecto
+        public int IdEstado { get; set; } = 1;
 
-        // [ForeignKey("IdEstado")]
-        // public virtual EstadoTicket? Estado { get; set; }
+        [ForeignKey("IdEstado")]
+        public virtual EstadoTicket? Estado { get; set; } // OJO: Esto faltaba
 
         [Column("ID_PRIORIDAD")]
-        public int IdPrioridad { get; set; } = 3; // 3 = Baja por defecto
+        public int IdPrioridad { get; set; } = 3;
 
         [ForeignKey("IdPrioridad")]
-        public virtual Prioridad? Prioridad { get; set; }
+        public virtual Prioridad? Prioridad { get; set; } // OJO: Esto faltaba
 
         [Column("ID_URGENCIA")]
-        public int IdUrgencia { get; set; } = 3; // 1=Alta, 2=Media, 3=Baja
+        public int IdUrgencia { get; set; } = 3;
 
         [Column("ID_IMPACTO")]
-        public int IdImpacto { get; set; } = 3;  // 1=Alto, 2=Medio, 3=Bajo
+        public int IdImpacto { get; set; } = 3;
 
         [Column("ID_ORIGEN")]
         public int? IdOrigen { get; set; }
-
-        // --- CAMPOS DE CIERRE ---
 
         [Column("CODIGO_CIERRE")]
         [StringLength(50)]

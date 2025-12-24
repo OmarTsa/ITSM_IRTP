@@ -5,26 +5,24 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    
+
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    
+
     <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="ITSM.WEB.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    
-    <HeadOutlet @renderMode="InteractiveWebAssembly" />
+
+    <HeadOutlet @rendermode="InteractiveWebAssembly" />
 </head>
 
 <body>
-    <MudThemeProvider />
-    <MudPopoverProvider />
-    <MudDialogProvider />
-    <MudSnackbarProvider />
-
-    <Routes @renderMode="InteractiveWebAssembly" />
+    <Routes @rendermode="InteractiveWebAssembly" />
 
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 
 </html>
+
+@using ITSM.WEB.Client

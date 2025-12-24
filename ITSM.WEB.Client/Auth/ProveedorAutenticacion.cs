@@ -22,18 +22,35 @@ namespace ITSM.WEB.Client.Auth
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var sesionUsuario = await _localStorage.GetItemAsync<SesionDto>("sesionUsuario");
+            try
+            {
+                // INTENTO DE LEER LOCALSTORAGE
+                // Si estamos en el servidor (prerendering), esto fallará.
+                // Capturamos el error y devolvemos "Anónimo" para que la app cargue.
+                var sesionUsuario = await _localStorage.GetItemAsync<SesionDto>("sesionUsuario");
 
-            if (sesionUsuario == null)
+                if (sesionUsuario == null)
+                    return _anonimo;
+
+                // Si llegamos aquí, es que estamos en el navegador y hay sesión
+                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sesionUsuario.Token);
+
+                var claims = ParseClaimsFromJwt(sesionUsuario.Token);
+                var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
+
+                return new AuthenticationState(user);
+            }
+            catch (InvalidOperationException)
+            {
+                // Estamos en el servidor (Prerendering), no hay JS todavía.
+                // Devolvemos anónimo y esperamos a que el cliente se conecte.
                 return _anonimo;
-
-            // Inyectar el token en las cabeceras HTTP para futuras peticiones
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sesionUsuario.Token);
-
-            var claims = ParseClaimsFromJwt(sesionUsuario.Token);
-            var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
-
-            return new AuthenticationState(user);
+            }
+            catch (Exception)
+            {
+                // Cualquier otro error de lectura
+                return _anonimo;
+            }
         }
 
         public void NotificarUsuarioLogueado(string token)
@@ -50,7 +67,6 @@ namespace ITSM.WEB.Client.Auth
             NotifyAuthenticationStateChanged(authState);
         }
 
-        // Método auxiliar para leer el Token sin librerías externas pesadas
         private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
         {
             var payload = jwt.Split('.')[1];

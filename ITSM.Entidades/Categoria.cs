@@ -13,11 +13,11 @@ namespace ITSM.Entidades
         [Column("NOMBRE")]
         [Required]
         [StringLength(100)]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty; // Inicializado
 
         [Column("TIPO")]
         [StringLength(20)]
-        public string? Tipo { get; set; } // 'Incidente' o 'Requerimiento'
+        public string? Tipo { get; set; }
 
         [Column("ACTIVO")]
         public int Activo { get; set; } = 1;

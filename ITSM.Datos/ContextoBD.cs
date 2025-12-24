@@ -10,11 +10,12 @@ namespace ITSM.Datos
         // --- SEGURIDAD ---
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Rol> Roles { get; set; }
-        public DbSet<Area> Areas { get; set; } // <--- AGREGAR ESTA LÍNEA
+        public DbSet<Area> Areas { get; set; }
 
         // --- HELPDESK ---
         public DbSet<Ticket> Tickets { get; set; }
-        public DbSet<EstadoTicket> EstadosTickets { get; set; }
+        public DbSet<TicketDetalle> TicketDetalles { get; set; } // Agregado para que compile Negocio
+        public DbSet<EstadoTicket> Estados { get; set; } // Renombrado de 'EstadosTickets' a 'Estados'
         public DbSet<Categoria> Categorias { get; set; }
         public DbSet<Prioridad> Prioridades { get; set; }
 
@@ -26,11 +27,10 @@ namespace ITSM.Datos
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configuración adicional si fuera necesaria
+            // Configuraciones específicas de Oracle si son necesarias
             modelBuilder.Entity<Usuario>()
-                .HasOne(u => u.Rol)
-                .WithMany()
-                .HasForeignKey(u => u.IdRol);
+                .Property(u => u.FechaCreacion)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
         }
     }
 }

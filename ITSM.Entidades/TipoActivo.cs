@@ -12,6 +12,6 @@ namespace ITSM.Entidades
 
         [Column("NOMBRE")]
         [StringLength(50)]
-        public string Nombre { get; set; }
+        public string Nombre { get; set; } = string.Empty; // Inicializado
     }
 }

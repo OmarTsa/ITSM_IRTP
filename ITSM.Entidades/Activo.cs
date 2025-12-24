@@ -14,7 +14,7 @@ namespace ITSM.Entidades
         [Column("CODIGO_PATRIMONIAL")]
         [Required(ErrorMessage = "El código patrimonial es obligatorio")]
         [StringLength(20)]
-        public string CodigoPatrimonial { get; set; }
+        public string CodigoPatrimonial { get; set; } = string.Empty;
 
         [Column("ID_TIPO")]
         public int IdTipo { get; set; }
