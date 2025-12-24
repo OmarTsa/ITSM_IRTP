@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ITSM.Negocio;
 using ITSM.Entidades;
 
@@ -6,6 +7,7 @@ namespace ITSM.WEB.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Protegemos toda la API para que solo usuarios logueados accedan
     public class UsuarioController : ControllerBase
     {
         private readonly UsuarioNegocio _usuarioNegocio;
@@ -16,31 +18,78 @@ namespace ITSM.WEB.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<IActionResult> Listar()
         {
-            return Ok(await _usuarioNegocio.ListarUsuarios());
+            var lista = await _usuarioNegocio.ListarUsuariosAsync();
+            return Ok(lista);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
+        public async Task<IActionResult> Obtener(int id)
         {
-            var usuario = await _usuarioNegocio.ObtenerPorId(id);
-            return usuario != null ? Ok(usuario) : NotFound();
+            var usuario = await _usuarioNegocio.ObtenerPorIdAsync(id);
+            if (usuario == null) return NotFound();
+            return Ok(usuario);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Usuario usuario)
+        public async Task<IActionResult> Crear([FromBody] Usuario usuario)
         {
-            await _usuarioNegocio.GuardarUsuario(usuario);
-            return Ok();
+            // Usamos una contraseña temporal si viene vacía, o la que mande el admin
+            string passwordInicial = "123456";
+
+            try
+            {
+                await _usuarioNegocio.RegistrarUsuarioAsync(usuario, passwordInicial);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] Usuario usuario)
+        [HttpPut]
+        public async Task<IActionResult> Editar([FromBody] Usuario usuario)
         {
-            if (id != usuario.IdUsuario) return BadRequest();
-            await _usuarioNegocio.GuardarUsuario(usuario);
-            return Ok();
+            try
+            {
+                await _usuarioNegocio.ActualizarUsuarioAsync(usuario);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            try
+            {
+                await _usuarioNegocio.DarDeBajaAsync(id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // Endpoints para llenar los combos
+        [HttpGet("roles")]
+        public async Task<IActionResult> ListarRoles()
+        {
+            var roles = await _usuarioNegocio.ListarRolesActivosAsync();
+            return Ok(roles);
+        }
+
+        [HttpGet("areas")]
+        public async Task<IActionResult> ListarAreas()
+        {
+            var areas = await _usuarioNegocio.ListarAreasAsync();
+            return Ok(areas);
         }
     }
 }

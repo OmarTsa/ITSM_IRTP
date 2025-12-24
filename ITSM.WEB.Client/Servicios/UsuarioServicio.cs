@@ -1,5 +1,5 @@
-﻿using ITSM.Entidades;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
+using ITSM.Entidades;
 
 namespace ITSM.WEB.Client.Servicios
 {
@@ -12,30 +12,57 @@ namespace ITSM.WEB.Client.Servicios
             _http = http;
         }
 
-        public async Task<Usuario?> Login(string email, string password)
+        public async Task<List<Usuario>> Listar()
         {
-            // Enviamos un objeto anónimo con las credenciales al controlador de autenticación
-            var response = await _http.PostAsJsonAsync("api/autenticacion/login", new { Email = email, Password = password });
-
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<Usuario>();
-            }
-            return null;
+            return await _http.GetFromJsonAsync<List<Usuario>>("api/usuario") ?? new List<Usuario>();
         }
 
-        public async Task<List<Usuario>> ListarUsuarios() =>
-            await _http.GetFromJsonAsync<List<Usuario>>("api/usuario") ?? new List<Usuario>();
+        public async Task<Usuario> Obtener(int id)
+        {
+            return await _http.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
+        }
 
-        public async Task<Usuario?> ObtenerPorId(int id) =>
-            await _http.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
-
-        public async Task GuardarUsuario(Usuario usuario)
+        public async Task Guardar(Usuario usuario)
         {
             if (usuario.IdUsuario == 0)
-                await _http.PostAsJsonAsync("api/usuario", usuario);
+            {
+                // Crear
+                var response = await _http.PostAsJsonAsync("api/usuario", usuario);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    throw new Exception(error);
+                }
+            }
             else
-                await _http.PutAsJsonAsync($"api/usuario/{usuario.IdUsuario}", usuario);
+            {
+                // Editar
+                var response = await _http.PutAsJsonAsync("api/usuario", usuario);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    throw new Exception(error);
+                }
+            }
+        }
+
+        public async Task Eliminar(int id)
+        {
+            var response = await _http.DeleteAsync($"api/usuario/{id}");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("No se pudo dar de baja al usuario.");
+            }
+        }
+
+        public async Task<List<Rol>> ListarRoles()
+        {
+            return await _http.GetFromJsonAsync<List<Rol>>("api/usuario/roles") ?? new List<Rol>();
+        }
+
+        public async Task<List<Area>> ListarAreas()
+        {
+            return await _http.GetFromJsonAsync<List<Area>>("api/usuario/areas") ?? new List<Area>();
         }
     }
 }
