@@ -1,79 +1,103 @@
 ﻿@page "/login"
-@layout LoginLayout
+@layout ITSM.WEB.Client.Layout.LoginLayout
 @using ITSM.Entidades.DTOs
 @using ITSM.WEB.Client.Servicios
 @inject ServicioSesion _servicioSesion
 @inject NavigationManager _nav
+@inject ISnackbar Snackbar
 
-<div class="d-flex justify-content-center align-items-center vh-100 bg-light">
-    <div class="card shadow p-4" style="width: 400px;">
-        <div class="text-center mb-4">
-            <h3 class="text-primary fw-bold">ITSM - IRTP</h3>
-            <p class="text-muted">Ingrese sus credenciales</p>
-        </div>
-
-        @if (mostrarError)
-        {
-            <div class="alert alert-danger" role="alert">
-                Usuario o contraseña incorrectos.
+<MudCard Elevation="6" Class="pa-4 rounded-lg" Style="width: 100%; max-width: 400px;">
+    <MudCardHeader Class="d-flex justify-center pb-2">
+        <CardHeaderContent>
+            <div class="d-flex flex-column align-center">
+                <div class="d-flex justify-center align-center mb-3" style="background-color: var(--mud-palette-primary); width: 64px; height: 64px; border-radius: 50%;">
+                    <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Surface" Size="Size.Large" />
+                </div>
+                <MudText Typo="Typo.h5" Color="Color.Primary" Align="Align.Center" Style="font-weight: 700;">ITSM - IRTP</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">Acceso al Sistema</MudText>
             </div>
-        }
+        </CardHeaderContent>
+    </MudCardHeader>
 
-        <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion">
+    <MudCardContent>
+        <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion" FormName="loginform">
             <DataAnnotationsValidator />
 
-            <div class="mb-3">
-                <label class="form-label">Usuario</label>
-                <InputText @bind-Value="loginModel.Username" class="form-control" placeholder="Ej: otito" />
-                <ValidationMessage For="@(() => loginModel.Username)" />
-            </div>
+            <MudTextField @bind-Value="loginModel.Username"
+                          Label="Usuario"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          Class="mb-4"
+                          Required="true"
+                          RequiredError="El usuario es obligatorio" />
 
-            <div class="mb-3">
-                <label class="form-label">Contraseña</label>
-                <InputText @bind-Value="loginModel.Password" type="password" class="form-control" placeholder="******" />
-                <ValidationMessage For="@(() => loginModel.Password)" />
-            </div>
+            <MudTextField @bind-Value="loginModel.Password"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Class="mb-4"
+                          Required="true"
+                          RequiredError="La contraseña es obligatoria" />
 
-            <button type="submit" class="btn btn-primary w-100" disabled="@cargando">
-                @if (cargando)
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       Disabled="@procesando">
+                @if (procesando)
                 {
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    <span> Cargando...</span>
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+                    <MudText Class="ms-2">Verificando...</MudText>
                 }
                 else
                 {
-                    <span>Ingresar</span>
+                    <MudText>INGRESAR</MudText>
                 }
-            </button>
+            </MudButton>
         </EditForm>
+    </MudCardContent>
 
-        <div class="text-center mt-3">
-            <small class="text-muted">Oficina de Tecnologías de la Información</small>
-        </div>
-    </div>
-</div>
+    <MudCardActions Class="d-flex justify-center pb-4 pt-0">
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+            © 2024 IRTP - Oficina de TI
+        </MudText>
+    </MudCardActions>
+</MudCard>
 
 @code {
-    private LoginDto loginModel = new LoginDto();
-    private bool mostrarError = false;
-    private bool cargando = false;
+    // SupplyParameterFromForm mantiene los datos si la conexión falla o se recarga
+    [SupplyParameterFromForm]
+    private LoginDto loginModel { get; set; } = new LoginDto();
+
+    private bool procesando = false;
 
     private async Task IniciarSesion()
     {
-        cargando = true;
-        mostrarError = false;
-
-        var sesion = await _servicioSesion.IniciarSesion(loginModel);
-
-        if (sesion != null)
+        procesando = true;
+        try
         {
-            _nav.NavigateTo("/"); // Redirigir al Home/Dashboard
+            var sesion = await _servicioSesion.IniciarSesion(loginModel);
+            if (sesion != null)
+            {
+                Snackbar.Add($"Bienvenido, {sesion.Nombre}", Severity.Success);
+                _nav.NavigateTo("/", true); // 'true' fuerza la recarga para aplicar el login
+            }
+            else
+            {
+                Snackbar.Add("Usuario o contraseña incorrectos", Severity.Error);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            mostrarError = true;
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
-
-        cargando = false;
+        finally
+        {
+            procesando = false;
+        }
     }
 }

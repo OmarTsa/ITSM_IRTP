@@ -1,18 +1,29 @@
 ﻿@using ITSM.WEB.Client.Layout
 @using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@inject NavigationManager _nav
 
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
             <NotAuthorized>
-                <div class="d-flex flex-column align-items-center justify-content-center vh-100">
-                    <h3 class="mb-4">No estás autorizado para ver esta página.</h3>
-                    <a href="login" class="btn btn-primary btn-lg">Ir al Login</a>
+                <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-center" style="height: 100vh;">
+                    <MudIcon Icon="@Icons.Material.Filled.LockPerson" Size="Size.Large" Color="Color.Secondary" Class="mb-4" style="font-size: 4rem;" />
+
+                    <MudText Typo="Typo.h4" Class="mb-2">Acceso Restringido</MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4">Necesitas iniciar sesión para ver este contenido.</MudText>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               OnClick="@(() => _nav.NavigateTo("/login", true))">
+                        Ir al Login
+                    </MudButton>
                 </div>
             </NotAuthorized>
             <Authorizing>
-                <div class="d-flex justify-content-center align-items-center vh-100">
-                    <p>Verificando credenciales...</p>
+                <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                 </div>
             </Authorizing>
         </AuthorizeRouteView>
@@ -20,9 +31,11 @@
     <NotFound>
         <LayoutView Layout="@typeof(MainLayout)">
             <div class="d-flex flex-column align-items-center justify-content-center pt-5">
-                <h3>Página no encontrada</h3>
-                <p>La URL solicitada no existe.</p>
-                <a href="/" class="btn btn-secondary mt-3">Volver al Inicio</a>
+                <MudText Typo="Typo.h3" Color="Color.Error">404</MudText>
+                <MudText Typo="Typo.h5">Página no encontrada</MudText>
+                <MudButton Href="/" Variant="Variant.Outlined" Color="Color.Secondary" Class="mt-4">
+                    Volver al Inicio
+                </MudButton>
             </div>
         </LayoutView>
     </NotFound>
