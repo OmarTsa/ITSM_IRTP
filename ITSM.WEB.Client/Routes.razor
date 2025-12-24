@@ -8,10 +8,10 @@
         <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
             <NotAuthorized>
                 <div class="d-flex flex-column align-items-center justify-content-center vh-100 text-center" style="height: 100vh;">
-                    <MudIcon Icon="@Icons.Material.Filled.LockPerson" Size="Size.Large" Color="Color.Secondary" Class="mb-4" style="font-size: 4rem;" />
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Secondary" Class="mb-4" Style="font-size: 4rem;" />
 
                     <MudText Typo="Typo.h4" Class="mb-2">Acceso Restringido</MudText>
-                    <MudText Typo="Typo.body1" Class="mb-4">Necesitas iniciar sesión para ver este contenido.</MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4">Debes iniciar sesión para acceder.</MudText>
 
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
@@ -32,10 +32,8 @@
         <LayoutView Layout="@typeof(MainLayout)">
             <div class="d-flex flex-column align-items-center justify-content-center pt-5">
                 <MudText Typo="Typo.h3" Color="Color.Error">404</MudText>
-                <MudText Typo="Typo.h5">Página no encontrada</MudText>
-                <MudButton Href="/" Variant="Variant.Outlined" Color="Color.Secondary" Class="mt-4">
-                    Volver al Inicio
-                </MudButton>
+                <MudText Typo="Typo.body1">Página no encontrada</MudText>
+                <MudButton Href="/" Variant="Variant.Outlined" Color="Color.Secondary" Class="mt-4">Inicio</MudButton>
             </div>
         </LayoutView>
     </NotFound>

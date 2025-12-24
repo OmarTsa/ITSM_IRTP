@@ -29,8 +29,7 @@
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Person"
                           Class="mb-4"
-                          Required="true"
-                          RequiredError="El usuario es obligatorio" />
+                          Required="true" />
 
             <MudTextField @bind-Value="loginModel.Password"
                           Label="Contraseña"
@@ -39,8 +38,7 @@
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Lock"
                           Class="mb-4"
-                          Required="true"
-                          RequiredError="La contraseña es obligatoria" />
+                          Required="true" />
 
             <MudButton ButtonType="ButtonType.Submit"
                        Variant="Variant.Filled"
@@ -63,13 +61,12 @@
 
     <MudCardActions Class="d-flex justify-center pb-4 pt-0">
         <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
-            © 2024 IRTP - Oficina de TI
+            © 2025 IRTP - Oficina de TI
         </MudText>
     </MudCardActions>
 </MudCard>
 
 @code {
-    // SupplyParameterFromForm mantiene los datos si la conexión falla o se recarga
     [SupplyParameterFromForm]
     private LoginDto loginModel { get; set; } = new LoginDto();
 
@@ -84,11 +81,11 @@
             if (sesion != null)
             {
                 Snackbar.Add($"Bienvenido, {sesion.Nombre}", Severity.Success);
-                _nav.NavigateTo("/", true); // 'true' fuerza la recarga para aplicar el login
+                _nav.NavigateTo("/", true);
             }
             else
             {
-                Snackbar.Add("Usuario o contraseña incorrectos", Severity.Error);
+                Snackbar.Add("Credenciales incorrectas", Severity.Error);
             }
         }
         catch (Exception ex)

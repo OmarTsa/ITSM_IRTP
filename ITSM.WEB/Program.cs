@@ -2,32 +2,32 @@ using ITSM.Datos;
 using ITSM.Negocio;
 using ITSM.WEB.Components;
 using Microsoft.EntityFrameworkCore;
-using Blazored.LocalStorage;
-using ITSM.WEB.Client.Servicios;
-using ITSM.WEB.Client.Auth;
-using Microsoft.AspNetCore.Components.Authorization;
-using MudBlazor.Services; // <--- ESTA LÍNEA ES VITAL PARA CORREGIR EL ERROR CS1061
+using MudBlazor.Services; // NECESARIO PARA DISEÑO
+using Blazored.LocalStorage; // NECESARIO PARA LOGIN
+using ITSM.WEB.Client.Servicios; // NECESARIO PARA LOGIN
+using ITSM.WEB.Client.Auth; // NECESARIO PARA LOGIN
+using Microsoft.AspNetCore.Components.Authorization; // NECESARIO PARA LOGIN
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// 1. Servicios Base de Blazor
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
-// Ahora sí reconocerá este método gracias al using de arriba
+// 2. Servicios de Diseño (MudBlazor) - VITAL
 builder.Services.AddMudServices();
 
-// --- 1. CONFIGURACIÓN DE BASE DE DATOS (Oracle) ---
+// 3. Base de Datos
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- 2. SERVICIOS DE NEGOCIO (Lógica del Servidor) ---
+// 4. Lógica de Negocio (Servidor)
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<ActivoNegocio>();
 
-// --- 3. SERVICIOS CLIENTE (Espejo para Pre-rendering) ---
+// 5. Servicios Cliente en el Servidor (VITAL PARA QUE NO EXPLOTE AL CARGAR)
 builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 builder.Services.AddScoped<ServicioSesion>();
@@ -35,19 +35,18 @@ builder.Services.AddScoped<UsuarioServicio>();
 builder.Services.AddScoped<TicketServicio>();
 builder.Services.AddScoped<InventarioServicio>();
 
-// Configurar HttpClient para el servidor (apuntando a sí mismo)
-// Nota: Ajusta el puerto si es necesario según tu launchSettings.json
+// Configurar HttpClient para que el servidor pueda "hablarse a sí mismo"
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("https://localhost:7233")
+    BaseAddress = new Uri("https://localhost:7233") // Asegúrate que este puerto coincida con tu launchSettings.json
 });
 
-// Soporte para Controladores API
+// 6. Controladores
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
