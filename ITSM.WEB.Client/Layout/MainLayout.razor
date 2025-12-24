@@ -18,7 +18,10 @@
         <AuthorizeView>
             <Authorized>
                 <MudText Typo="Typo.body2" Class="mr-3">Hola, @context.User.Identity?.Name</MudText>
-                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" Title="Cerrar Sesión" />
+
+                <MudTooltip Text="Cerrar Sesión">
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" />
+                </MudTooltip>
             </Authorized>
             <NotAuthorized>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/login">Iniciar Sesión</MudButton>

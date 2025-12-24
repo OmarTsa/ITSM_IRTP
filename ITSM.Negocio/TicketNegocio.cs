@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ITSM.Datos;
 using ITSM.Entidades;
-using ITSM.Entidades.DTOs; // Asegúrate de tener el namespace de DTOs
+using ITSM.Entidades.DTOs;
 
 namespace ITSM.Negocio
 {
@@ -24,7 +24,7 @@ namespace ITSM.Negocio
                 .Include(t => t.Prioridad)
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
-                .Include(t => t.ActivoAfectado) // Incluimos el activo para que se vea en la grilla
+                .Include(t => t.ActivoAfectado)
                 .OrderByDescending(t => t.FechaCreacion)
                 .ToListAsync();
         }
@@ -47,7 +47,7 @@ namespace ITSM.Negocio
                 .Include(t => t.Solicitante)
                 .Include(t => t.Especialista)
                 .Include(t => t.ActivoAfectado)
-                    .ThenInclude(a => a.TipoActivo) // Para mostrar "Laptop - Serie 123"
+                    .ThenInclude(a => a.TipoActivo)
                 .Include(t => t.Categoria)
                 .Include(t => t.Prioridad)
                 .Include(t => t.Estado)
@@ -56,12 +56,13 @@ namespace ITSM.Negocio
 
         public async Task RegistrarTicketAsync(Ticket ticket)
         {
-            var usuario = await _context.Usuarios.FindAsync(ticket.IdSolicitante);
+            // CORRECCIÓN CS8602: Declaramos explícitamente que puede ser nulo
+            Usuario? usuario = await _context.Usuarios.FindAsync(ticket.IdSolicitante);
+
             if (usuario == null || usuario.Estado != 1)
                 throw new Exception("El solicitante no existe o está inactivo.");
 
             // Lógica de Negocio: Calcular Prioridad basada en Matriz ITIL
-            // Si la base de datos no tiene el Trigger o para asegurar en código:
             // ticket.IdPrioridad = CalcularPrioridad(ticket.IdImpacto, ticket.IdUrgencia);
 
             ticket.FechaCreacion = DateTime.Now;
@@ -110,7 +111,7 @@ namespace ITSM.Negocio
         public async Task<List<TicketDetalle>> ListarDetallesTicketAsync(int idTicket)
         {
             return await _context.TicketDetalles
-                .Include(d => d.Usuario) // Para saber quién comentó
+                .Include(d => d.Usuario)
                 .Where(d => d.IdTicket == idTicket)
                 .OrderBy(d => d.FechaRegistro)
                 .ToListAsync();
@@ -133,7 +134,7 @@ namespace ITSM.Negocio
             return await _context.Estados.ToListAsync();
         }
 
-        // --- DASHBOARD & KPIS (Requerido por TicketController) ---
+        // --- DASHBOARD & KPIS ---
 
         public async Task<DashboardKpi> ObtenerKpisAsync()
         {
@@ -143,7 +144,6 @@ namespace ITSM.Negocio
             kpi.Pendientes = await _context.Tickets.CountAsync(t => t.IdEstado == 1 || t.IdEstado == 2);
             kpi.Resueltos = await _context.Tickets.CountAsync(t => t.IdEstado == 4 || t.IdEstado == 5);
 
-            // Ejemplo de cálculo simple
             if (kpi.TotalTickets > 0)
                 kpi.PorcentajeAtencion = (int)((double)kpi.Resueltos / kpi.TotalTickets * 100);
             else

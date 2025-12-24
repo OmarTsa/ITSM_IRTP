@@ -69,10 +69,17 @@ namespace ITSM.WEB.Client.Auth
 
         private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
         {
-            var payload = jwt.Split('.')[1];
+            var parts = jwt.Split('.');
+            if (parts.Length < 2) return Enumerable.Empty<Claim>();
+
+            var payload = parts[1];
             var jsonBytes = ParseBase64WithoutPadding(payload);
             var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
-            return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()));
+
+            if (keyValuePairs == null) return Enumerable.Empty<Claim>();
+
+            // CORRECCIÓN CS8604: Usamos "??" para evitar pasar null al constructor de Claim
+            return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value?.ToString() ?? ""));
         }
 
         private byte[] ParseBase64WithoutPadding(string base64)

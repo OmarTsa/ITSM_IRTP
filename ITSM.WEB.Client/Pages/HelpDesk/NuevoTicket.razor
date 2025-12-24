@@ -86,13 +86,14 @@
             nuevoTicket.FechaCreacion = DateTime.Now;
             nuevoTicket.IdEstado = 1; // Abierto
             nuevoTicket.IdPrioridad = 3; // Baja por defecto
-            // El IdSolicitante se asigna en el Backend basado en el Token del usuario logueado
-            // O podemos capturarlo aquí si tenemos el estado de autenticación
-            nuevoTicket.IdSolicitante = 1; // Temporal, el backend debe sobrescribirlo con el usuario real
+
+            // El IdSolicitante se asigna en el Backend basado en el Token
+            nuevoTicket.IdSolicitante = 1;
         }
         catch (Exception ex)
         {
-            Snackbar.Add("Error al cargar datos iniciales", Severity.Warning);
+            // CORRECCIÓN CS0168: Usamos 'ex' en el mensaje para eliminar la advertencia
+            Snackbar.Add($"Error al cargar datos iniciales: {ex.Message}", Severity.Warning);
         }
     }
 
@@ -101,9 +102,7 @@
         cargando = true;
         try
         {
-            // CORRECCIÓN PRINCIPAL: Usamos el método que existe en el servicio 'RegistrarTicket'
             await _ticketServicio.RegistrarTicket(nuevoTicket);
-
             Snackbar.Add("Ticket registrado exitosamente", Severity.Success);
             _nav.NavigateTo("/helpdesk/mistickets");
         }

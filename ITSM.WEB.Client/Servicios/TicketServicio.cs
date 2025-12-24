@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using ITSM.Entidades;
+using ITSM.Entidades.DTOs; // Necesario para los KPIs
 
 namespace ITSM.WEB.Client.Servicios
 {
@@ -12,29 +13,61 @@ namespace ITSM.WEB.Client.Servicios
             _http = http;
         }
 
-        // --- MÉTODOS DE LECTURA ---
+        // =============================================================
+        // MÉTODOS DE LECTURA (GET)
+        // =============================================================
 
         public async Task<List<Ticket>> ListarTickets()
         {
-            return await _http.GetFromJsonAsync<List<Ticket>>("api/ticket") ?? new List<Ticket>();
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<Ticket>>("api/ticket");
+                return resultado ?? new List<Ticket>();
+            }
+            catch
+            {
+                // Si falla, retornamos lista vacía para no romper la UI
+                return new List<Ticket>();
+            }
         }
 
-        // Este es el método que faltaba para 'MisTickets.razor'
         public async Task<List<Ticket>> ListarMisTickets()
         {
-            // El backend sabrá quién es el usuario por el Token JWT, así que usamos un endpoint específico
-            return await _http.GetFromJsonAsync<List<Ticket>>("api/ticket/mis-tickets") ?? new List<Ticket>();
+            try
+            {
+                // El backend identifica al usuario por el Token, no hace falta enviar ID
+                var resultado = await _http.GetFromJsonAsync<List<Ticket>>("api/ticket/mis-tickets");
+                return resultado ?? new List<Ticket>();
+            }
+            catch
+            {
+                return new List<Ticket>();
+            }
         }
 
-        // Este es el método que faltaba para 'DetalleTicket.razor'
         public async Task<Ticket> ObtenerTicket(int id)
         {
             var ticket = await _http.GetFromJsonAsync<Ticket>($"api/ticket/{id}");
-            if (ticket == null) throw new Exception("No se pudo obtener el ticket.");
+            if (ticket == null) throw new Exception("No se pudo obtener la información del ticket.");
             return ticket;
         }
 
-        // --- MÉTODOS DE ESCRITURA ---
+        public async Task<DashboardKpi> ObtenerKpis()
+        {
+            try
+            {
+                var kpis = await _http.GetFromJsonAsync<DashboardKpi>("api/ticket/kpis");
+                return kpis ?? new DashboardKpi();
+            }
+            catch
+            {
+                return new DashboardKpi();
+            }
+        }
+
+        // =============================================================
+        // MÉTODOS DE ESCRITURA (POST)
+        // =============================================================
 
         public async Task RegistrarTicket(Ticket ticket)
         {
@@ -42,22 +75,48 @@ namespace ITSM.WEB.Client.Servicios
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                throw new Exception(error);
+                throw new Exception($"Error al registrar: {error}");
             }
         }
 
-        // --- MÉTODOS AUXILIARES (COMBOS) ---
+        public async Task AgregarComentario(TicketDetalle detalle)
+        {
+            var response = await _http.PostAsJsonAsync("api/ticket/comentario", detalle);
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al comentar: {error}");
+            }
+        }
+
+        // =============================================================
+        // MÉTODOS AUXILIARES (COMBOS)
+        // =============================================================
 
         public async Task<List<Categoria>> ListarCategorias()
         {
-            return await _http.GetFromJsonAsync<List<Categoria>>("api/ticket/categorias") ?? new List<Categoria>();
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<Categoria>>("api/ticket/categorias");
+                return resultado ?? new List<Categoria>();
+            }
+            catch
+            {
+                return new List<Categoria>();
+            }
         }
 
         public async Task<List<Prioridad>> ListarPrioridades()
         {
-            // Si tienes un endpoint para prioridades, úsalo. Si no, retornamos una lista vacía o hardcodeada por seguridad
-            // return await _http.GetFromJsonAsync<List<Prioridad>>("api/ticket/prioridades");
-            return new List<Prioridad>();
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<Prioridad>>("api/ticket/prioridades");
+                return resultado ?? new List<Prioridad>();
+            }
+            catch
+            {
+                return new List<Prioridad>();
+            }
         }
     }
 }

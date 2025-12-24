@@ -32,9 +32,7 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Código">@context.CodigoPatrimonial</MudTd>
-                <MudTd DataLabel="Tipo">
-                    @context.TipoActivo?.Nombre
-                </MudTd>
+                <MudTd DataLabel="Tipo">@context.TipoActivo?.Nombre</MudTd>
                 <MudTd DataLabel="Equipo">@context.Marca @context.Modelo</MudTd>
                 <MudTd DataLabel="Usuario">@(context.UsuarioAsignado?.NombreCompleto ?? "Sin Asignar")</MudTd>
                 <MudTd DataLabel="Acciones">
@@ -54,23 +52,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        listaActivos = await _inventarioServicio.ListarActivos();
+        try
+        {
+            listaActivos = await _inventarioServicio.ListarActivos();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando inventario: {ex.Message}");
+        }
     }
 
     private bool FilterFunc(Activo element) => FilterFunc1(element, searchString);
 
     private bool FilterFunc1(Activo element, string searchString)
     {
-        if (string.IsNullOrWhiteSpace(searchString))
-            return true;
-        if (element.CodigoPatrimonial.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (element.Marca != null && element.Marca.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        // CORREGIDO: Búsqueda también por nombre de tipo
-        if (element.TipoActivo != null && element.TipoActivo.Nombre.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.CodigoPatrimonial?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.Marca?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.TipoActivo?.Nombre?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.UsuarioAsignado?.NombreCompleto?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
         return false;
     }
 }
