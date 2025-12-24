@@ -195,5 +195,53 @@ namespace ITSM.Negocio
         {
             return await _contexto.Areas.OrderBy(a => a.Nombre).ToListAsync();
         }
+
+        // =================================================================================
+        // 4. NUEVOS MÉTODOS DE UTILIDAD Y REPARACIÓN
+        // =================================================================================
+
+        public async Task<Usuario?> ObtenerPorUsernameAsync(string username)
+        {
+            return await _contexto.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
+        }
+
+        public async Task<string> AutoRepararTablaUsuariosAsync()
+        {
+            var reporte = new List<string>();
+
+            // 1. Intentar agregar FECHA_CREACION
+            try
+            {
+                // Comando Oracle para agregar columna si no existe
+                string sql = "ALTER TABLE SEG_USUARIOS ADD (FECHA_CREACION TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
+                await _contexto.Database.ExecuteSqlRawAsync(sql);
+                reporte.Add("ÉXITO: Columna FECHA_CREACION creada.");
+            }
+            catch (Exception ex)
+            {
+                // ORA-01430: column being added already exists in table
+                if (ex.Message.Contains("ORA-01430"))
+                    reporte.Add("INFO: La columna FECHA_CREACION ya existía.");
+                else
+                    reporte.Add($"ERROR FECHA_CREACION: {ex.Message}");
+            }
+
+            // 2. Intentar agregar FECHA_BAJA (Por seguridad)
+            try
+            {
+                string sql = "ALTER TABLE SEG_USUARIOS ADD (FECHA_BAJA TIMESTAMP NULL)";
+                await _contexto.Database.ExecuteSqlRawAsync(sql);
+                reporte.Add("ÉXITO: Columna FECHA_BAJA creada.");
+            }
+            catch (Exception ex)
+            {
+                if (ex.Message.Contains("ORA-01430"))
+                    reporte.Add("INFO: La columna FECHA_BAJA ya existía.");
+                else
+                    reporte.Add($"ERROR FECHA_BAJA: {ex.Message}");
+            }
+
+            return string.Join("\n", reporte);
+        }
     }
 }
