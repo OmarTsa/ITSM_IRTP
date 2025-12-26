@@ -1,0 +1,76 @@
+﻿@page "/inventario"
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@inject InventarioServicio _inventarioServicio
+@inject NavigationManager _nav
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <MudText Typo="Typo.h5">Inventario de Activos</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/inventario/nuevo">Nuevo Activo</MudButton>
+    </div>
+
+    @if (listaActivos == null)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="@listaActivos" Hover="true" Filter="new Func<Activo, bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Equipos</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString" Placeholder="Buscar..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Código Pat.</MudTh>
+                <MudTh>Tipo</MudTh>
+                <MudTh>Marca/Modelo</MudTh>
+                <MudTh>Usuario Asignado</MudTh>
+                <MudTh>Acciones</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Código">@context.CodigoPatrimonial</MudTd>
+                <MudTd DataLabel="Tipo">@context.TipoActivo?.Nombre</MudTd>
+                <MudTd DataLabel="Equipo">@context.Marca @context.Modelo</MudTd>
+                <MudTd DataLabel="Usuario">@(context.UsuarioAsignado?.NombreCompleto ?? "Sin Asignar")</MudTd>
+                <MudTd DataLabel="Acciones">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Href="@($"/inventario/editar/{context.IdActivo}")" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private List<Activo>? listaActivos;
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            listaActivos = await _inventarioServicio.ListarActivos();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando inventario: {ex.Message}");
+        }
+    }
+
+    private bool FilterFunc(Activo element) => FilterFunc1(element, searchString);
+
+    private bool FilterFunc1(Activo element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.CodigoPatrimonial?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.Marca?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.TipoActivo?.Nombre?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (element.UsuarioAsignado?.NombreCompleto?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        return false;
+    }
+}

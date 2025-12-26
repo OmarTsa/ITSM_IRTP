@@ -1,91 +1,182 @@
-﻿@page "/activos/nuevo"
-@page "/activos/editar/{IdActivo:int}"
+﻿@page "/helpdesk/nuevo"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@using MudBlazor
+@inject TicketServicio _ticketServicio
 @inject InventarioServicio _inventarioServicio
-@inject NavigationManager Navigation
+@inject NavigationManager _nav
 @inject ISnackbar Snackbar
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-@rendermode InteractiveWebAssembly
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Nuevo Ticket de Atención</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
-    <MudText Typo="Typo.h5" Class="mb-4"><b>@(IdActivo == 0 ? "Registrar Nuevo Activo" : "Editar Activo")</b></MudText>
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="nuevoTicket.Titulo" Label="Título del Incidente/Requerimiento" Required="true" Variant="Variant.Outlined" />
+                    </MudItem>
 
-    <MudPaper Class="pa-6" Elevation="3">
-        <MudForm @bind-IsValid="@success">
-            <MudGrid>
-                <MudItem xs="12" md="4">
-                    <MudTextField @bind-Value="activo.CodigoPatrimonial" Label="Código Patrimonial"
-                                  Variant="Variant.Outlined" Required="true" />
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudSelect T="int" Label="Tipo de Activo" Variant="Variant.Outlined" @bind-Value="activo.IdTipo" Required="true">
-                        @if (listaTipos != null)
-                        {
-                            @foreach (var tipo in listaTipos)
+                    <MudItem xs="12">
+                        <MudAutocomplete T="Activo" Label="Activo Afectado (Buscar por Cod. Patrimonial o Serie)"
+                                         @bind-Value="activoSeleccionado"
+                                         SearchFunc="@BuscarActivo"
+                                         ToStringFunc="@(a => a == null ? null : $"{a.CodigoPatrimonial} - {a.TipoActivo?.Nombre} {a.Marca} {a.Modelo}")"
+                                         Variant="Variant.Outlined"
+                                         AdornmentIcon="@Icons.Material.Filled.Search"
+                                         ResetValueOnEmptyText="true"
+                                         CoerceText="false"
+                                         CoerceValue="false"
+                                         Clearable="true"
+                                         Placeholder="Escribe para buscar..." />
+                        <MudText Typo="Typo.caption" Color="Color.Info">
+                            Si el problema no es con un equipo específico, puedes dejarlo vacío.
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" Label="Tipo" @bind-Value="nuevoTicket.TipoTicket" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("Incidente")">Incidente (Fallo)</MudSelectItem>
+                            <MudSelectItem Value="@("Requerimiento")">Requerimiento (Solicitud)</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                            <MudSelectItem Value="0">-- Seleccione --</MudSelectItem>
+                            @foreach (var cat in listaCategorias)
                             {
-                                <MudSelectItem Value="@tipo.IdTipo">@tipo.Nombre</MudSelectItem>
+                                <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
                             }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int" Label="Prioridad" @bind-Value="nuevoTicket.IdPrioridad" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                            <MudSelectItem Value="3">Baja</MudSelectItem>
+                            <MudSelectItem Value="2">Media</MudSelectItem>
+                            <MudSelectItem Value="1">Alta</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="nuevoTicket.Descripcion" Label="Descripción Detallada" Lines="5" Required="true" Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancelar" Class="me-2">Cancelar</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@cargando">
+                        @if (cargando)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <MudText Class="ms-2">Procesando...</MudText>
                         }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" md="4">
-                    <MudTextField @bind-Value="activo.Serie" Label="Número de Serie" Variant="Variant.Outlined" Required="true" />
-                </MudItem>
-
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="activo.Marca" Label="Marca" Variant="Variant.Outlined" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="activo.Modelo" Label="Modelo" Variant="Variant.Outlined" />
-                </MudItem>
-
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="activo.UbicacionFisica" Label="Ubicación Física" Variant="Variant.Outlined" />
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="activo.EstadoOperativo" Label="Estado Operativo" Variant="Variant.Outlined" />
-                </MudItem>
-
-                <MudItem xs="12" Class="d-flex justify-end gap-2 mt-4">
-                    <MudButton Variant="Variant.Text" OnClick="@(() => Navigation.NavigateTo("/activos/inventario"))">Cancelar</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Guardar" Disabled="@(!success)">
-                        Guardar Activo
+                        else
+                        {
+                            <MudText>Registrar Ticket</MudText>
+                        }
                     </MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudForm>
-    </MudPaper>
+                </div>
+            </EditForm>
+        </MudCardContent>
+    </MudCard>
 </MudContainer>
 
 @code {
-    [Parameter] public int IdActivo { get; set; }
-    private Activo activo = new();
-    private List<TipoActivo>? listaTipos;
-    private bool success;
+    private Ticket nuevoTicket = new Ticket();
+    private List<Categoria> listaCategorias = new();
+
+    // Lista completa de activos para buscar (se carga al inicio)
+    private List<Activo> todosLosActivos = new();
+
+    // Objeto temporal para el Autocomplete
+    private Activo? activoSeleccionado;
+
+    private bool cargando = false;
 
     protected override async Task OnInitializedAsync()
     {
-        listaTipos = await _inventarioServicio.ListarTipos();
-        if (IdActivo != 0)
+        try
         {
-            var encontrado = await _inventarioServicio.ObtenerPorId(IdActivo);
-            if (encontrado != null) activo = encontrado;
+            // Carga paralela para mayor velocidad
+            var tareaCategorias = _ticketServicio.ListarCategorias();
+            var tareaActivos = _inventarioServicio.ListarActivos();
+
+            await Task.WhenAll(tareaCategorias, tareaActivos);
+
+            listaCategorias = await tareaCategorias;
+            todosLosActivos = await tareaActivos;
+
+            // Valores por defecto
+            nuevoTicket.FechaCreacion = DateTime.Now;
+            nuevoTicket.IdEstado = 1; // Abierto
+            nuevoTicket.IdPrioridad = 3; // Baja
+
+            // El IdSolicitante lo asigna el Backend automáticamente con el Token
         }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar datos: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    // Función de búsqueda para el Autocomplete
+    private Task<IEnumerable<Activo>> BuscarActivo(string valor, CancellationToken token)
+    {
+        // Si no hay texto, mostramos todos (o los primeros 20 para no saturar)
+        if (string.IsNullOrEmpty(valor))
+            return Task.FromResult(todosLosActivos.Take(20));
+
+        // Filtramos por Código Patrimonial, Marca o Modelo
+        var resultado = todosLosActivos.Where(x =>
+            (x.CodigoPatrimonial != null && x.CodigoPatrimonial.Contains(valor, StringComparison.InvariantCultureIgnoreCase)) ||
+            (x.Marca != null && x.Marca.Contains(valor, StringComparison.InvariantCultureIgnoreCase)) ||
+            (x.Modelo != null && x.Modelo.Contains(valor, StringComparison.InvariantCultureIgnoreCase))
+        );
+
+        return Task.FromResult(resultado);
     }
 
     private async Task Guardar()
     {
+        cargando = true;
         try
         {
-            await _inventarioServicio.GuardarActivo(activo);
-            Snackbar.Add("Cambios guardados correctamente", Severity.Success);
-            Navigation.NavigateTo("/activos/inventario");
+            // 1. Asignar el activo seleccionado al ticket
+            if (activoSeleccionado != null)
+            {
+                nuevoTicket.IdActivoAfectado = activoSeleccionado.IdActivo;
+            }
+            else
+            {
+                nuevoTicket.IdActivoAfectado = null;
+            }
+
+            // 2. Enviar al backend
+            await _ticketServicio.RegistrarTicket(nuevoTicket);
+
+            Snackbar.Add("Ticket registrado exitosamente", Severity.Success);
+            _nav.NavigateTo("/helpdesk/mistickets");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al procesar: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        _nav.NavigateTo("/helpdesk/mistickets");
     }
 }
