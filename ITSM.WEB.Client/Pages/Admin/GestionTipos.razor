@@ -1,16 +1,16 @@
-ï»¿@page "/admin/tipos-activo"
+@page "/admin/tipos-activo"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
-@inject InventarioServicio _inventarioServicio
+@inject IInventarioServicio _inventarioServicio
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 
-@rendermode InteractiveWebAssembly
+
 
 <AuthorizeView Roles="ADMINISTRADOR">
     <Authorized>
-        <MudText Typo="Typo.h5" Class="mb-4">GestiÃ³n de Tipos de Bienes</MudText>
+        <MudText Typo="Typo.h5" Class="mb-4">Gestión de Tipos de Bienes</MudText>
 
         <MudGrid>
             <MudItem xs="12" md="4">
@@ -33,7 +33,7 @@
                 <MudTable Items="@listaTipos" Hover="true" Striped="true" Elevation="3" Dense="true">
                     <HeaderContent>
                         <MudTh>ID</MudTh>
-                        <MudTh>DescripciÃ³n del Bien</MudTh>
+                        <MudTh>Descripción del Bien</MudTh>
                         <MudTh>Acciones</MudTh>
                     </HeaderContent>
                     <RowTemplate Context="tipo">
@@ -98,7 +98,7 @@
 
     private async Task Eliminar(TipoActivo tipo)
     {
-        var confirm = await DialogService.ShowMessageBox("Confirmar", $"Â¿Eliminar '{tipo.Nombre}'?", yesText: "SÃ­", cancelText: "No");
+        var confirm = await DialogService.ShowMessageBox("Confirmar", $"¿Eliminar '{tipo.Nombre}'?", yesText: "Sí", cancelText: "No");
         if (confirm == true)
         {
             try

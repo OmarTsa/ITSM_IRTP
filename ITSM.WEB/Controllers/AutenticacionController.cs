@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ITSM.Negocio;
-using ITSM.Entidades; // Importante para 'Usuario'
-using ITSM.Entidades.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using ITSM.Negocio;
+using ITSM.Entidades;
+using ITSM.Entidades.DTOs;
 
 namespace ITSM.WEB.Controllers
 {
@@ -22,61 +23,90 @@ namespace ITSM.WEB.Controllers
             _config = config;
         }
 
+        /// <summary>
+        /// Login principal con JWT
+        /// </summary>
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto login)
+        [AllowAnonymous]
+        public async Task<ActionResult<SesionDto>> Login([FromBody] LoginDto modelo)
         {
             try
             {
-                // La validación de contraseña segura (BCrypt) ocurre dentro de este método
-                var usuario = await _usuarioNegocio.LoginAsync(login.Username, login.Password);
+                Console.WriteLine($"🔍 Login: Recibido username={modelo.Username}");
+
+                // Validar credenciales
+                var usuario = await _usuarioNegocio.LoginAsync(modelo.Username, modelo.Password);
 
                 if (usuario == null)
-                    return Unauthorized(new { mensaje = "Credenciales incorrectas o usuario inactivo." });
-
-                // Generar el Token JWT
-                var keyString = _config["Jwt:Key"] ?? "ClaveSecretaSuperSeguraParaTuTesis2025IRTP";
-                var keyBytes = Encoding.UTF8.GetBytes(keyString);
-
-                var claims = new ClaimsIdentity();
-                claims.AddClaim(new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()));
-                claims.AddClaim(new Claim(ClaimTypes.Name, usuario.Username));
-                claims.AddClaim(new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"));
-
-                var tokenDescriptor = new SecurityTokenDescriptor
                 {
-                    Subject = claims,
-                    Expires = DateTime.UtcNow.AddHours(8), // Duración de la sesión laboral
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256Signature)
-                };
+                    Console.WriteLine("❌ LoginAsync retornó NULL");
+                    return Unauthorized(new { mensaje = "Credenciales incorrectas" });
+                }
 
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var tokenConfig = tokenHandler.CreateToken(tokenDescriptor);
-                var tokenCreado = tokenHandler.WriteToken(tokenConfig);
+                Console.WriteLine($"✅ Usuario encontrado: {usuario.Username}, Rol: {usuario.Rol?.Nombre ?? "NULL"}");
 
-                // Responder con el DTO (sin incluir datos sensibles)
-                var sesionDto = new SesionDto
-                {
-                    Nombre = usuario.NombreCompleto,
-                    Username = usuario.Username,
-                    Rol = usuario.Rol?.Nombre ?? "Sin Rol",
-                    Token = tokenCreado
-                };
+                // Generar JWT
+                var sesion = GenerarSesionJwt(usuario);
 
-                return Ok(sesionDto);
+                Console.WriteLine($"✅ JWT generado exitosamente");
+                return Ok(sesion);
             }
             catch (Exception ex)
             {
-                // Devolvemos el error detallado para diagnosticar problemas como ORA-00904
-                return BadRequest(new { mensaje = "Error interno en el servidor", detalle = ex.Message });
+                Console.WriteLine($"❌ Excepción en Login: {ex.Message}");
+                return BadRequest(new { mensaje = "Error en login", detalle = ex.Message });
             }
         }
 
+        /// <summary>
+        /// Genera el token JWT y retorna SesionDto
+        /// </summary>
+        private SesionDto GenerarSesionJwt(Usuario usuario)
+        {
+            // Crear Claims
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, usuario.IdUsuario.ToString()),
+                new Claim(ClaimTypes.Name, usuario.Username),
+                new Claim(ClaimTypes.GivenName, $"{usuario.Nombres} {usuario.Apellidos}"),
+                new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Usuario"),
+                new Claim("IdRol", usuario.IdRol.ToString())
+            };
+
+            // Configuración JWT
+            var keyBytes = Encoding.UTF8.GetBytes(_config["Jwt:Key"]!);
+            var llave = new SymmetricSecurityKey(keyBytes);
+            var credenciales = new SigningCredentials(llave, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddHours(8),
+                signingCredentials: credenciales
+            );
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return new SesionDto
+            {
+                Nombre = $"{usuario.Nombres} {usuario.Apellidos}",
+                Username = usuario.Username,
+                Rol = usuario.Rol?.Nombre ?? string.Empty,
+                Token = tokenString
+            };
+        }
+
         // =============================================================================
-        // HERRAMIENTAS DE DESARROLLO (Ejecutar desde el navegador)
+        // 🔧 HERRAMIENTAS DE DESARROLLO (MANTENER SOLO EN DEV)
         // =============================================================================
 
-        // URL: https://localhost:TU_PUERTO/api/autenticacion/crear-admin
+        /// <summary>
+        /// Crea o actualiza el usuario admin
+        /// URL: GET https://localhost:7244/api/autenticacion/crear-admin
+        /// </summary>
         [HttpGet("crear-admin")]
+        [AllowAnonymous]
         public async Task<IActionResult> CrearUsuarioAdmin()
         {
             try
@@ -84,53 +114,70 @@ namespace ITSM.WEB.Controllers
                 var username = "otito";
                 var password = "admin123";
 
-                // 1. Verificar si ya existe
                 var existente = await _usuarioNegocio.ObtenerPorUsernameAsync(username);
 
                 if (existente != null)
                 {
-                    // Si existe, le actualizamos la contraseña para que funcione con BCrypt
                     await _usuarioNegocio.CambiarContrasenaAsync(existente.IdUsuario, password);
-                    return Ok($"Usuario '{username}' encontrado. Contraseña actualizada exitosamente a '{password}'. ¡Intenta loguearte!");
+                    return Ok(new
+                    {
+                        success = true,
+                        mensaje = $"✅ Usuario '{username}' actualizado",
+                        credenciales = new { username, password }
+                    });
                 }
                 else
                 {
-                    // Si no existe, lo creamos desde cero
                     var nuevo = new Usuario
                     {
                         Username = username,
-                        Nombres = "OTITO",
-                        Apellidos = "ADMINISTRADOR",
-                        Dni = "99999999", // DNI Genérico
-                        Correo = "otito@admin.com",
-                        IdRol = 1, // Asumiendo que 1 es Admin
-                        IdArea = 1, // Asumiendo que 1 es un área válida
-                        Cargo = "Jefe TI"
+                        Nombres = "ADMIN",
+                        Apellidos = "SISTEMA",
+                        Dni = "00000000",
+                        Correo = "admin@irtp.pe",
+                        IdRol = 1,
+                        IdArea = 1,
+                        Cargo = "Administrador del Sistema"
                     };
 
                     await _usuarioNegocio.RegistrarUsuarioAsync(nuevo, password);
-                    return Ok($"Usuario '{username}' creado exitosamente con contraseña '{password}'.");
+                    return Ok(new
+                    {
+                        success = true,
+                        mensaje = $"✅ Usuario '{username}' creado",
+                        credenciales = new { username, password }
+                    });
                 }
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error al procesar usuario: {ex.Message}");
+                return BadRequest(new
+                {
+                    success = false,
+                    mensaje = "❌ Error al procesar usuario",
+                    detalle = ex.Message
+                });
             }
         }
 
-        // URL: https://localhost:TU_PUERTO/api/autenticacion/reparar-db
-        [HttpGet("reparar-db")]
-        public async Task<IActionResult> RepararBaseDeDatos()
+        /// <summary>
+        /// Test de autenticación actual
+        /// </summary>
+        [HttpGet("test-auth")]
+        [Authorize]
+        public IActionResult TestAuth()
         {
-            try
+            var claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+            var userName = User.Identity?.Name;
+            var role = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            return Ok(new
             {
-                var resultado = await _usuarioNegocio.AutoRepararTablaUsuariosAsync();
-                return Ok(new { mensaje = "Proceso de reparación finalizado", log = resultado });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error crítico al reparar BD: {ex.Message}");
-            }
+                autenticado = User.Identity?.IsAuthenticated ?? false,
+                usuario = userName,
+                rol = role,
+                claims
+            });
         }
     }
 }

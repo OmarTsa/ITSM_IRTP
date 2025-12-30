@@ -3,72 +3,134 @@ using ITSM.Entidades;
 
 namespace ITSM.WEB.Client.Servicios
 {
-    public class UsuarioServicio
+    /// <summary>
+    /// Servicio para gestión de usuarios del sistema
+    /// </summary>
+    public class UsuarioServicio : IUsuarioServicio
     {
-        private readonly HttpClient _http;
+        private readonly HttpClient _clienteHttp;
 
-        public UsuarioServicio(HttpClient http)
+        public UsuarioServicio(HttpClient clienteHttp)
         {
-            _http = http;
+            _clienteHttp = clienteHttp;
         }
 
         public async Task<List<Usuario>> Listar()
         {
-            return await _http.GetFromJsonAsync<List<Usuario>>("api/usuario") ?? new List<Usuario>();
+            try
+            {
+                var usuarios = await _clienteHttp.GetFromJsonAsync<List<Usuario>>("api/usuario");
+                return usuarios ?? new List<Usuario>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al listar usuarios: {ex.Message}");
+                return new List<Usuario>();
+            }
         }
 
-        // CORRECCIÓN: Cambiamos a Task<Usuario?> para permitir null si no existe
         public async Task<Usuario?> Obtener(int id)
         {
             try
             {
-                return await _http.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
+                return await _clienteHttp.GetFromJsonAsync<Usuario>($"api/usuario/{id}");
             }
-            catch
+            catch (Exception ex)
             {
-                return null; // Si falla o es 404, retornamos null
-            }
-        }
-
-        public async Task Guardar(Usuario usuario)
-        {
-            if (usuario.IdUsuario == 0)
-            {
-                var response = await _http.PostAsJsonAsync("api/usuario", usuario);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = await response.Content.ReadAsStringAsync();
-                    throw new Exception(error);
-                }
-            }
-            else
-            {
-                var response = await _http.PutAsJsonAsync("api/usuario", usuario);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = await response.Content.ReadAsStringAsync();
-                    throw new Exception(error);
-                }
+                Console.WriteLine($"❌ Error al obtener usuario: {ex.Message}");
+                return null;
             }
         }
 
-        public async Task Eliminar(int id)
+        public async Task<bool> Guardar(Usuario modelo)
         {
-            var response = await _http.DeleteAsync($"api/usuario/{id}");
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                throw new Exception("No se pudo dar de baja al usuario.");
+                var respuesta = await _clienteHttp.PostAsJsonAsync("api/usuario", modelo);
+                var exitoso = respuesta.IsSuccessStatusCode;
+
+                if (exitoso)
+                    Console.WriteLine("✅ Usuario guardado correctamente");
+                else
+                    Console.WriteLine($"❌ Error al guardar usuario: {respuesta.StatusCode}");
+
+                return exitoso;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Excepción al guardar usuario: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> Editar(Usuario modelo)
+        {
+            try
+            {
+                var respuesta = await _clienteHttp.PutAsJsonAsync("api/usuario", modelo);
+                var exitoso = respuesta.IsSuccessStatusCode;
+
+                if (exitoso)
+                    Console.WriteLine("✅ Usuario editado correctamente");
+                else
+                    Console.WriteLine($"❌ Error al editar usuario: {respuesta.StatusCode}");
+
+                return exitoso;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Excepción al editar usuario: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> Eliminar(int id)
+        {
+            try
+            {
+                var respuesta = await _clienteHttp.DeleteAsync($"api/usuario/{id}");
+                var exitoso = respuesta.IsSuccessStatusCode;
+
+                if (exitoso)
+                    Console.WriteLine("✅ Usuario eliminado correctamente");
+                else
+                    Console.WriteLine($"❌ Error al eliminar usuario: {respuesta.StatusCode}");
+
+                return exitoso;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Excepción al eliminar usuario: {ex.Message}");
+                return false;
             }
         }
 
         public async Task<List<Rol>> ListarRoles()
         {
-            return await _http.GetFromJsonAsync<List<Rol>>("api/usuario/roles") ?? new List<Rol>();
+            try
+            {
+                var roles = await _clienteHttp.GetFromJsonAsync<List<Rol>>("api/usuario/roles");
+                return roles ?? new List<Rol>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al listar roles: {ex.Message}");
+                return new List<Rol>();
+            }
         }
 
         public async Task<List<Area>> ListarAreas()
         {
-            return await _http.GetFromJsonAsync<List<Area>>("api/usuario/areas") ?? new List<Area>();
+            try
+            {
+                var areas = await _clienteHttp.GetFromJsonAsync<List<Area>>("api/usuario/areas");
+                return areas ?? new List<Area>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al listar áreas: {ex.Message}");
+                return new List<Area>();
+            }
         }
     }
 }

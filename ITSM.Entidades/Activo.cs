@@ -1,64 +1,100 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("ACT_INVENTARIO")]
+    [Table("INV_ACTIVOS")]
     public class Activo
     {
         [Key]
         [Column("ID_ACTIVO")]
         public int IdActivo { get; set; }
 
+        [Column("ID_TIPO_ACTIVO")]
+        public int IdTipoActivo { get; set; }
+
+        // Alias para compatibilidad con código existente
+        [NotMapped]
+        public int IdTipo
+        {
+            get => IdTipoActivo;
+            set => IdTipoActivo = value;
+        }
+
         [Column("CODIGO_PATRIMONIAL")]
-        [Required(ErrorMessage = "El código patrimonial es obligatorio")]
-        [StringLength(20)]
-        public string CodigoPatrimonial { get; set; } = string.Empty;
+        [MaxLength(50)]
+        public string? CodigoPatrimonial { get; set; }
 
-        [Column("ID_TIPO")]
-        public int IdTipo { get; set; }
+        [Column("NOMBRE")]
+        [Required]
+        [MaxLength(200)]
+        public string Nombre { get; set; } = string.Empty;
 
-        [ForeignKey("IdTipo")]
-        public virtual TipoActivo? TipoActivo { get; set; }
-
-        [Column("MARCA")]
-        [StringLength(50)]
-        public string? Marca { get; set; }
+        [Column("NUMERO_SERIE")]
+        [MaxLength(100)]
+        public string? NumeroSerie { get; set; }
 
         [Column("MODELO")]
-        [StringLength(50)]
+        [MaxLength(100)]
         public string? Modelo { get; set; }
 
-        [Column("SERIE")]
-        [StringLength(50)]
-        public string? Serie { get; set; }
+        [Column("MARCA")]
+        [MaxLength(100)]
+        public string? Marca { get; set; }
 
-        [Column("FECHA_COMPRA")]
-        public DateTime? FechaCompra { get; set; }
+        [Column("PROCESADOR")]
+        [MaxLength(100)]
+        public string? Procesador { get; set; }
 
-        [Column("CONDICION")]
-        [StringLength(20)]
-        public string? Condicion { get; set; } // Ej: Bueno, Regular, Malo
+        [Column("RAM")]
+        [MaxLength(50)]
+        public string? Ram { get; set; }
+
+        [Column("ALMACENAMIENTO")]
+        [MaxLength(50)]
+        public string? Almacenamiento { get; set; }
+
+        [Column("SISTEMA_OPERATIVO")]
+        [MaxLength(100)]
+        public string? SistemaOperativo { get; set; }
+
+        [Column("DESCRIPCION")]
+        [MaxLength(500)]
+        public string? Descripcion { get; set; }
+
+        [Column("OBSERVACIONES")]
+        [MaxLength(1000)]
+        public string? Observaciones { get; set; }
+
+        [Column("ID_ESTADO")]
+        public int IdEstado { get; set; }
+
+        [Column("FECHA_ADQUISICION")]
+        public DateTime? FechaAdquisicion { get; set; }
+
+        [Column("PRECIO_ADQUISICION")]
+        public decimal? PrecioAdquisicion { get; set; }
 
         [Column("ID_USUARIO_ASIGNADO")]
         public int? IdUsuarioAsignado { get; set; }
 
-        [ForeignKey("IdUsuarioAsignado")]
-        public virtual Usuario? UsuarioAsignado { get; set; }
-
-        [Column("UBICACION_FISICA")]
-        [StringLength(100)]
-        public string? UbicacionFisica { get; set; }
-
-        [Column("ESTADO_OPERATIVO")]
-        [StringLength(20)]
-        public string? EstadoOperativo { get; set; } // Ej: Operativo, En Taller
+        [Column("FECHA_ASIGNACION")]
+        public DateTime? FechaAsignacion { get; set; }
 
         [Column("FECHA_REGISTRO")]
         public DateTime FechaRegistro { get; set; } = DateTime.Now;
 
         [Column("ELIMINADO")]
-        public int Eliminado { get; set; } = 0; // Borrado lógico (0=No, 1=Si)
+        public int Eliminado { get; set; } = 0; // 0 = Activo, 1 = Eliminado
+
+        // Navegación
+        [ForeignKey("IdTipoActivo")]
+        public virtual TipoActivo? TipoActivo { get; set; }
+
+        [ForeignKey("IdEstado")]
+        public virtual Estado? Estado { get; set; }
+
+        [ForeignKey("IdUsuarioAsignado")]
+        public virtual Usuario? UsuarioAsignado { get; set; }
     }
 }

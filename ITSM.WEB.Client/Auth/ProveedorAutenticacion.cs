@@ -24,15 +24,18 @@ namespace ITSM.WEB.Client.Auth
         {
             try
             {
-                // INTENTO DE LEER LOCALSTORAGE
-                // Si estamos en el servidor (prerendering), esto fallará.
-                // Capturamos el error y devolvemos "Anónimo" para que la app cargue.
+                Console.WriteLine("🔐 Verificando autenticación...");
+
                 var sesionUsuario = await _localStorage.GetItemAsync<SesionDto>("sesionUsuario");
 
-                if (sesionUsuario == null)
+                if (sesionUsuario == null || string.IsNullOrWhiteSpace(sesionUsuario.Token))
+                {
+                    Console.WriteLine("⚠️ No hay sesión activa - Usuario anónimo");
                     return _anonimo;
+                }
 
-                // Si llegamos aquí, es que estamos en el navegador y hay sesión
+                Console.WriteLine($"✅ Sesión encontrada: {sesionUsuario.Username}");
+
                 _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", sesionUsuario.Token);
 
                 var claims = ParseClaimsFromJwt(sesionUsuario.Token);
@@ -42,13 +45,12 @@ namespace ITSM.WEB.Client.Auth
             }
             catch (InvalidOperationException)
             {
-                // Estamos en el servidor (Prerendering), no hay JS todavía.
-                // Devolvemos anónimo y esperamos a que el cliente se conecte.
+                Console.WriteLine("⚠️ LocalStorage no disponible (prerendering)");
                 return _anonimo;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Cualquier otro error de lectura
+                Console.WriteLine($"❌ Error en autenticación: {ex.Message}");
                 return _anonimo;
             }
         }
@@ -78,7 +80,6 @@ namespace ITSM.WEB.Client.Auth
 
             if (keyValuePairs == null) return Enumerable.Empty<Claim>();
 
-            // CORRECCIÓN CS8604: Usamos "??" para evitar pasar null al constructor de Claim
             return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value?.ToString() ?? ""));
         }
 

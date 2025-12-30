@@ -14,17 +14,21 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
-
-		<PackageReference Include="Oracle.EntityFrameworkCore" Version="10.23.26000" />
-
+		<PackageReference Include="Oracle.EntityFrameworkCore" Version="10.21.180" />
 		<PackageReference Include="MudBlazor" Version="8.15.0" />
-
 		<PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.0" />
-
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
 	</ItemGroup>
+
+	<!-- ✅ COPIA AUTOMÁTICA DE ARCHIVOS WEBASSEMBLY -->
+	<Target Name="CopyWebAssemblyFiles" AfterTargets="Build">
+		<ItemGroup>
+			<ClientWwwroot Include="$(MSBuildProjectDirectory)\..\ITSM.WEB.Client\bin\$(Configuration)\net10.0\wwwroot\**\*.*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(ClientWwwroot)" DestinationFolder="$(OutDir)wwwroot\%(RecursiveDir)" SkipUnchangedFiles="true" />
+	</Target>
 
 </Project>

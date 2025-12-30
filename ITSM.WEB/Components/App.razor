@@ -1,27 +1,85 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="ITSM.WEB.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
+    <style>
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
-    <HeadOutlet @rendermode="InteractiveWebAssembly" />
+        #loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .spinner-icon {
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+        }
+
+        .spinner-circle {
+            stroke: #594ae2;
+            stroke-width: 2;
+            fill: none;
+            stroke-dasharray: 31.4 31.4;
+            stroke-linecap: round;
+        }
+
+        .loading-text {
+            color: #594ae2;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        #blazor-error-ui {
+            background: lightyellow;
+            bottom: 0;
+            box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+            display: none;
+            left: 0;
+            padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+        }
+
+            #blazor-error-ui .dismiss {
+                cursor: pointer;
+                position: absolute;
+                right: 0.75rem;
+                top: 0.5rem;
+            }
+    </style>
+    <HeadOutlet />
 </head>
-
 <body>
-    <Routes @rendermode="InteractiveWebAssembly" />
+    <div id="app">
+        <div id="loading-spinner">
+            <svg class="spinner-icon" viewBox="0 0 24 24">
+                <circle class="spinner-circle" cx="12" cy="12" r="10" />
+            </svg>
+            <p class="loading-text">Cargando ITSM...</p>
+        </div>
+    </div>
 
+    <div id="blazor-error-ui">
+        Ha ocurrido un error inesperado.
+        <a href="" class="reload">Recargar</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
-    <script src="_framework/blazor.web.js"></script>
 </body>
-
 </html>
-@using ITSM.WEB.Client

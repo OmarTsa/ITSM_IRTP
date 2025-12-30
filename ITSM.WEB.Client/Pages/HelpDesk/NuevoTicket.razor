@@ -19,18 +19,29 @@
 
                 <MudGrid>
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="nuevoTicket.Titulo" Label="Título del Incidente/Requerimiento" Required="true" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="nuevoTicket.Titulo"
+                                      Label="Título del Incidente/Requerimiento"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="string" Label="Tipo" @bind-Value="nuevoTicket.TipoTicket" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                        <MudSelect T="string"
+                                   Label="Tipo"
+                                   @bind-Value="nuevoTicket.TipoTicket"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Variant="Variant.Outlined">
                             <MudSelectItem Value="@("Incidente")">Incidente (Fallo)</MudSelectItem>
                             <MudSelectItem Value="@("Requerimiento")">Requerimiento (Solicitud)</MudSelectItem>
                         </MudSelect>
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int" Label="Categoría" @bind-Value="nuevoTicket.IdCategoria" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                        <MudSelect T="int"
+                                   Label="Categoría"
+                                   @bind-Value="nuevoTicket.IdCategoria"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Variant="Variant.Outlined">
                             <MudSelectItem Value="0">-- Seleccione --</MudSelectItem>
                             @foreach (var cat in listaCategorias)
                             {
@@ -40,7 +51,11 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int" Label="Prioridad" @bind-Value="nuevoTicket.IdPrioridad" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Outlined">
+                        <MudSelect T="int"
+                                   Label="Prioridad"
+                                   @bind-Value="nuevoTicket.IdPrioridad"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Variant="Variant.Outlined">
                             <MudSelectItem Value="3">Baja</MudSelectItem>
                             <MudSelectItem Value="2">Media</MudSelectItem>
                             <MudSelectItem Value="1">Alta</MudSelectItem>
@@ -48,16 +63,31 @@
                     </MudItem>
 
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="nuevoTicket.Descripcion" Label="Descripción Detallada" Lines="5" Required="true" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="nuevoTicket.Descripcion"
+                                      Label="Descripción Detallada"
+                                      Lines="5"
+                                      Required="true"
+                                      Variant="Variant.Outlined" />
                     </MudItem>
                 </MudGrid>
 
                 <div class="d-flex justify-content-end mt-4">
-                    <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancelar" Class="me-2">Cancelar</MudButton>
-                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="@cargando">
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Secondary"
+                               OnClick="Cancelar"
+                               Class="me-2">
+                        Cancelar
+                    </MudButton>
+
+                    <MudButton ButtonType="ButtonType.Submit"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Disabled="@cargando">
                         @if (cargando)
                         {
-                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                            <MudProgressCircular Class="ms-n1"
+                                                 Size="Size.Small"
+                                                 Indeterminate="true" />
                             <MudText Class="ms-2">Procesando...</MudText>
                         }
                         else
@@ -72,9 +102,9 @@
 </MudContainer>
 
 @code {
-    private Ticket nuevoTicket = new Ticket();
+    private Ticket nuevoTicket = new();
     private List<Categoria> listaCategorias = new();
-    private bool cargando = false;
+    private bool cargando;
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,15 +114,13 @@
 
             // Valores por defecto
             nuevoTicket.FechaCreacion = DateTime.Now;
-            nuevoTicket.IdEstado = 1; // Abierto
-            nuevoTicket.IdPrioridad = 3; // Baja por defecto
+            nuevoTicket.IdEstado = 1;      // Abierto
+            nuevoTicket.IdPrioridad = 3;   // Baja
 
-            // El IdSolicitante se asigna en el Backend basado en el Token
-            nuevoTicket.IdSolicitante = 1;
+            // IdSolicitante lo asigna el backend con el usuario autenticado
         }
         catch (Exception ex)
         {
-            // CORRECCIÓN CS0168: Usamos 'ex' en el mensaje para eliminar la advertencia
             Snackbar.Add($"Error al cargar datos iniciales: {ex.Message}", Severity.Warning);
         }
     }

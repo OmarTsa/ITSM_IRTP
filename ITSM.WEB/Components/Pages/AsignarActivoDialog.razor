@@ -19,7 +19,7 @@
             <MudItem xs="12">
                 <MudText Typo="Typo.body2" Class="mb-4">
                     Seleccione el usuario responsable del equipo:
-                    <b>@Activo.Marca @Activo.Modelo</b> (S/N: @Activo.Serie)
+                    <b>@Activo.Marca @Activo.Modelo</b> (S/N: @Activo.NumeroSerie)
                 </MudText>
             </MudItem>
             <MudItem xs="12">
@@ -36,8 +36,10 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="Activo.UbicacionFisica" Label="Ubicación Física Actual"
-                              Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="Activo.Descripcion"
+                              Label="Ubicación o Información Adicional"
+                              Variant="Variant.Outlined"
+                              Placeholder="Ej: Oficina 301, Piso 3" />
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -48,9 +50,8 @@
 </MudDialog>
 
 @code {
-    // CORRECCIÓN: Usamos el nombre completo para evitar el error CS0246
     [CascadingParameter]
-    public MudBlazor.IMudDialogInstance MudDialog { get; set; }
+    public MudBlazor.IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
     public Activo Activo { get; set; } = new();
@@ -79,6 +80,16 @@
     {
         try
         {
+            // Actualizar fecha de asignación
+            if (Activo.IdUsuarioAsignado.HasValue)
+            {
+                Activo.FechaAsignacion = DateTime.Now;
+            }
+            else
+            {
+                Activo.FechaAsignacion = null;
+            }
+
             await _activoNegocio.GuardarActivoAsync(Activo);
 
             Snackbar.Add("Activo asignado y actualizado correctamente", Severity.Success);

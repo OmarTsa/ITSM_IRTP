@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using ITSM.Entidades;
+using ITSM.Entidades.DTOs;
 using ITSM.Negocio;
-using ITSM.Entidades;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ITSM.WEB.Controllers
 {
@@ -18,93 +18,108 @@ namespace ITSM.WEB.Controllers
             _ticketNegocio = ticketNegocio;
         }
 
+        // GET: api/ticket
         [HttpGet]
-        public async Task<IActionResult> Listar()
+        public async Task<ActionResult<List<Ticket>>> Listar()
         {
-            // CORREGIDO: Coincide con TicketNegocio.cs
             var lista = await _ticketNegocio.ListarTicketsAsync();
             return Ok(lista);
         }
 
+        // GET: api/ticket/mis/{idUsuario}
+        [HttpGet("mis/{idUsuario}")]
+        public async Task<ActionResult<List<Ticket>>> ListarMisTickets(int idUsuario)
+        {
+            var lista = await _ticketNegocio.ListarMisTicketsAsync(idUsuario);
+            return Ok(lista);
+        }
+
+        // GET: api/ticket/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> Obtener(int id)
+        public async Task<ActionResult<Ticket>> Obtener(int id)
         {
             var ticket = await _ticketNegocio.ObtenerTicketPorIdAsync(id);
             if (ticket == null) return NotFound();
             return Ok(ticket);
         }
 
-        [HttpGet("mis-tickets")]
-        public async Task<IActionResult> MisTickets()
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim == null) return Unauthorized();
-
-            int idUsuario = int.Parse(userIdClaim.Value);
-
-            // CORREGIDO: Coincide con TicketNegocio.cs
-            var lista = await _ticketNegocio.ListarMisTicketsAsync(idUsuario);
-            return Ok(lista);
-        }
-
+        // POST: api/ticket
         [HttpPost]
-        public async Task<IActionResult> Crear([FromBody] Ticket ticket)
+        public async Task<IActionResult> Registrar([FromBody] Ticket ticket)
         {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim != null)
-                {
-                    ticket.IdSolicitante = int.Parse(userIdClaim.Value);
-                }
-
-                // CORREGIDO: Coincide con TicketNegocio.cs
-                await _ticketNegocio.RegistrarTicketAsync(ticket);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            await _ticketNegocio.RegistrarTicketAsync(ticket);
+            return Ok();
         }
 
-        [HttpPost("comentario")]
-        public async Task<IActionResult> AgregarComentario([FromBody] TicketDetalle detalle)
+        // PUT: api/ticket/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Actualizar(int id, [FromBody] Ticket ticket)
         {
-            try
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-                if (userIdClaim != null) detalle.IdUsuario = int.Parse(userIdClaim.Value);
+            if (id != ticket.IdTicket)
+                return BadRequest("Id de ticket no coincide");
 
-                await _ticketNegocio.AgregarComentarioAsync(detalle);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            await _ticketNegocio.ActualizarTicketAsync(ticket);
+            return Ok();
         }
 
+        // POST: api/ticket/{id}/asignar/{idEspecialista}
+        [HttpPost("{id}/asignar/{idEspecialista}")]
+        public async Task<IActionResult> Asignar(int id, int idEspecialista)
+        {
+            await _ticketNegocio.AsignarTicketAsync(id, idEspecialista);
+            return Ok();
+        }
+
+        // GET: api/ticket/categorias
         [HttpGet("categorias")]
-        public async Task<IActionResult> ListarCategorias()
+        public async Task<ActionResult<List<Categoria>>> ListarCategorias()
         {
             var lista = await _ticketNegocio.ListarCategoriasAsync();
             return Ok(lista);
         }
 
+        // GET: api/ticket/prioridades
         [HttpGet("prioridades")]
-        public async Task<IActionResult> ListarPrioridades()
+        public async Task<ActionResult<List<Prioridad>>> ListarPrioridades()
         {
             var lista = await _ticketNegocio.ListarPrioridadesAsync();
             return Ok(lista);
         }
 
-        [HttpGet("kpis")]
-        public async Task<IActionResult> ObtenerKpis()
+        // GET: api/ticket/estados
+        [HttpGet("estados")]
+        public async Task<ActionResult<List<EstadoTicket>>> ListarEstados()
         {
-            // Ahora funcionará porque arreglamos el DTO en el paso 1
-            var kpis = await _ticketNegocio.ObtenerKpisAsync();
-            return Ok(kpis);
+            var lista = await _ticketNegocio.ListarEstadosAsync();
+            return Ok(lista);
+        }
+
+        // GET: api/ticket/kpi
+        [HttpGet("kpi")]
+        public async Task<ActionResult<DashboardKpi>> ObtenerKpi()
+        {
+            var kpi = await _ticketNegocio.ObtenerKpisAsync();
+            return Ok(kpi);
+        }
+
+        // GET: api/ticket/{id}/detalle
+        [HttpGet("{id}/detalle")]
+        public async Task<ActionResult<List<TicketDetalle>>> ListarDetalles(int id)
+        {
+            var lista = await _ticketNegocio.ListarDetallesTicketAsync(id);
+            return Ok(lista);
+        }
+
+        // POST: api/ticket/{id}/detalle
+        [HttpPost("{id}/detalle")]
+        public async Task<IActionResult> AgregarDetalle(int id, [FromBody] TicketDetalle detalle)
+        {
+            if (detalle == null)
+                return BadRequest("Detalle requerido");
+
+            detalle.IdTicket = id;
+            await _ticketNegocio.AgregarComentarioAsync(detalle);
+            return Ok();
         }
     }
 }

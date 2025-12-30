@@ -19,6 +19,7 @@ namespace ITSM.Negocio
         {
             return await _context.Activos
                 .Include(a => a.TipoActivo)
+                .Include(a => a.Estado)
                 .Include(a => a.UsuarioAsignado)
                 .Where(a => a.Eliminado == 0)
                 .ToListAsync();
@@ -29,6 +30,7 @@ namespace ITSM.Negocio
         {
             return await _context.Activos
                 .Include(a => a.TipoActivo)
+                .Include(a => a.Estado)
                 .Where(a => a.IdUsuarioAsignado == idUsuario && a.Eliminado == 0)
                 .ToListAsync();
         }
@@ -37,6 +39,7 @@ namespace ITSM.Negocio
         {
             return await _context.Activos
                 .Include(a => a.TipoActivo)
+                .Include(a => a.Estado)
                 .Include(a => a.UsuarioAsignado)
                 .FirstOrDefaultAsync(a => a.IdActivo == id);
         }
@@ -70,7 +73,9 @@ namespace ITSM.Negocio
 
         public async Task<List<TipoActivo>> ListarTiposAsync()
         {
-            return await _context.TiposActivo.ToListAsync();
+            return await _context.TiposActivo
+                .Where(t => t.Estado == 1)
+                .ToListAsync();
         }
 
         // IMPLEMENTADO: Requerido por ActivoController (GestiónTipos.razor)
@@ -78,6 +83,7 @@ namespace ITSM.Negocio
         {
             if (tipo.IdTipo == 0)
             {
+                tipo.Estado = 1;
                 _context.TiposActivo.Add(tipo);
             }
             else
@@ -93,7 +99,7 @@ namespace ITSM.Negocio
             var tipo = await _context.TiposActivo.FindAsync(id);
             if (tipo != null)
             {
-                _context.TiposActivo.Remove(tipo);
+                tipo.Estado = 0; // Soft delete
                 await _context.SaveChangesAsync();
             }
         }

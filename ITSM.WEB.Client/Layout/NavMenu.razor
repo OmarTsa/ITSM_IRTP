@@ -1,37 +1,108 @@
-﻿@using ITSM.WEB.Client.Auth
 @using Microsoft.AspNetCore.Components.Authorization
-@using MudBlazor
+@inject AuthenticationStateProvider AuthStateProvider
 
-<MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0" Style="background-color: transparent;">
-    <MudNavMenu Class="mud-width-full">
+<MudNavMenu>
+    <MudNavGroup Title="Panel Principal"
+                 Icon="@Icons.Material.Filled.Dashboard"
+                 Expanded="true">
+        <MudNavLink Href="/dashboard"
+                    Icon="@Icons.Material.Filled.Home"
+                    Match="NavLinkMatch.All">
+            Dashboard
+        </MudNavLink>
+    </MudNavGroup>
 
-        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-2"><b>SISTEMA</b></MudText>
-        <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+    <MudDivider Class="my-2" />
 
-        <AuthorizeView>
-            <Authorized>
-                <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>OPERACIONES</b></MudText>
+    <AuthorizeView>
+        <Authorized>
+            <MudNavGroup Title="Help Desk"
+                         Icon="@Icons.Material.Filled.SupportAgent"
+                         Expanded="true">
+                <MudNavLink Href="/helpdesk/nuevo"
+                            Icon="@Icons.Material.Filled.AddCircleOutline">
+                    Nuevo Ticket
+                </MudNavLink>
+                <MudNavLink Href="/helpdesk/mistickets"
+                            Icon="@Icons.Material.Filled.Assignment">
+                    Mis Tickets
+                </MudNavLink>
+                <MudNavLink Href="/helpdesk/gestion"
+                            Icon="@Icons.Material.Filled.ManageAccounts">
+                    Gesti�n de Tickets
+                </MudNavLink>
+            </MudNavGroup>
 
-                <MudNavGroup Title="Mesa de Ayuda" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
-                    <MudNavLink Href="/helpdesk/nuevo" Icon="@Icons.Material.Filled.AddCircleOutline">Nueva Solicitud</MudNavLink>
-                    <MudNavLink Href="/helpdesk/mistickets" Icon="@Icons.Material.Filled.ViewList">Mis Solicitudes</MudNavLink>
-                </MudNavGroup>
+            <MudDivider Class="my-2" />
 
-                <MudNavGroup Title="Activos TI" Icon="@Icons.Material.Filled.Devices" Expanded="false">
-                    <MudNavLink Href="/inventario" Icon="@Icons.Material.Filled.Computer">Inventario</MudNavLink>
-                </MudNavGroup>
-            </Authorized>
-        </AuthorizeView>
+            <MudNavGroup Title="Inventario"
+                         Icon="@Icons.Material.Filled.Inventory"
+                         Expanded="false">
+                <MudNavLink Href="/inventario"
+                            Icon="@Icons.Material.Filled.Computer">
+                    Ver Activos
+                </MudNavLink>
+                <MudNavLink Href="/inventario/nuevo"
+                            Icon="@Icons.Material.Filled.Add">
+                    Nuevo Activo
+                </MudNavLink>
+            </MudNavGroup>
 
-        <AuthorizeView Roles="ADMINISTRADOR">
-            <Authorized>
-                <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>CONFIGURACIÓN</b></MudText>
-                <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.Settings" Expanded="false">
-                    <MudNavLink Href="/admin/usuarios" Icon="@Icons.Material.Filled.People">Gestión Usuarios</MudNavLink>
-                    <MudNavLink Href="/admin/tipos-activo" Icon="@Icons.Material.Filled.Category">Tipos de Bienes</MudNavLink>
-                </MudNavGroup>
-            </Authorized>
-        </AuthorizeView>
+            <MudDivider Class="my-2" />
 
-    </MudNavMenu>
-</MudPaper>
+            <AuthorizeView Roles="ADMINISTRADOR">
+                <Authorized Context="adminContext">
+                    <MudNavGroup Title="Administraci�n"
+                                 Icon="@Icons.Material.Filled.AdminPanelSettings"
+                                 Expanded="false">
+                        <MudNavLink Href="/admin/usuarios"
+                                    Icon="@Icons.Material.Filled.People">
+                            Usuarios
+                        </MudNavLink>
+                        <MudNavLink Href="/admin/roles"
+                                    Icon="@Icons.Material.Filled.Security">
+                            Roles
+                        </MudNavLink>
+                        <MudNavLink Href="/admin/tipos"
+                                    Icon="@Icons.Material.Filled.Category">
+                            Tipos de Activos
+                        </MudNavLink>
+                    </MudNavGroup>
+                </Authorized>
+            </AuthorizeView>
+        </Authorized>
+    </AuthorizeView>
+
+    <MudDivider Class="my-4" />
+
+    <MudNavLink Href="/ayuda"
+                Icon="@Icons.Material.Filled.Help"
+                Match="NavLinkMatch.All">
+        Ayuda
+    </MudNavLink>
+</MudNavMenu>
+
+<style>
+    .mud-nav-link {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin: 4px 8px;
+        transition: all 0.3s ease;
+    }
+
+        .mud-nav-link:hover {
+            background-color: rgba(94, 74, 226, 0.1);
+            transform: translateX(4px);
+        }
+
+        .mud-nav-link.active {
+            background-color: rgba(94, 74, 226, 0.15);
+            font-weight: 600;
+            border-left: 4px solid #594AE2;
+        }
+
+    .mud-nav-group-title {
+        font-weight: 600;
+        color: #594AE2;
+    }
+</style>

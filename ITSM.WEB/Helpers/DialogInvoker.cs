@@ -43,7 +43,7 @@ namespace ITSM.WEB.Helpers
                 // Look for MudBlazor.DialogResult type in loaded assemblies
                 var dialogResultType = AppDomain.CurrentDomain.GetAssemblies()
                     .SelectMany(a => SafeGetTypes(a))
-                    .FirstOrDefault(t => t.FullName == "MudBlazor.DialogResult");
+                    .FirstOrDefault(t => t != null && t.FullName == "MudBlazor.DialogResult");
 
                 if (dialogResultType != null && paramType.IsAssignableFrom(dialogResultType))
                 {
@@ -51,7 +51,7 @@ namespace ITSM.WEB.Helpers
                     var okMethod = dialogResultType.GetMethod("Ok", BindingFlags.Public | BindingFlags.Static);
                     if (okMethod != null)
                     {
-                        arg = okMethod.Invoke(null, new object[] { data });
+                        arg = okMethod.Invoke(null, new object?[] { data });
                     }
                     else
                     {
@@ -71,8 +71,11 @@ namespace ITSM.WEB.Helpers
                     try
                     {
                         arg = Activator.CreateInstance(paramType);
-                        var dataProp = paramType.GetProperty("Data", BindingFlags.Public | BindingFlags.Instance);
-                        dataProp?.SetValue(arg, data);
+                        if (arg != null)
+                        {
+                            var dataProp = paramType.GetProperty("Data", BindingFlags.Public | BindingFlags.Instance);
+                            dataProp?.SetValue(arg, data);
+                        }
                     }
                     catch
                     {

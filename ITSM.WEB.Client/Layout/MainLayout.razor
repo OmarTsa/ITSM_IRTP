@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using ITSM.WEB.Client.Servicios
 @using Microsoft.AspNetCore.Components.Authorization
-@inject ServicioSesion _servicioSesion
+@inject IServicioSesion _servicioSesion
 @inject NavigationManager _nav
 
 <MudThemeProvider />
@@ -10,48 +10,68 @@
 <MudPopoverProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Color="Color.Primary">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h6" Class="ml-3">ITSM - IRTP</MudText>
+    <MudAppBar Elevation="2" Color="Color.Primary" Dense="false">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="@DrawerToggle" />
+
+        <MudIcon Icon="@Icons.Material.Filled.Support" Class="mr-2" />
+        <MudText Typo="Typo.h6" Class="ml-3">
+            <b>ITSM - IRTP</b>
+        </MudText>
+
         <MudSpacer />
 
         <AuthorizeView>
             <Authorized>
-                <MudText Typo="Typo.body2" Class="mr-3">Hola, @context.User.Identity?.Name</MudText>
+                <MudText Typo="Typo.body2" Class="mr-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-1" />
+                    Hola, <b>@context.User.Identity?.Name</b>
+                </MudText>
 
                 <MudTooltip Text="Cerrar Sesión">
-                    <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="CerrarSesion" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Logout"
+                                   Color="Color.Inherit"
+                                   OnClick="CerrarSesion" />
                 </MudTooltip>
             </Authorized>
             <NotAuthorized>
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/login">Iniciar Sesión</MudButton>
+                <MudButton Variant="Variant.Text"
+                           Color="Color.Inherit"
+                           Href="/login"
+                           StartIcon="@Icons.Material.Filled.Login">
+                    Iniciar Sesión
+                </MudButton>
             </NotAuthorized>
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer @bind-Open="@drawerOpen"
+               ClipMode="DrawerClipMode.Always"
+               Elevation="4"
+               Variant="@DrawerVariant.Responsive">
         <NavMenu />
     </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.Large" Class="my-4 pt-4">
+        <MudContainer MaxWidth="MaxWidth.False" Class="my-4 pt-4">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
-    bool _drawerOpen = true;
+    private bool drawerOpen = true;
 
-    void DrawerToggle()
+    private void DrawerToggle()
     {
-        _drawerOpen = !_drawerOpen;
+        drawerOpen = !drawerOpen;
     }
 
     private async Task CerrarSesion()
     {
         await _servicioSesion.CerrarSesion();
-        // Usamos forceLoad: true para limpiar el estado de la aplicación
-        _nav.NavigateTo("/login", true);
+        _nav.NavigateTo("/login", forceLoad: true);
     }
 }

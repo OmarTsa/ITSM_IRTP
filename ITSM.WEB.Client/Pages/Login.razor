@@ -2,116 +2,119 @@
 @layout ITSM.WEB.Client.Layout.LoginLayout
 @using ITSM.Entidades.DTOs
 @using ITSM.WEB.Client.Servicios
-@inject ServicioSesion _servicioSesion
+@inject IServicioSesion _servicioSesion
 @inject NavigationManager _nav
-@inject ISnackbar Snackbar
+@inject ISnackbar _snackbar
 
-<MudCard Elevation="6" Class="pa-4 rounded-lg" Style="width: 100%; max-width: 400px;">
-    <MudCardHeader Class="d-flex justify-center pb-2">
-        <CardHeaderContent>
-            <div class="d-flex flex-column align-center">
-                <div class="d-flex justify-center align-center mb-3" style="background-color: var(--mud-palette-primary); width: 64px; height: 64px; border-radius: 50%;">
-                    <MudIcon Icon="@Icons.Material.Filled.Security" Color="Color.Surface" Size="Size.Large" />
-                </div>
-                <MudText Typo="Typo.h5" Color="Color.Primary" Align="Align.Center" Style="font-weight: 700;">ITSM - IRTP</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">Acceso al Sistema</MudText>
-            </div>
-        </CardHeaderContent>
-    </MudCardHeader>
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="min-height: 100vh;">
+    <MudPaper Elevation="8" Class="pa-8" Style="width: 100%; max-width: 450px; border-radius: 16px;">
 
-    <MudCardContent>
-        @if (loginModel == null)
+        <div class="d-flex flex-column align-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Primary" Class="mb-3" />
+            <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary">
+                <b>ITSM - IRTP</b>
+            </MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                Sistema de Gestión de Servicios TI
+            </MudText>
+        </div>
+
+        @if (!string.IsNullOrEmpty(mensajeError))
         {
-            <div class="d-flex justify-center">
-                <MudProgressCircular Indeterminate="true" />
-            </div>
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">
+                @mensajeError
+            </MudAlert>
         }
-        else
-        {
-            <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion" FormName="loginform">
-                <DataAnnotationsValidator />
 
-                <MudTextField @bind-Value="loginModel.Username"
-                              Label="Usuario"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Person"
-                              Class="mb-4"
-                              Required="true" />
+        <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion">
+            <DataAnnotationsValidator />
 
-                <MudTextField @bind-Value="loginModel.Password"
-                              Label="Contraseña"
-                              Variant="Variant.Outlined"
-                              InputType="InputType.Password"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Lock"
-                              Class="mb-4"
-                              Required="true" />
+            <MudTextField @bind-Value="loginModel.Username"
+                          Label="Usuario"
+                          Variant="Variant.Outlined"
+                          Class="mb-4"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          Required="true"
+                          RequiredError="El usuario es requerido" />
 
-                <MudButton ButtonType="ButtonType.Submit"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           FullWidth="true"
-                           Size="Size.Large"
-                           Disabled="@procesando">
-                    @if (procesando)
-                    {
-                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
-                        <MudText Class="ms-2">Verificando...</MudText>
-                    }
-                    else
-                    {
-                        <MudText>INGRESAR</MudText>
-                    }
-                </MudButton>
-            </EditForm>
-        }
-    </MudCardContent>
+            <MudTextField @bind-Value="loginModel.Password"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          InputType="InputType.Password"
+                          Class="mb-6"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.VpnKey"
+                          Required="true"
+                          RequiredError="La contraseña es requerida" />
 
-    <MudCardActions Class="d-flex justify-center pb-4 pt-0">
-        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
-            © 2025 IRTP - Oficina de TI
+            <MudButton ButtonType="ButtonType.Submit"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       Disabled="@cargando"
+                       Class="mb-3">
+                @if (cargando)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Iniciando sesión...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
+                    <span>Iniciar Sesión</span>
+                }
+            </MudButton>
+        </EditForm>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+            © 2025 IRTP - Todos los derechos reservados
         </MudText>
-    </MudCardActions>
-</MudCard>
+
+    </MudPaper>
+</MudContainer>
 
 @code {
-    [SupplyParameterFromForm]
-    private LoginDto? loginModel { get; set; }
-
-    private bool procesando = false;
-
-    // ESTE MÉTODO ES LA SOLUCIÓN AL ERROR "EditForm requires Model"
-    protected override void OnInitialized()
-    {
-        // Si viene nulo del sistema, lo inicializamos nosotros
-        loginModel ??= new LoginDto();
-    }
+    private LoginDto loginModel = new();
+    private string mensajeError = string.Empty;
+    private bool cargando = false;
 
     private async Task IniciarSesion()
     {
-        procesando = true;
+        cargando = true;
+        mensajeError = string.Empty;
+
         try
         {
-            var sesion = await _servicioSesion.IniciarSesion(loginModel!);
+            var sesion = await _servicioSesion.IniciarSesion(loginModel);
+
             if (sesion != null)
             {
-                Snackbar.Add($"Bienvenido, {sesion.Nombre}", Severity.Success);
-                // forceLoad: true limpia la memoria y asegura que el estado de autenticación se refresque
+                _snackbar.Add("¡Bienvenido al sistema!", Severity.Success);
                 _nav.NavigateTo("/", forceLoad: true);
             }
             else
             {
-                Snackbar.Add("Credenciales incorrectas", Severity.Error);
+                mensajeError = "Usuario o contraseña incorrectos";
+                _snackbar.Add("Credenciales inválidas", Severity.Error);
             }
+        }
+        catch (HttpRequestException)
+        {
+            mensajeError = "Error de conexión con el servidor. Por favor, intente más tarde.";
+            _snackbar.Add("Error de conexión", Severity.Error);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            mensajeError = "Ha ocurrido un error inesperado. Por favor, contacte al administrador.";
+            _snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
         finally
         {
-            procesando = false;
+            cargando = false;
         }
     }
 }

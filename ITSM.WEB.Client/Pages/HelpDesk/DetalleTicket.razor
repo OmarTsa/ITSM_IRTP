@@ -1,9 +1,11 @@
 ﻿@page "/helpdesk/ticket/{Id:int}"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
+@using System.Security.Claims
 @inject TicketServicio _ticketServicio
 @inject NavigationManager _nav
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthProvider
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     @if (ticket == null)
@@ -22,6 +24,7 @@
                     <MudChip T="string" Color="Color.Primary">@ticket.Estado?.Nombre</MudChip>
                 </CardHeaderActions>
             </MudCardHeader>
+
             <MudCardContent>
                 <MudGrid>
                     <MudItem xs="12" sm="6">
@@ -47,8 +50,55 @@
                         <MudText Typo="Typo.subtitle2">Descripción:</MudText>
                         <MudText Style="white-space: pre-wrap;">@ticket.Descripcion</MudText>
                     </MudItem>
+
+                    <!-- HISTORIAL DE COMENTARIOS -->
+                    <MudItem xs="12">
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.subtitle2">Historial de comentarios</MudText>
+
+                        @if (detalles == null)
+                        {
+                            <MudText>Cargando comentarios...</MudText>
+                        }
+                        else if (!detalles.Any())
+                        {
+                            <MudText>No hay comentarios registrados.</MudText>
+                        }
+                        else
+                        {
+                            <MudTimeline dense="true">
+                                @foreach (var det in detalles)
+                                {
+                                    <MudTimelineItem>
+                                        <MudPaper Class="pa-2">
+                                            <MudText Typo="Typo.caption">
+                                                @det.Usuario?.NombreCompleto (@det.FechaRegistro)
+                                            </MudText>
+                                            <MudText Style="white-space: pre-wrap;">
+                                                @det.Mensaje
+                                            </MudText>
+                                        </MudPaper>
+                                    </MudTimelineItem>
+                                }
+                            </MudTimeline>
+                        }
+
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.subtitle2">Agregar comentario</MudText>
+                        <MudTextField @bind-Value="nuevoComentario"
+                                      Lines="3"
+                                      FullWidth="true"
+                                      Placeholder="Escriba su comentario..." />
+                        <MudButton Class="mt-2"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="AgregarComentario">
+                            Enviar
+                        </MudButton>
+                    </MudItem>
                 </MudGrid>
             </MudCardContent>
+
             <MudCardActions>
                 <MudButton OnClick="Volver" Variant="Variant.Text">Volver</MudButton>
             </MudCardActions>
@@ -58,17 +108,72 @@
 
 @code {
     [Parameter] public int Id { get; set; }
+
     private Ticket? ticket;
+    private List<TicketDetalle>? detalles;
+    private string nuevoComentario = string.Empty;
+    private int idUsuarioActual;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             ticket = await _ticketServicio.ObtenerTicket(Id);
+            detalles = await _ticketServicio.ListarDetalles(Id);
+
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            var idClaim = user.FindFirst("id") ?? user.FindFirst(ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out var id))
+            {
+                idUsuarioActual = id;
+            }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error al cargar ticket: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task AgregarComentario()
+    {
+        if (string.IsNullOrWhiteSpace(nuevoComentario))
+        {
+            Snackbar.Add("El comentario no puede estar vacío", Severity.Warning);
+            return;
+        }
+
+        if (idUsuarioActual == 0)
+        {
+            Snackbar.Add("No se pudo identificar al usuario actual", Severity.Error);
+            return;
+        }
+
+        if (ticket == null)
+        {
+            Snackbar.Add("Ticket no cargado", Severity.Error);
+            return;
+        }
+
+        var detalle = new TicketDetalle
+        {
+            IdTicket = ticket.IdTicket,
+            IdUsuario = idUsuarioActual,
+            Mensaje = nuevoComentario,
+            TipoAccion = 1 // Comentario
+        };
+
+        try
+        {
+            await _ticketServicio.AgregarComentario(detalle);
+            nuevoComentario = string.Empty;
+
+            detalles = await _ticketServicio.ListarDetalles(ticket.IdTicket);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al registrar comentario: {ex.Message}", Severity.Error);
         }
     }
 

@@ -1,248 +1,251 @@
 ﻿@page "/admin/usuarios"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@inject UsuarioServicio _usuarioServicio
-@inject IJSRuntime _js // Para alertas simples
+@inject IUsuarioServicio _usuarioServicio
+@inject NavigationManager _nav
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMINISTRADOR")]
 
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+<PageTitle>Gestión de Usuarios - ITSM</PageTitle>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>Gestión de Usuarios</h3>
-        <button class="btn btn-primary" @onclick="AbrirNuevoUsuario">
-            <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
-        </button>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">
+                <b>Gestión de Usuarios</b>
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Administración de usuarios del sistema
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                   Href="/admin/usuario">
+            Nuevo Usuario
+        </MudButton>
     </div>
 
     @if (listaUsuarios == null)
     {
-        <p><em>Cargando usuarios...</em></p>
+        <div class="d-flex justify-center align-center" style="min-height: 400px;">
+            <div class="text-center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body1" Class="mt-4" Color="Color.Secondary">
+                    Cargando usuarios del sistema...
+                </MudText>
+            </div>
+        </div>
+    }
+    else if (listaUsuarios.Count == 0)
+    {
+        <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.PersonOff"
+                     Size="Size.Large"
+                     Color="Color.Secondary"
+                     Style="font-size: 80px; opacity: 0.5;" />
+            <MudText Typo="Typo.h6" Class="mt-4" Color="Color.Secondary">
+                No hay usuarios registrados
+            </MudText>
+        </MudPaper>
     }
     else
     {
-        <div class="table-responsive shadow-sm">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Nombre Completo</th>
-                        <th>DNI</th>
-                        <th>Correo</th>
-                        <th>Rol</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var user in listaUsuarios)
-                    {
-                        <tr>
-                            <td class="fw-bold">@user.Username</td>
-                            <td>@user.NombreCompleto</td>
-                            <td>@user.Dni</td>
-                            <td>@user.Correo</td>
-                            <td>
-                                <span class="badge bg-secondary">@user.Rol?.Nombre</span>
-                            </td>
-                            <td>
-                                @if (user.Estado == 1)
-                                {
-                                    <span class="badge bg-success">Activo</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-danger">Inactivo</span>
-                                }
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => EditarUsuario(user)">
-                                    Editar
-                                </button>
-                                @if (user.Estado == 1)
-                                {
-                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DarBajaUsuario(user)">
-                                        Baja
-                                    </button>
-                                }
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
-</div>
+        <MudPaper Elevation="4" Style="border-radius: 12px; overflow: hidden;">
+            <MudTable Items="@listaUsuarios"
+                      Hover="true"
+                      Striped="true"
+                      Dense="false"
+                      Filter="new Func<Usuario, bool>(FiltrarUsuarios)">
 
-@if (mostrarFormulario)
-{
-    <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">@(usuarioEdit.IdUsuario == 0 ? "Nuevo Usuario" : "Editar Usuario")</h5>
-                    <button type="button" class="btn-close" @onclick="CerrarFormulario"></button>
-                </div>
-                <div class="modal-body">
-                    <EditForm Model="usuarioEdit" OnValidSubmit="GuardarUsuario">
-                        <DataAnnotationsValidator />
+                <ToolBarContent>
+                    <MudIcon Icon="@Icons.Material.Filled.People" Class="mr-2" />
+                    <MudText Typo="Typo.h6">Usuarios Registrados</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="textoBusqueda"
+                                  Placeholder="Buscar usuarios..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0"
+                                  Immediate="true"
+                                  DebounceInterval="300">
+                    </MudTextField>
+                </ToolBarContent>
 
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Usuario (Login)</label>
-                                <InputText @bind-Value="usuarioEdit.Username" class="form-control" />
-                                <ValidationMessage For="@(() => usuarioEdit.Username)" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">DNI</label>
-                                <InputText @bind-Value="usuarioEdit.Dni" class="form-control" maxlength="8" />
-                                <ValidationMessage For="@(() => usuarioEdit.Dni)" />
-                            </div>
+                <HeaderContent>
+                    <MudTh Style="font-weight: bold;">Usuario</MudTh>
+                    <MudTh Style="font-weight: bold;">Nombre Completo</MudTh>
+                    <MudTh Style="font-weight: bold;">DNI</MudTh>
+                    <MudTh Style="font-weight: bold;">Correo</MudTh>
+                    <MudTh Style="font-weight: bold;">Rol</MudTh>
+                    <MudTh Style="font-weight: bold;">Área</MudTh>
+                    <MudTh Style="font-weight: bold;">Estado</MudTh>
+                    <MudTh Style="font-weight: bold;">Acciones</MudTh>
+                </HeaderContent>
 
-                            <div class="col-md-6">
-                                <label class="form-label">Nombres</label>
-                                <InputText @bind-Value="usuarioEdit.Nombres" class="form-control" />
-                                <ValidationMessage For="@(() => usuarioEdit.Nombres)" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Apellidos</label>
-                                <InputText @bind-Value="usuarioEdit.Apellidos" class="form-control" />
-                                <ValidationMessage For="@(() => usuarioEdit.Apellidos)" />
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Correo Institucional</label>
-                                <InputText @bind-Value="usuarioEdit.Correo" class="form-control" />
-                                <ValidationMessage For="@(() => usuarioEdit.Correo)" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Cargo</label>
-                                <InputText @bind-Value="usuarioEdit.Cargo" class="form-control" />
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Rol</label>
-                                <InputSelect @bind-Value="usuarioEdit.IdRol" class="form-select">
-                                    <option value="0">-- Seleccione --</option>
-                                    @foreach (var rol in listaRoles)
-                                    {
-                                        <option value="@rol.IdRol">@rol.Nombre</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Área</label>
-                                <InputSelect @bind-Value="usuarioEdit.IdArea" class="form-select">
-                                    <option value="0">-- Seleccione --</option>
-                                    @foreach (var area in listaAreas)
-                                    {
-                                        <option value="@area.IdArea">@area.Nombre</option>
-                                    }
-                                </InputSelect>
-                            </div>
-
-                            @if (usuarioEdit.IdUsuario > 0)
-                            {
-                                <div class="col-md-6">
-                                    <label class="form-label">Estado</label>
-                                    <InputSelect @bind-Value="usuarioEdit.Estado" class="form-select">
-                                        <option value="1">Activo</option>
-                                        <option value="0">Inactivo</option>
-                                    </InputSelect>
-                                </div>
-                            }
+                <RowTemplate>
+                    <MudTd DataLabel="Usuario">
+                        <div class="d-flex align-center">
+                            <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                @context.Nombres?.Substring(0, 1)
+                            </MudAvatar>
+                            <span><b>@context.Username</b></span>
                         </div>
-
-                        @if (!string.IsNullOrEmpty(mensajeError))
+                    </MudTd>
+                    <MudTd DataLabel="Nombre">@context.NombreCompleto</MudTd>
+                    <MudTd DataLabel="DNI">@context.Dni</MudTd>
+                    <MudTd DataLabel="Correo">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Class="mr-1" />
+                            <span>@context.Correo</span>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Rol">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">
+                            @context.Rol?.Nombre
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Área">@context.Area?.Nombre</MudTd>
+                    <MudTd DataLabel="Estado">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(context.Estado == 1 ? Color.Success : Color.Error)"
+                                 Variant="Variant.Filled">
+                            @(context.Estado == 1 ? "Activo" : "Inactivo")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudTooltip Text="Editar Usuario">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           Href="@($"/admin/usuario/{context.IdUsuario}")" />
+                        </MudTooltip>
+                        @if (context.Estado == 1)
                         {
-                            <div class="alert alert-danger mt-3">@mensajeError</div>
+                            <MudTooltip Text="Desactivar Usuario">
+                                <MudIconButton Icon="@Icons.Material.Filled.Block"
+                                               Color="Color.Warning"
+                                               Size="Size.Small"
+                                               OnClick="@(() => CambiarEstado(context, 0))" />
+                            </MudTooltip>
                         }
+                        else
+                        {
+                            <MudTooltip Text="Activar Usuario">
+                                <MudIconButton Icon="@Icons.Material.Filled.CheckCircle"
+                                               Color="Color.Success"
+                                               Size="Size.Small"
+                                               OnClick="@(() => CambiarEstado(context, 1))" />
+                            </MudTooltip>
+                        }
+                        <MudTooltip Text="Eliminar Usuario">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(() => EliminarUsuario(context))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
 
-                        <div class="mt-4 text-end">
-                            <button type="button" class="btn btn-secondary me-2" @onclick="CerrarFormulario">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Guardar Datos</button>
-                        </div>
-                    </EditForm>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }"
+                                   InfoFormat="{first_item}-{last_item} de {all_items}"
+                                   RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    }
+</MudContainer>
 
 @code {
     private List<Usuario>? listaUsuarios;
-    private List<Rol> listaRoles = new();
-    private List<Area> listaAreas = new();
-
-    private Usuario usuarioEdit = new();
-    private bool mostrarFormulario = false;
-    private string mensajeError = "";
+    private string textoBusqueda = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarDatos();
+        await CargarUsuarios();
     }
 
-    private async Task CargarDatos()
-    {
-        listaUsuarios = await _usuarioServicio.Listar();
-        listaRoles = await _usuarioServicio.ListarRoles();
-        listaAreas = await _usuarioServicio.ListarAreas();
-    }
-
-    private void AbrirNuevoUsuario()
-    {
-        usuarioEdit = new Usuario { Estado = 1, PasswordHash = "temp" }; // PasswordHash req para validación, se sobrescribe en backend
-        mensajeError = "";
-        mostrarFormulario = true;
-    }
-
-    private void EditarUsuario(Usuario user)
-    {
-        // Clonamos el objeto para no editar directamente la grilla
-        usuarioEdit = new Usuario
-        {
-            IdUsuario = user.IdUsuario,
-            Username = user.Username,
-            Dni = user.Dni,
-            Nombres = user.Nombres,
-            Apellidos = user.Apellidos,
-            Correo = user.Correo,
-            Cargo = user.Cargo,
-            IdRol = user.IdRol,
-            IdArea = user.IdArea,
-            Estado = user.Estado,
-            PasswordHash = user.PasswordHash
-        };
-        mensajeError = "";
-        mostrarFormulario = true;
-    }
-
-    private void CerrarFormulario()
-    {
-        mostrarFormulario = false;
-    }
-
-    private async Task GuardarUsuario()
+    private async Task CargarUsuarios()
     {
         try
         {
-            await _usuarioServicio.Guardar(usuarioEdit);
-            await CargarDatos();
-            CerrarFormulario();
+            listaUsuarios = await _usuarioServicio.Listar();
         }
         catch (Exception ex)
         {
-            mensajeError = ex.Message;
+            Snackbar.Add($"Error al cargar usuarios: {ex.Message}", Severity.Error);
+            listaUsuarios = new List<Usuario>();
         }
     }
 
-    private async Task DarBajaUsuario(Usuario user)
+    private bool FiltrarUsuarios(Usuario usuario)
     {
-        bool confirmado = await _js.InvokeAsync<bool>("confirm", $"¿Está seguro de dar de baja a {user.Username}?");
-        if (confirmado)
+        if (string.IsNullOrWhiteSpace(textoBusqueda))
+            return true;
+
+        if (usuario.Username?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (usuario.NombreCompleto?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (usuario.Dni?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (usuario.Correo?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    }
+
+    private async Task CambiarEstado(Usuario usuario, int nuevoEstado)
+    {
+        var accion = nuevoEstado == 1 ? "activar" : "desactivar";
+        var confirmar = await DialogService.ShowMessageBox(
+            "Confirmar Acción",
+            $"¿Está seguro de {accion} al usuario {usuario.NombreCompleto}?",
+            yesText: "Sí", cancelText: "No");
+
+        if (confirmar == true)
         {
-            await _usuarioServicio.Eliminar(user.IdUsuario);
-            await CargarDatos();
+            try
+            {
+                usuario.Estado = nuevoEstado;
+                await _usuarioServicio.Editar(usuario);
+                Snackbar.Add($"Usuario {(nuevoEstado == 1 ? "activado" : "desactivado")} correctamente", Severity.Success);
+                await CargarUsuarios();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task EliminarUsuario(Usuario usuario)
+    {
+        var confirmar = await DialogService.ShowMessageBox(
+            "Confirmar Eliminación",
+            $"¿Está seguro de eliminar al usuario {usuario.NombreCompleto}? Esta acción no se puede deshacer.",
+            yesText: "Sí, Eliminar", cancelText: "Cancelar");
+
+        if (confirmar == true)
+        {
+            try
+            {
+                await _usuarioServicio.Eliminar(usuario.IdUsuario);
+                Snackbar.Add("Usuario eliminado correctamente", Severity.Success);
+                await CargarUsuarios();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+            }
         }
     }
 }

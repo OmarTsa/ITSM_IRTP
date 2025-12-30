@@ -1,0 +1,111 @@
+---------------------------------------------------------------
+    SISTEMA ITSM - ARQUITECTURA BLAZOR WEBASSEMBLY PURO
+---------------------------------------------------------------
+
+?? Fecha: 29/12/2025 18:05
+
+? ARQUITECTURA IMPLEMENTADA
+----------------------------------------------------------------
+
+?? Patrón: Cliente-Servidor con API REST
+   - Backend: ITSM.WEB (ASP.NET Core Web API)
+   - Frontend: ITSM.WEB.Client (Blazor WebAssembly)
+   - Comunicación: HTTP/JSON sobre CORS
+
+?? ESTRUCTURA DE CAPAS
+----------------------------------------------------------------
+
+1. ITSM.Entidades
+   +- Modelos del dominio + DTOs
+   
+2. ITSM.Datos
+   +- Entity Framework Core + Oracle
+   
+3. ITSM.Negocio
+   +- UsuarioNegocio
+   +- TicketNegocio
+   +- ActivoNegocio
+   
+4. ITSM.WEB (Backend API - Puerto 7244)
+   +- Controllers:
+   ¦  +- AutenticacionController
+   ¦  +- UsuarioController
+   ¦  +- TicketController
+   ¦  +- ActivoController
+   ¦  +- DashboardController
+   +- Autenticación: JWT Bearer
+
+5. ITSM.WEB.Client (Frontend WebAssembly)
+   +- Servicios HTTP:
+   ¦  +- ServicioSesion (JWT + LocalStorage)
+   ¦  +- DashboardServicio
+   ¦  +- TicketServicio
+   ¦  +- InventarioServicio
+   ¦  +- UsuarioServicio
+   +- Páginas (13 componentes):
+   ¦  +- Dashboard.razor
+   ¦  +- Login.razor
+   ¦  +- HelpDesk/NuevoTicket.razor
+   ¦  +- HelpDesk/MisTickets.razor
+   ¦  +- HelpDesk/GestionTickets.razor
+   ¦  +- HelpDesk/DetalleTicket.razor
+   ¦  +- Inventario/Inventario.razor
+   ¦  +- Inventario/NuevoActivo.razor
+   ¦  +- Admin/Usuarios.razor
+   ¦  +- Admin/FormUsuario.razor
+   ¦  +- Admin/GestionTipos.razor
+   +- Autenticación: AuthenticationStateProvider + LocalStorage
+
+?? SEGURIDAD
+----------------------------------------------------------------
+? JWT Bearer Tokens
+? CORS configurado (localhost:7244)
+? AuthorizeAttribute en controllers
+? AuthorizeView en componentes Blazor
+? LocalStorage para persistencia de sesión
+
+?? COMUNICACIÓN
+----------------------------------------------------------------
+Backend API:  https://localhost:7244
+Frontend:     https://localhost:7244 (servido por el backend)
+Protocolo:    HTTPS con certificados de desarrollo
+
+?? FUNCIONALIDADES PRINCIPALES
+----------------------------------------------------------------
+? Dashboard con KPIs en tiempo real
+? Autenticación y gestión de sesión
+? Gestión completa de tickets (CRUD)
+? Inventario de activos TI
+? Administración de usuarios
+? Sistema de roles y permisos
+
+?? UI/UX
+----------------------------------------------------------------
+Framework: MudBlazor 7.x
+Tema: Material Design
+Responsive: Sí (mobile-first)
+
+?? VENTAJAS DE ESTA ARQUITECTURA
+----------------------------------------------------------------
+? Separación clara de responsabilidades
+? Backend protegido - lógica de negocio segura
+? Frontend descarga en el navegador (mejor UX)
+? Escalable horizontalmente
+? Testeable (backend y frontend por separado)
+? Permite múltiples clientes (web, mobile)
+? Cumple estándares de la industria
+
+?? PRÓXIMOS PASOS RECOMENDADOS
+----------------------------------------------------------------
+1. Implementar refresh token para sesiones largas
+2. Agregar validación de formularios más robusta
+3. Implementar manejo de errores centralizado
+4. Agregar logs estructurados (Serilog)
+5. Configurar entornos (Development, Staging, Production)
+6. Implementar pruebas unitarias y de integración
+7. Configurar CI/CD (GitHub Actions / Azure DevOps)
+8. Documentar API con Swagger
+9. Optimizar rendimiento (lazy loading, caching)
+10. Implementar notificaciones en tiempo real (SignalR)
+
+---------------------------------------------------------------

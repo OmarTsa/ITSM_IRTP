@@ -1,11 +1,8 @@
+﻿using ITSM.WEB.Components;
 using ITSM.Datos;
-using ITSM.Negocio;
-using ITSM.WEB.Components;
 using Microsoft.EntityFrameworkCore;
-using Blazored.LocalStorage;
-using ITSM.WEB.Client.Servicios;
-using ITSM.WEB.Client.Auth;
-using Microsoft.AspNetCore.Components.Authorization;
+using ITSM.Negocio;
+using Microsoft.AspNetCore.ResponseCompression;
 using MudBlazor.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -13,67 +10,72 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Servicios de Blazor
-builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+// ===== COMPRESIÓN =====
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream", "application/wasm" });
+    opts.EnableForHttps = true;
+});
 
-builder.Services.AddMudServices();
-
-// 2. Base de Datos
+// ===== BASE DE DATOS =====
 builder.Services.AddDbContext<ContextoBD>(options =>
-    options.UseOracle(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseOracle(builder.Configuration.GetConnectionString("OracleConnection")));
 
-// 3. Servicios de Negocio
+// ===== CAPA DE NEGOCIO =====
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<ActivoNegocio>();
 
-// 4. Servicios Cliente (Espejo)
-builder.Services.AddBlazoredLocalStorage();
-builder.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
-builder.Services.AddScoped<ServicioSesion>();
-builder.Services.AddScoped<UsuarioServicio>();
-builder.Services.AddScoped<TicketServicio>();
-builder.Services.AddScoped<InventarioServicio>();
+// ===== AUTENTICACIÓN JWT =====
+var jwtKey = builder.Configuration["Jwt:Key"]!;
+var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
+var jwtAudience = builder.Configuration["Jwt:Audience"]!;
 
-// CORRECCI�N: Ajustamos el puerto a 7244 (o el que uses al ejecutar) para evitar error de conexi�n
-builder.Services.AddScoped(sp => new HttpClient
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// ===== CORS (Para desarrollo) =====
+builder.Services.AddCors(options =>
 {
-    BaseAddress = new Uri("https://localhost:7244")
+    options.AddPolicy("AllowBlazorClient", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 });
 
+// ===== SERVICIOS MVC Y BLAZOR =====
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddMudServices();
+builder.Services.AddRazorComponents()
+    .AddInteractiveWebAssemblyComponents();
 builder.Services.AddControllers();
 
-// --- CONFIGURACI�N JWT ---
-var keyString = builder.Configuration["Jwt:Key"] ?? "ClaveSecretaSuperSeguraParaTuTesis2025IRTP";
-var keyBytes = Encoding.UTF8.GetBytes(keyString);
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.RequireHttpsMetadata = false;
-    options.SaveToken = true;
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
-    };
-});
-
+// ===== CONFIGURACIÓN DE APP =====
 var app = builder.Build();
 
+// ===== MIDDLEWARE =====
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
+    app.UseCors("AllowBlazorClient");
 }
 else
 {
@@ -82,19 +84,23 @@ else
 }
 
 app.UseHttpsRedirection();
-
-app.MapStaticAssets();
+app.UseResponseCompression();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
+// ⚠️ ORDEN IMPORTANTE: Authentication ANTES de Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapStaticAssets();
 app.MapControllers();
 
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
+
+Console.WriteLine("✅ Servidor ITSM iniciado correctamente");
+Console.WriteLine($"🔐 JWT configurado: Issuer={jwtIssuer}, Audience={jwtAudience}");
+Console.WriteLine($"🌐 CORS habilitado para desarrollo");
 
 app.Run();

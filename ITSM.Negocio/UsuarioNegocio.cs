@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using ITSM.Datos;
 using ITSM.Entidades;
-// Asegúrate de haber instalado el paquete NuGet: BCrypt.Net-Next
 using BCrypt.Net;
 
 namespace ITSM.Negocio
@@ -19,29 +18,20 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-        // =================================================================================
-        // 1. AUTENTICACIÓN Y SEGURIDAD (CON BCRYPT)
-        // =================================================================================
-
         public async Task<Usuario?> LoginAsync(string username, string password)
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
                 return null;
 
-            // Buscamos usuario activo (Estado = 1) e incluimos su Rol para validar permisos
             var usuario = await _contexto.Usuarios
                 .Include(u => u.Rol)
                 .FirstOrDefaultAsync(u => u.Username == username && u.Estado == 1);
 
-            // Si no existe o está inactivo
             if (usuario == null) return null;
 
-            // Verificamos contraseña usando BCrypt
-            // Verify compara el texto plano con el hash almacenado
             bool esValido = false;
             try
             {
-                // Manejo de errores por si hay hashes antiguos no compatibles o nulos
                 if (!string.IsNullOrEmpty(usuario.PasswordHash))
                 {
                     esValido = BCrypt.Net.BCrypt.Verify(password, usuario.PasswordHash);
@@ -65,19 +55,15 @@ namespace ITSM.Negocio
             var usuario = await _contexto.Usuarios.FindAsync(idUsuario);
             if (usuario == null) throw new Exception("El usuario no existe.");
 
-            // Hasheamos la nueva contraseña antes de guardar
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(nuevaContrasena);
             await _contexto.SaveChangesAsync();
         }
-
-        // =================================================================================
-        // 2. GESTIÓN DE USUARIOS (CRUD COMPLETO)
-        // =================================================================================
 
         public async Task<List<Usuario>> ListarUsuariosAsync()
         {
             return await _contexto.Usuarios
                 .Include(u => u.Rol)
+                .Include(u => u.Area)
                 .AsNoTracking()
                 .OrderBy(u => u.Apellidos)
                 .ToListAsync();
@@ -87,12 +73,12 @@ namespace ITSM.Negocio
         {
             return await _contexto.Usuarios
                 .Include(u => u.Rol)
+                .Include(u => u.Area)
                 .FirstOrDefaultAsync(u => u.IdUsuario == id);
         }
 
         public async Task RegistrarUsuarioAsync(Usuario usuario, string passwordPlano)
         {
-            // 1. Validaciones de Negocio
             if (await ExisteUsernameAsync(usuario.Username))
                 throw new Exception($"El nombre de usuario '{usuario.Username}' ya está en uso.");
 
@@ -102,21 +88,15 @@ namespace ITSM.Negocio
             if (await ExisteCorreoAsync(usuario.Correo))
                 throw new Exception($"El correo '{usuario.Correo}' ya está registrado.");
 
-            // 2. Seguridad: Hashear contraseña
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordPlano);
-
-            // 3. Datos por defecto
-            usuario.Estado = 1; // Activo
+            usuario.Estado = 1;
             usuario.FechaBaja = null;
             usuario.FechaCreacion = DateTime.Now;
-
-            // Estandarización de texto
             usuario.Nombres = usuario.Nombres.ToUpper();
             usuario.Apellidos = usuario.Apellidos.ToUpper();
             usuario.Username = usuario.Username.ToLower().Trim();
             usuario.Correo = usuario.Correo.ToLower().Trim();
 
-            // 4. Guardar
             _contexto.Usuarios.Add(usuario);
             await _contexto.SaveChangesAsync();
         }
@@ -126,14 +106,12 @@ namespace ITSM.Negocio
             var usuarioDb = await _contexto.Usuarios.FindAsync(usuario.IdUsuario);
             if (usuarioDb == null) throw new Exception("El usuario que intenta editar no existe.");
 
-            // Validaciones de duplicados (Excluyendo al propio usuario)
             if (await _contexto.Usuarios.AnyAsync(u => u.Username == usuario.Username && u.IdUsuario != usuario.IdUsuario))
                 throw new Exception($"El usuario '{usuario.Username}' ya pertenece a otra persona.");
 
             if (await _contexto.Usuarios.AnyAsync(u => u.Dni == usuario.Dni && u.IdUsuario != usuario.IdUsuario))
                 throw new Exception($"El DNI '{usuario.Dni}' ya pertenece a otra persona.");
 
-            // Actualizar campos permitidos (NO tocamos el PasswordHash aquí)
             usuarioDb.Nombres = usuario.Nombres.ToUpper();
             usuarioDb.Apellidos = usuario.Apellidos.ToUpper();
             usuarioDb.Dni = usuario.Dni;
@@ -143,11 +121,10 @@ namespace ITSM.Negocio
             usuarioDb.IdArea = usuario.IdArea;
             usuarioDb.Cargo = usuario.Cargo;
 
-            // Manejo de Estado (Baja/Reactivación)
             if (usuario.Estado != usuarioDb.Estado)
             {
                 usuarioDb.Estado = usuario.Estado;
-                if (usuario.Estado == 0) // Si se está desactivando
+                if (usuario.Estado == 0)
                     usuarioDb.FechaBaja = DateTime.Now;
                 else
                     usuarioDb.FechaBaja = null;
@@ -161,15 +138,10 @@ namespace ITSM.Negocio
             var usuario = await _contexto.Usuarios.FindAsync(idUsuario);
             if (usuario == null) throw new Exception("Usuario no encontrado.");
 
-            usuario.Estado = 0; // Inactivo
+            usuario.Estado = 0;
             usuario.FechaBaja = DateTime.Now;
-
             await _contexto.SaveChangesAsync();
         }
-
-        // =================================================================================
-        // 3. MÉTODOS AUXILIARES
-        // =================================================================================
 
         public async Task<bool> ExisteUsernameAsync(string username)
         {
@@ -196,52 +168,9 @@ namespace ITSM.Negocio
             return await _contexto.Areas.OrderBy(a => a.Nombre).ToListAsync();
         }
 
-        // =================================================================================
-        // 4. NUEVOS MÉTODOS DE UTILIDAD Y REPARACIÓN
-        // =================================================================================
-
         public async Task<Usuario?> ObtenerPorUsernameAsync(string username)
         {
             return await _contexto.Usuarios.FirstOrDefaultAsync(u => u.Username == username);
-        }
-
-        public async Task<string> AutoRepararTablaUsuariosAsync()
-        {
-            var reporte = new List<string>();
-
-            // 1. Intentar agregar FECHA_CREACION
-            try
-            {
-                // Comando Oracle para agregar columna si no existe
-                string sql = "ALTER TABLE SEG_USUARIOS ADD (FECHA_CREACION TIMESTAMP DEFAULT CURRENT_TIMESTAMP)";
-                await _contexto.Database.ExecuteSqlRawAsync(sql);
-                reporte.Add("ÉXITO: Columna FECHA_CREACION creada.");
-            }
-            catch (Exception ex)
-            {
-                // ORA-01430: column being added already exists in table
-                if (ex.Message.Contains("ORA-01430"))
-                    reporte.Add("INFO: La columna FECHA_CREACION ya existía.");
-                else
-                    reporte.Add($"ERROR FECHA_CREACION: {ex.Message}");
-            }
-
-            // 2. Intentar agregar FECHA_BAJA (Por seguridad)
-            try
-            {
-                string sql = "ALTER TABLE SEG_USUARIOS ADD (FECHA_BAJA TIMESTAMP NULL)";
-                await _contexto.Database.ExecuteSqlRawAsync(sql);
-                reporte.Add("ÉXITO: Columna FECHA_BAJA creada.");
-            }
-            catch (Exception ex)
-            {
-                if (ex.Message.Contains("ORA-01430"))
-                    reporte.Add("INFO: La columna FECHA_BAJA ya existía.");
-                else
-                    reporte.Add($"ERROR FECHA_BAJA: {ex.Message}");
-            }
-
-            return string.Join("\n", reporte);
         }
     }
 }

@@ -14,7 +14,9 @@ namespace ITSM.Negocio
             _context = context;
         }
 
-        // --- GESTIÓN DE TICKETS ---
+        // ----------------------------
+        // GESTIÓN DE TICKETS
+        // ----------------------------
 
         public async Task<List<Ticket>> ListarTicketsAsync()
         {
@@ -56,14 +58,9 @@ namespace ITSM.Negocio
 
         public async Task RegistrarTicketAsync(Ticket ticket)
         {
-            // CORRECCIÓN CS8602: Declaramos explícitamente que puede ser nulo
             Usuario? usuario = await _context.Usuarios.FindAsync(ticket.IdSolicitante);
-
             if (usuario == null || usuario.Estado != 1)
                 throw new Exception("El solicitante no existe o está inactivo.");
-
-            // Lógica de Negocio: Calcular Prioridad basada en Matriz ITIL
-            // ticket.IdPrioridad = CalcularPrioridad(ticket.IdImpacto, ticket.IdUrgencia);
 
             ticket.FechaCreacion = DateTime.Now;
             ticket.IdEstado = 1; // Abierto
@@ -77,14 +74,37 @@ namespace ITSM.Negocio
             var ticketDb = await _context.Tickets.FindAsync(ticket.IdTicket);
             if (ticketDb == null) throw new Exception("Ticket no encontrado");
 
+            int estadoAnterior = ticketDb.IdEstado;
+            int estadoNuevo = ticket.IdEstado;
+
             ticketDb.IdEstado = ticket.IdEstado;
             ticketDb.IdEspecialista = ticket.IdEspecialista;
             ticketDb.FechaAsignacion = ticket.FechaAsignacion;
             ticketDb.FechaCierre = ticket.FechaCierre;
             ticketDb.IdPrioridad = ticket.IdPrioridad;
             ticketDb.NotasCierre = ticket.NotasCierre;
+            ticketDb.IdActivoAfectado = ticket.IdActivoAfectado;
+
+            const int ESTADO_CERRADO = 4; // ajusta al ID real de "Cerrado/Resuelto"
+
+            if (estadoNuevo == ESTADO_CERRADO)
+            {
+                if (ticketDb.IdEspecialista == null)
+                    throw new Exception("No se puede cerrar el ticket sin especialista asignado.");
+
+                if (ticketDb.IdSolicitante == 0)
+                    throw new Exception("No se puede cerrar el ticket sin solicitante.");
+
+                // Si quieres obligar activo afectado, descomenta:
+                // if (ticketDb.IdActivoAfectado == null)
+                //     throw new Exception("Debe vincular un activo afectado antes de cerrar el ticket.");
+
+                ticketDb.FechaCierre ??= DateTime.Now;
+            }
 
             await _context.SaveChangesAsync();
+
+            // Aquí se puede registrar en HD_TICKET_HISTORIAL más adelante
         }
 
         public async Task AsignarTicketAsync(int idTicket, int idEspecialista)
@@ -99,7 +119,9 @@ namespace ITSM.Negocio
             await _context.SaveChangesAsync();
         }
 
-        // --- GESTIÓN DE DETALLES (COMENTARIOS) ---
+        // ----------------------------
+        // DETALLES (COMENTARIOS)
+        // ----------------------------
 
         public async Task AgregarComentarioAsync(TicketDetalle detalle)
         {
@@ -117,11 +139,15 @@ namespace ITSM.Negocio
                 .ToListAsync();
         }
 
-        // --- CATÁLOGOS AUXILIARES ---
+        // ----------------------------
+        // CATÁLOGOS AUXILIARES
+        // ----------------------------
 
         public async Task<List<Categoria>> ListarCategoriasAsync()
         {
-            return await _context.Categorias.Where(c => c.Activo == 1).ToListAsync();
+            return await _context.Categorias
+                .Where(c => c.Activo == 1)
+                .ToListAsync();
         }
 
         public async Task<List<Prioridad>> ListarPrioridadesAsync()
@@ -131,10 +157,13 @@ namespace ITSM.Negocio
 
         public async Task<List<EstadoTicket>> ListarEstadosAsync()
         {
+            // Ajustado al DbSet real en ContextoBD (Estados)
             return await _context.Estados.ToListAsync();
         }
 
-        // --- DASHBOARD & KPIS ---
+        // ----------------------------
+        // DASHBOARD & KPIS
+        // ----------------------------
 
         public async Task<DashboardKpi> ObtenerKpisAsync()
         {

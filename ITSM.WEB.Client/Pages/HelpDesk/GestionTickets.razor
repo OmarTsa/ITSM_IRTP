@@ -1,0 +1,252 @@
+@page "/helpdesk/gestion"
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@using MudBlazor
+@inject ITicketServicio _ticketServicio
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Gestión de Tickets - ITSM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">
+                <b>Gestión de Tickets OTIC</b>
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Panel de administración de todos los tickets del sistema
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="CargarTickets">
+            Actualizar
+        </MudButton>
+    </div>
+
+    @if (listaTickets == null)
+    {
+        <div class="d-flex justify-center align-center" style="min-height: 400px;">
+            <div class="text-center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body1" Class="mt-4" Color="Color.Secondary">
+                    Cargando tickets del sistema...
+                </MudText>
+            </div>
+        </div>
+    }
+    else if (listaTickets.Count == 0)
+    {
+        <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.Inbox"
+                     Size="Size.Large"
+                     Color="Color.Secondary"
+                     Style="font-size: 80px; opacity: 0.5;" />
+            <MudText Typo="Typo.h6" Class="mt-4" Color="Color.Secondary">
+                No se encontraron tickets registrados en el sistema
+            </MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Href="/helpdesk/nuevo"
+                       Class="mt-4"
+                       StartIcon="@Icons.Material.Filled.Add">
+                Crear Primer Ticket
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Elevation="4" Style="border-radius: 12px; overflow: hidden;">
+            <MudTable Items="@listaTickets"
+                      Hover="true"
+                      Striped="true"
+                      Dense="false"
+                      Filter="new Func<Ticket, bool>(FiltrarTickets)"
+                      @bind-SelectedItem="ticketSeleccionado">
+
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Listado de Tickets</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="textoBusqueda"
+                                  Placeholder="Buscar tickets..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0"
+                                  Immediate="true"
+                                  DebounceInterval="300">
+                    </MudTextField>
+                </ToolBarContent>
+
+                <HeaderContent>
+                    <MudTh Style="font-weight: bold;">ID</MudTh>
+                    <MudTh Style="font-weight: bold;">Fecha Creación</MudTh>
+                    <MudTh Style="font-weight: bold;">Solicitante</MudTh>
+                    <MudTh Style="font-weight: bold;">Título</MudTh>
+                    <MudTh Style="font-weight: bold;">Prioridad</MudTh>
+                    <MudTh Style="font-weight: bold;">Estado</MudTh>
+                    <MudTh Style="font-weight: bold;">Acciones</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="ID">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default">
+                            #@context.IdTicket
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Fecha">
+                        @context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                    </MudTd>
+                    <MudTd DataLabel="Solicitante">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                            <span>@(context.Solicitante?.NombreCompleto ?? "Sin Solicitante")</span>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Título">
+                        <MudText Typo="Typo.body2" Style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            @context.Titulo
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Prioridad">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Variant="Variant.Text"
+                                 Style="@($"color:{context.Prioridad?.Color ?? "#000"}; border: 1px solid {context.Prioridad?.Color ?? "#ccc"}; font-weight: bold;")">
+                            @context.Prioridad?.Nombre
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Estado">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@ObtenerColorEstado(context.IdEstado)"
+                                 Variant="Variant.Filled">
+                            @context.Estado?.Nombre
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudTooltip Text="Ver Detalles / Gestionar">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => IrADetalle(context.IdTicket))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Editar Estado">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           Size="Size.Small"
+                                           OnClick="@(() => EditarTicket(context.IdTicket))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }"
+                                   InfoFormat="{first_item}-{last_item} de {all_items}"
+                                   RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+
+        <!-- Estadísticas Rápidas -->
+        <MudGrid Class="mt-4">
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">Total de Tickets</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaTickets.Count</b></MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">Abiertos</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaTickets.Count(t => t.IdEstado == 1)</b></MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">En Proceso</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaTickets.Count(t => t.IdEstado == 2)</b></MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">Resueltos</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaTickets.Count(t => t.IdEstado == 4)</b></MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private List<Ticket>? listaTickets;
+    private Ticket? ticketSeleccionado;
+    private string textoBusqueda = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTickets();
+    }
+
+    private async Task CargarTickets()
+    {
+        try
+        {
+            listaTickets = await _ticketServicio.ListarTickets();
+
+            if (listaTickets == null || !listaTickets.Any())
+            {
+                Snackbar.Add("No hay tickets para mostrar", Severity.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar tickets: {ex.Message}", Severity.Error);
+            listaTickets = new List<Ticket>();
+        }
+    }
+
+    private void IrADetalle(int id)
+    {
+        Navigation.NavigateTo($"/helpdesk/ticket/{id}");
+    }
+
+    private void EditarTicket(int id)
+    {
+        Navigation.NavigateTo($"/helpdesk/ticket/{id}");
+    }
+
+    private Color ObtenerColorEstado(int idEstado)
+    {
+        return idEstado switch
+        {
+            1 => Color.Success,   // Abierto
+            2 => Color.Warning,   // En Proceso
+            3 => Color.Info,      // Por Proveedor
+            4 => Color.Primary,   // Resuelto
+            5 => Color.Dark,      // Cerrado
+            _ => Color.Default
+        };
+    }
+
+    private bool FiltrarTickets(Ticket ticket)
+    {
+        if (string.IsNullOrWhiteSpace(textoBusqueda))
+            return true;
+
+        if (ticket.Titulo?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (ticket.Solicitante?.NombreCompleto?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (ticket.IdTicket.ToString().Contains(textoBusqueda))
+            return true;
+
+        return false;
+    }
+}

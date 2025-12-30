@@ -1,0 +1,61 @@
+﻿@using ITSM.WEB.Client.Auth
+@using ITSM.WEB.Client.Servicios
+@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@inject IServiceProvider ProveedorServicios
+@inject NavigationManager _navigation
+
+<MudPaper Width="250px" Class="d-inline-flex py-3" Elevation="0" Style="background-color: transparent;">
+    <MudNavMenu Class="mud-width-full">
+
+        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-2"><b>SISTEMA</b></MudText>
+        <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>OPERACIONES</b></MudText>
+
+                <MudNavGroup Title="Mesa de Ayuda" Icon="@Icons.Material.Filled.SupportAgent" Expanded="true">
+                    <MudNavLink Href="/helpdesk/nuevo" Icon="@Icons.Material.Filled.AddCircleOutline">Nueva Solicitud</MudNavLink>
+                    <MudNavLink Href="/helpdesk/mistickets" Icon="@Icons.Material.Filled.ViewList">Mis Solicitudes</MudNavLink>
+                </MudNavGroup>
+
+                <MudNavGroup Title="Activos TI" Icon="@Icons.Material.Filled.Devices" Expanded="false">
+                    <MudNavLink Href="/inventario" Icon="@Icons.Material.Filled.Computer">Inventario</MudNavLink>
+                </MudNavGroup>
+
+                <MudDivider Class="my-4" />
+
+                <MudNavLink OnClick="@CerrarSesion" Icon="@Icons.Material.Filled.Logout" IconColor="Color.Error">
+                    Cerrar Sesión
+                </MudNavLink>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="ADMINISTRADOR">
+            <Authorized>
+                <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="ml-4 mb-2 mt-4"><b>CONFIGURACIÓN</b></MudText>
+                <MudNavGroup Title="Administración" Icon="@Icons.Material.Filled.Settings" Expanded="false">
+                    <MudNavLink Href="/admin/usuarios" Icon="@Icons.Material.Filled.People">Gestión Usuarios</MudNavLink>
+                    <MudNavLink Href="/admin/tipos-activo" Icon="@Icons.Material.Filled.Category">Tipos de Bienes</MudNavLink>
+                </MudNavGroup>
+            </Authorized>
+        </AuthorizeView>
+
+    </MudNavMenu>
+</MudPaper>
+
+@code {
+    private async Task CerrarSesion()
+    {
+        // Obtener servicio dinámicamente para evitar problemas de pre-rendering
+        var servicioSesion = ProveedorServicios.GetService<IServicioSesion>();
+
+        if (servicioSesion != null)
+        {
+            await servicioSesion.CerrarSesion();
+        }
+
+        _navigation.NavigateTo("/login", true);
+    }
+}

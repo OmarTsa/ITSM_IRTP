@@ -1,56 +1,199 @@
 ﻿@page "/inventario"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@inject InventarioServicio _inventarioServicio
+@inject IInventarioServicio _inventarioServicio
 @inject NavigationManager _nav
+@inject ISnackbar Snackbar
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <MudText Typo="Typo.h5">Inventario de Activos</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/inventario/nuevo">Nuevo Activo</MudButton>
+<PageTitle>Inventario de Activos - ITSM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">
+                <b>Inventario de Activos TI</b>
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Gestión y control de equipos tecnológicos
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Href="/inventario/nuevo">
+            Nuevo Activo
+        </MudButton>
     </div>
 
     @if (listaActivos == null)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <div class="d-flex justify-center align-center" style="min-height: 400px;">
+            <div class="text-center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body1" Class="mt-4" Color="Color.Secondary">
+                    Cargando inventario de activos...
+                </MudText>
+            </div>
+        </div>
+    }
+    else if (listaActivos.Count == 0)
+    {
+        <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.DevicesOther"
+                     Size="Size.Large"
+                     Color="Color.Secondary"
+                     Style="font-size: 80px; opacity: 0.5;" />
+            <MudText Typo="Typo.h6" Class="mt-4" Color="Color.Secondary">
+                No hay activos registrados en el inventario
+            </MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Href="/inventario/nuevo"
+                       Class="mt-4"
+                       StartIcon="@Icons.Material.Filled.Add">
+                Registrar Primer Activo
+            </MudButton>
+        </MudPaper>
     }
     else
     {
-        <MudTable Items="@listaActivos" Hover="true" Filter="new Func<Activo, bool>(FilterFunc)">
-            <ToolBarContent>
-                <MudText Typo="Typo.h6">Equipos</MudText>
-                <MudSpacer />
-                <MudTextField @bind-Value="searchString" Placeholder="Buscar..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-            </ToolBarContent>
-            <HeaderContent>
-                <MudTh>Código Pat.</MudTh>
-                <MudTh>Tipo</MudTh>
-                <MudTh>Marca/Modelo</MudTh>
-                <MudTh>Usuario Asignado</MudTh>
-                <MudTh>Acciones</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Código">@context.CodigoPatrimonial</MudTd>
-                <MudTd DataLabel="Tipo">@context.TipoActivo?.Nombre</MudTd>
-                <MudTd DataLabel="Equipo">@context.Marca @context.Modelo</MudTd>
-                <MudTd DataLabel="Usuario">@(context.UsuarioAsignado?.NombreCompleto ?? "Sin Asignar")</MudTd>
-                <MudTd DataLabel="Acciones">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Href="@($"/inventario/editar/{context.IdActivo}")" />
-                </MudTd>
-            </RowTemplate>
-            <PagerContent>
-                <MudTablePager />
-            </PagerContent>
-        </MudTable>
+        <MudPaper Elevation="4" Style="border-radius: 12px; overflow: hidden;">
+            <MudTable Items="@listaActivos"
+                      Hover="true"
+                      Striped="true"
+                      Dense="false"
+                      Filter="new Func<Activo, bool>(FilterFunc)">
+
+                <ToolBarContent>
+                    <MudIcon Icon="@Icons.Material.Filled.Computer" Class="mr-2" />
+                    <MudText Typo="Typo.h6">Equipos Registrados</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="searchString"
+                                  Placeholder="Buscar activos..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0"
+                                  Immediate="true"
+                                  DebounceInterval="300">
+                    </MudTextField>
+                </ToolBarContent>
+
+                <HeaderContent>
+                    <MudTh Style="font-weight: bold;">Código Patrimonial</MudTh>
+                    <MudTh Style="font-weight: bold;">Tipo de Equipo</MudTh>
+                    <MudTh Style="font-weight: bold;">Marca / Modelo</MudTh>
+                    <MudTh Style="font-weight: bold;">Serie</MudTh>
+                    <MudTh Style="font-weight: bold;">Usuario Asignado</MudTh>
+                    <MudTh Style="font-weight: bold;">Estado</MudTh>
+                    <MudTh Style="font-weight: bold;">Acciones</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Código">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                            @context.CodigoPatrimonial
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Tipo">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Devices" Size="Size.Small" Class="mr-2" />
+                            <span>@context.TipoActivo?.Nombre</span>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Equipo">
+                        <MudText Typo="Typo.body2">
+                            <b>@context.Marca</b> @context.Modelo
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Serie">@context.NumeroSerie</MudTd>
+                    <MudTd DataLabel="Usuario">
+                        @if (context.UsuarioAsignado != null)
+                        {
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" Color="Color.Success" />
+                                <span>@context.UsuarioAsignado.NombreCompleto</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                Sin Asignar
+                            </MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Estado">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(context.IdEstado == 1 ? Color.Success : context.IdEstado == 2 ? Color.Info : context.IdEstado == 3 ? Color.Warning : Color.Default)"
+                                 Variant="Variant.Filled">
+                            @(context.IdEstado == 1 ? "Disponible" : context.IdEstado == 2 ? "En Uso" : context.IdEstado == 3 ? "Mantenimiento" : "Fuera de Servicio")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudTooltip Text="Editar Activo">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           Href="@($"/inventario/editar/{context.IdActivo}")" />
+                        </MudTooltip>
+                        <MudTooltip Text="Ver Detalles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                           Color="Color.Info"
+                                           Size="Size.Small"
+                                           OnClick="@(() => VerDetalle(context.IdActivo))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }"
+                                   InfoFormat="{first_item}-{last_item} de {all_items}"
+                                   RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+
+        <!-- Estadísticas -->
+        <MudGrid Class="mt-4">
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid #594AE2;">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total de Activos</MudText>
+                    <MudText Typo="Typo.h4" Color="Color.Primary"><b>@listaActivos.Count</b></MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid #5CB85C;">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Asignados</MudText>
+                    <MudText Typo="Typo.h4" Color="Color.Success">
+                        <b>@listaActivos.Count(a => a.IdUsuarioAsignado != null)</b>
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4" Elevation="2" Style="border-left: 4px solid #FF9800;">
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Disponibles</MudText>
+                    <MudText Typo="Typo.h4" Color="Color.Warning">
+                        <b>@listaActivos.Count(a => a.IdUsuarioAsignado == null)</b>
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
     }
 </MudContainer>
 
 @code {
     private List<Activo>? listaActivos;
-    private string searchString = "";
+    private string searchString = string.Empty;
 
     protected override async Task OnInitializedAsync()
+    {
+        await CargarActivos();
+    }
+
+    private async Task CargarActivos()
     {
         try
         {
@@ -58,19 +201,39 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error cargando inventario: {ex.Message}");
+            Snackbar.Add($"Error al cargar inventario: {ex.Message}", Severity.Error);
+            listaActivos = new List<Activo>();
         }
     }
 
-    private bool FilterFunc(Activo element) => FilterFunc1(element, searchString);
-
-    private bool FilterFunc1(Activo element, string searchString)
+    private bool FilterFunc(Activo element)
     {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if (element.CodigoPatrimonial?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (element.Marca?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (element.TipoActivo?.Nombre?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
-        if (element.UsuarioAsignado?.NombreCompleto?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true) return true;
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        if (element.CodigoPatrimonial?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (element.Marca?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (element.Modelo?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (element.NumeroSerie?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (element.TipoActivo?.Nombre?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (element.UsuarioAsignado?.NombreCompleto?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
         return false;
+    }
+
+    private void VerDetalle(int idActivo)
+    {
+        Snackbar.Add("Función de detalle en desarrollo", Severity.Info);
     }
 }

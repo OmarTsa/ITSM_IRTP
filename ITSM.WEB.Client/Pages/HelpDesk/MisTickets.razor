@@ -1,15 +1,20 @@
 ﻿@page "/helpdesk/mistickets"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
+@using System.Security.Claims
 @inject TicketServicio _ticketServicio
 @inject NavigationManager _nav
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthProvider
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <MudText Typo="Typo.h5">Mis Tickets</MudText>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="/helpdesk/nuevo">
-            Nuevo Ticket
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Href="/helpdesk/nuevo">
+            NUEVO TICKET
         </MudButton>
     </div>
 
@@ -17,37 +22,35 @@
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
     }
-    else if (listaTickets.Count == 0)
+    else if (!listaTickets.Any())
     {
-        <MudAlert Severity="Severity.Info">No tienes tickets registrados.</MudAlert>
+        <MudAlert Severity="Severity.Info">
+            Aún no tienes tickets registrados.
+        </MudAlert>
     }
     else
     {
-        <MudTable Items="@listaTickets" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="@listaTickets" Hover="true">
             <HeaderContent>
-                <MudTh>ID</MudTh>
-                <MudTh>Fecha</MudTh>
+                <MudTh>Código</MudTh>
                 <MudTh>Título</MudTh>
-                <MudTh>Categoría</MudTh>
                 <MudTh>Estado</MudTh>
-                <MudTh>Activo Afectado</MudTh>
+                <MudTh>Prioridad</MudTh>
+                <MudTh>Fecha Creación</MudTh>
                 <MudTh>Acciones</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="ID">@context.IdTicket</MudTd>
-                <MudTd DataLabel="Fecha">@context.FechaCreacion.ToShortDateString()</MudTd>
+                <MudTd DataLabel="Código">@context.IdTicket</MudTd>
                 <MudTd DataLabel="Título">@context.Titulo</MudTd>
-                <MudTd DataLabel="Categoría">@context.Categoria?.Nombre</MudTd>
-                <MudTd DataLabel="Estado">
-                    <MudChip T="string" Color="@GetColorEstado(context.IdEstado)" Size="Size.Small">
-                        @context.Estado?.Nombre
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="Activo Afectado">
-                    @(context.ActivoAfectado != null ? context.ActivoAfectado.CodigoPatrimonial : "-")
+                <MudTd DataLabel="Estado">@context.Estado?.Nombre</MudTd>
+                <MudTd DataLabel="Prioridad">@context.Prioridad?.Nombre</MudTd>
+                <MudTd DataLabel="Fecha">
+                    @context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
                 </MudTd>
                 <MudTd DataLabel="Acciones">
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small" Color="Color.Info" OnClick="@(() => VerDetalle(context.IdTicket))">
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Primary"
+                               OnClick="@(() => VerDetalle(context.IdTicket))">
                         Ver
                     </MudButton>
                 </MudTd>
@@ -61,28 +64,36 @@
 
 @code {
     private List<Ticket>? listaTickets;
+    private int idUsuarioActual;
 
     protected override async Task OnInitializedAsync()
     {
-        // Asegúrate de que TicketServicio tenga el método ListarMisTickets
-        listaTickets = await _ticketServicio.ListarMisTickets();
-    }
-
-    private void VerDetalle(int id)
-    {
-        _nav.NavigateTo($"/helpdesk/ticket/{id}");
-    }
-
-    private Color GetColorEstado(int idEstado)
-    {
-        return idEstado switch
+        try
         {
-            1 => Color.Success, // Abierto
-            2 => Color.Warning, // En Proceso
-            3 => Color.Info,    // Por Proveedor
-            4 => Color.Primary, // Resuelto
-            5 => Color.Dark,    // Cerrado
-            _ => Color.Default
-        };
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            // Tomamos el id desde el claim estándar NameIdentifier (nameid en el JWT)
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (idClaim == null || !int.TryParse(idClaim.Value, out idUsuarioActual))
+            {
+                Snackbar.Add("No se pudo obtener el usuario actual", Severity.Error);
+                listaTickets = new List<Ticket>();
+                return;
+            }
+
+            listaTickets = await _ticketServicio.ListarMisTickets(idUsuarioActual);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar mis tickets: {ex.Message}", Severity.Error);
+            listaTickets = new List<Ticket>();
+        }
+    }
+
+    private void VerDetalle(int idTicket)
+    {
+        _nav.NavigateTo($"/helpdesk/ticket/{idTicket}");
     }
 }

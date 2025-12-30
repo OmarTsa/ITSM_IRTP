@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -6,11 +7,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\ITSM.Datos\ITSM.Datos.csproj" />
 		<ProjectReference Include="..\ITSM.Entidades\ITSM.Entidades.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
-	</ItemGroup>
 </Project>
