@@ -4,11 +4,29 @@ using Microsoft.AspNetCore.Components.Authorization;
 using ITSM.WEB.Client.Auth;
 using ITSM.WEB.Client.Servicios;
 using Blazored.LocalStorage;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var constructor = WebAssemblyHostBuilder.CreateDefault(args);
 
-// ===== BLAZORED LOCALSTORAGE =====
-constructor.Services.AddBlazoredLocalStorage();
+// ===== CONFIGURACIÓN JSON GLOBAL =====
+var jsonOptions = new JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    AllowTrailingCommas = true,
+    ReadCommentHandling = JsonCommentHandling.Skip
+};
+
+// ===== BLAZORED LOCALSTORAGE CON CONFIGURACIÓN JSON =====
+constructor.Services.AddBlazoredLocalStorage(config =>
+{
+    config.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    config.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    config.JsonSerializerOptions.AllowTrailingCommas = true;
+    config.JsonSerializerOptions.ReadCommentHandling = JsonCommentHandling.Skip;
+});
 
 // ===== MANEJADOR DE AUTORIZACIÓN PERSONALIZADO =====
 constructor.Services.AddScoped<ManejadorAutorizacionPersonalizado>();
@@ -23,7 +41,7 @@ constructor.Services.AddHttpClient("ITSM.WEB.API", cliente =>
 .AddHttpMessageHandler<ManejadorAutorizacionPersonalizado>();
 
 // Cliente HTTP por defecto (usa la configuración anterior)
-constructor.Services.AddScoped<HttpClient>(sp =>
+constructor.Services.AddScoped(sp =>
 {
     var fabricaClienteHttp = sp.GetRequiredService<IHttpClientFactory>();
     return fabricaClienteHttp.CreateClient("ITSM.WEB.API");
@@ -39,13 +57,12 @@ constructor.Services.AddMudServices(configuracion =>
 
 // ===== AUTENTICACIÓN Y AUTORIZACIÓN =====
 constructor.Services.AddAuthorizationCore();
-constructor.Services.AddCascadingAuthenticationState();
 constructor.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
 
 // ===== SERVICIOS DE NEGOCIO =====
 constructor.Services.AddScoped<IServicioSesion, ServicioSesion>();
-constructor.Services.AddScoped<ITicketServicio, TicketServicio>();
 constructor.Services.AddScoped<IInventarioServicio, InventarioServicio>();
+constructor.Services.AddScoped<ITicketServicio, TicketServicio>();
 constructor.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
 constructor.Services.AddScoped<IDashboardServicio, DashboardServicio>();
 
@@ -56,7 +73,6 @@ Console.WriteLine("=====================================");
 Console.WriteLine($"🌐 URL Base: {constructor.HostEnvironment.BaseAddress}");
 Console.WriteLine($"🔧 Entorno: {constructor.HostEnvironment.Environment}");
 Console.WriteLine("✅ Servicios configurados correctamente");
-Console.WriteLine("✅ JWT Handler activado");
 Console.WriteLine("=====================================");
 
 await constructor.Build().RunAsync();

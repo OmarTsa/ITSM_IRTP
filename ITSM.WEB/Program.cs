@@ -1,63 +1,29 @@
-﻿using ITSM.WEB.Components;
-using ITSM.Datos;
-using Microsoft.EntityFrameworkCore;
-using ITSM.Negocio;
-using Microsoft.AspNetCore.ResponseCompression;
-using MudBlazor.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-// ===== NUEVOS USINGS NECESARIOS =====
-using Blazored.LocalStorage;
-using ITSM.WEB.Client.Servicios;
-using ITSM.WEB.Client.Auth;
+using MudBlazor.Services;
+using Microsoft.EntityFrameworkCore;
+using ITSM.Datos;
+using ITSM.Negocio;
+using ITSM.WEB.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== COMPRESIÓN =====
-builder.Services.AddResponseCompression(opts =>
-{
-    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
-        new[] { "application/octet-stream", "application/wasm" });
-    opts.EnableForHttps = true;
-});
+// =====================================================
+// CONFIGURACIÓN DE SERVICIOS
+// =====================================================
 
-// ===== BASE DE DATOS =====
+// DbContext para Oracle
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("OracleConnection")));
 
-// ===== CAPA DE NEGOCIO (Servidor) =====
-builder.Services.AddScoped<UsuarioNegocio>();
+// Servicios de negocio
 builder.Services.AddScoped<TicketNegocio>();
-builder.Services.AddScoped<ActivoNegocio>();
-builder.Services.AddScoped<ProyectoNegocio>();
-builder.Services.AddScoped<IProyectoServicio, ProyectoServicio>();
+builder.Services.AddScoped<UsuarioNegocio>();
 
-
-// ===== SERVICIOS DEL CLIENTE (Para Prerenderizado) =====
-// Estos son necesarios para que MainLayout y otros componentes carguen en el servidor
-builder.Services.AddBlazoredLocalStorage();
-
-// Configuración de HttpClient para el servidor (necesario para los servicios del cliente)
-builder.Services.AddScoped(sp => new HttpClient
-{
-    // Usa la URL base de tu propia API. Si cambias de puerto, ajusta esto.
-    // Durante el prerenderizado, el servidor se llama a sí mismo.
-    BaseAddress = new Uri(builder.Configuration["AppBaseUrl"] ?? "https://localhost:7192")
-});
-
-// Registrar los mismos servicios que tienes en el Cliente
-builder.Services.AddScoped<IServicioSesion, ServicioSesion>();
-builder.Services.AddScoped<ITicketServicio, TicketServicio>();
-builder.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
-builder.Services.AddScoped<IInventarioServicio, InventarioServicio>();
-builder.Services.AddScoped<IDashboardServicio, DashboardServicio>();
-
-
-// ===== AUTENTICACIÓN JWT =====
-var jwtKey = builder.Configuration["Jwt:Key"]!;
-var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
-var jwtAudience = builder.Configuration["Jwt:Audience"]!;
+// JWT
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("SecretKey no configurada");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -68,73 +34,60 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ClockSkew = TimeSpan.Zero
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
         };
     });
 
 builder.Services.AddAuthorization();
 
-// ===== CORS (Para desarrollo) =====
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowBlazorClient", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-
-// ===== SERVICIOS MVC Y BLAZOR =====
-builder.Services.AddHttpContextAccessor();
+// MudBlazor
 builder.Services.AddMudServices();
-builder.Services.AddRazorComponents()
-    .AddInteractiveWebAssemblyComponents();
 builder.Services.AddControllers();
 
-// ===== CONFIGURACIÓN DE APP =====
+// Blazor
+builder.Services.AddRazorComponents()
+    .AddInteractiveWebAssemblyComponents();
+
 var app = builder.Build();
 
-// ===== MIDDLEWARE =====
+// =====================================================
+// CONFIGURACIÓN DEL PIPELINE HTTP - ORDEN CORRECTO
+// =====================================================
+
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
-    app.UseCors("AllowBlazorClient");
 }
 else
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseResponseCompression();
-app.UseStaticFiles();
-app.UseAntiforgery();
 
-// ⚠️ ORDEN IMPORTANTE: Authentication ANTES de Authorization
+// IMPORTANTE: MapStaticAssets() ANTES de UseRouting()
+app.MapStaticAssets();
+
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
 
-app.MapStaticAssets();
-app.MapControllers();
-
+// ENDPOINTS AL FINAL
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(ITSM.WEB.Client._Imports).Assembly);
 
+app.MapControllers();
+
 Console.WriteLine("✅ Servidor ITSM iniciado correctamente");
-Console.WriteLine($"🔐 JWT configurado: Issuer={jwtIssuer}, Audience={jwtAudience}");
-Console.WriteLine($"🌐 CORS habilitado para desarrollo");
-
-// ✅ CONFIGURACIÓN CRÍTICA: Redireccionar rutas desconocidas a index.html
-// Esto permite que Blazor WASM maneje F5 y navegación directa
-app.MapFallbackToFile("index.html");
-
-// ✅ CONFIGURACIÓN CRÍTICA: Redirecciona rutas desconocidas a index.html
-app.MapFallbackToFile("index.html");
+Console.WriteLine($"🔑 JWT configurado: Issuer={jwtSettings["Issuer"]}, Audience={jwtSettings["Audience"]}");
+Console.WriteLine("🌐 CORS habilitado para desarrollo");
 
 app.Run();
+
+
+

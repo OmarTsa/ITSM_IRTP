@@ -74,13 +74,13 @@ namespace ITSM.WEB.Controllers
             };
 
             // Configuración JWT
-            var keyBytes = Encoding.UTF8.GetBytes(_config["Jwt:Key"]!);
+            var keyBytes = Encoding.UTF8.GetBytes(_config["JwtSettings:SecretKey"]!);
             var llave = new SymmetricSecurityKey(keyBytes);
             var credenciales = new SigningCredentials(llave, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                audience: _config["Jwt:Audience"],
+                issuer: _config["JwtSettings:Issuer"],
+                audience: _config["JwtSettings:Audience"],
                 claims: claims,
                 expires: DateTime.UtcNow.AddHours(8),
                 signingCredentials: credenciales
@@ -187,3 +187,5 @@ namespace ITSM.WEB.Controllers
         }
     }
 }
+
+

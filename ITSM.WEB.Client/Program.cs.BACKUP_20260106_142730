@@ -1,0 +1,115 @@
+﻿using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using MudBlazor.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using ITSM.WEB.Client.Auth;
+using ITSM.WEB.Client.Servicios;
+using Blazored.LocalStorage;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+var constructor = WebAssemblyHostBuilder.CreateDefault(args);
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURACIÓN JSON GLOBAL
+// ═══════════════════════════════════════════════════════════════
+
+var jsonOptions = new JsonSerializerOptions
+{
+    PropertyNameCaseInsensitive = true,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    AllowTrailingCommas = true,
+    ReadCommentHandling = JsonCommentHandling.Skip
+};
+
+// ═══════════════════════════════════════════════════════════════
+// BLAZORED LOCALSTORAGE
+// ═══════════════════════════════════════════════════════════════
+
+constructor.Services.AddBlazoredLocalStorage(config =>
+{
+    config.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    config.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    config.JsonSerializerOptions.AllowTrailingCommas = true;
+    config.JsonSerializerOptions.ReadCommentHandling = JsonCommentHandling.Skip;
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MANEJADOR DE AUTORIZACIÓN JWT
+// ═══════════════════════════════════════════════════════════════
+
+constructor.Services.AddScoped<ManejadorAutorizacionPersonalizado>();
+
+// ═══════════════════════════════════════════════════════════════
+// HTTPCLIENT POR DEFECTO CON JWT AUTOMÁTICO
+// SOLUCIÓN: Este HttpClient se inyecta en todos los servicios
+//           y tiene configurado el ManejadorAutorizacionPersonalizado
+// ═══════════════════════════════════════════════════════════════
+
+constructor.Services.AddScoped(sp =>
+{
+    Console.WriteLine("🔨 [HttpClient] Creando instancia con ManejadorAutorizacionPersonalizado");
+    
+    // Obtener el handler personalizado del contenedor DI
+    var handler = sp.GetRequiredService<ManejadorAutorizacionPersonalizado>();
+    
+    // Configurar el handler interno (necesario para DelegatingHandler)
+    handler.InnerHandler = new HttpClientHandler();
+    
+    // Crear HttpClient con el handler personalizado
+    var httpClient = new HttpClient(handler)
+    {
+        BaseAddress = new Uri(constructor.HostEnvironment.BaseAddress)
+    };
+    
+    httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+    httpClient.Timeout = TimeSpan.FromSeconds(30);
+    
+    Console.WriteLine($"✅ [HttpClient] Configurado con BaseAddress: {httpClient.BaseAddress}");
+    
+    return httpClient;
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MUDBLAZOR
+// ═══════════════════════════════════════════════════════════════
+
+constructor.Services.AddMudServices(configuracion =>
+{
+    configuracion.SnackbarConfiguration.PositionClass = MudBlazor.Defaults.Classes.Position.BottomRight;
+    configuracion.SnackbarConfiguration.MaxDisplayedSnackbars = 5;
+    configuracion.SnackbarConfiguration.VisibleStateDuration = 4000;
+});
+
+// ═══════════════════════════════════════════════════════════════
+// AUTENTICACIÓN Y AUTORIZACIÓN
+// ═══════════════════════════════════════════════════════════════
+
+constructor.Services.AddAuthorizationCore();
+constructor.Services.AddScoped<AuthenticationStateProvider, ProveedorAutenticacion>();
+
+// ═══════════════════════════════════════════════════════════════
+// SERVICIOS DE NEGOCIO
+// ═══════════════════════════════════════════════════════════════
+
+constructor.Services.AddScoped<IServicioSesion, ServicioSesion>();
+constructor.Services.AddScoped<IInventarioServicio, InventarioServicio>();
+constructor.Services.AddScoped<ITicketServicio, TicketServicio>();
+constructor.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
+constructor.Services.AddScoped<IDashboardServicio, DashboardServicio>();
+constructor.Services.AddScoped<IProyectoServicio, ProyectoServicio>();
+
+// ═══════════════════════════════════════════════════════════════
+// LOGS DE INICIALIZACIÓN
+// ═══════════════════════════════════════════════════════════════
+
+Console.WriteLine("════════════════════════════════════════════════");
+Console.WriteLine("🚀 ITSM - Cliente Blazor WebAssembly");
+Console.WriteLine("════════════════════════════════════════════════");
+Console.WriteLine($"🌐 URL Base: {constructor.HostEnvironment.BaseAddress}");
+Console.WriteLine($"🔧 Entorno: {constructor.HostEnvironment.Environment}");
+Console.WriteLine("✅ HttpClient configurado con JWT automático");
+Console.WriteLine("✅ Servicios configurados correctamente");
+Console.WriteLine("════════════════════════════════════════════════");
+
+await constructor.Build().RunAsync();

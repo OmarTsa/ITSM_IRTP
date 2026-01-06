@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,59 +18,35 @@ namespace ITSM.Negocio
             _contexto = contexto;
         }
 
-                public async Task<Usuario?> LoginAsync(string username, string password)
+        public async Task<Usuario?> LoginAsync(string username, string password)
         {
-            Console.WriteLine($"?? LoginAsync - username: '{username}', password: '{password ?? "NULL"}'");
-            Console.WriteLine($"?? username IsNullOrEmpty: {string.IsNullOrEmpty(username)}");
-            Console.WriteLine($"?? password IsNullOrEmpty: {string.IsNullOrEmpty(password)}");
-            
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-            {
-                Console.WriteLine("? Username o password vacÌo");
                 return null;
-            }
 
             var usuario = await _contexto.Usuarios
                 .Include(u => u.Rol)
                 .FirstOrDefaultAsync(u => u.Username == username && u.Estado == 1);
 
-            if (usuario == null)
-            {
-                Console.WriteLine("? Usuario NO encontrado en BD");
-                return null;
-            }
-
-            Console.WriteLine($"? Usuario encontrado: {usuario.Username}");
-            Console.WriteLine($"?? PasswordHash: {usuario.PasswordHash?.Substring(0, 20) ?? "NULL"}...");
-            Console.WriteLine($"?? Password recibido: '{password}'");
+            if (usuario == null) return null;
 
             bool esValido = false;
             try
             {
                 if (!string.IsNullOrEmpty(usuario.PasswordHash))
                 {
-                    Console.WriteLine("?? Ejecutando BCrypt.Verify...");
                     esValido = BCrypt.Net.BCrypt.Verify(password, usuario.PasswordHash);
-                    Console.WriteLine($"?? Resultado BCrypt: {esValido}");
-                }
-                else
-                {
-                    Console.WriteLine("? PasswordHash est· vacÌo");
                 }
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"? ExcepciÛn en BCrypt: {ex.Message}");
                 esValido = false;
             }
 
             if (esValido)
             {
-                Console.WriteLine("? ContraseÒa correcta, retornando usuario");
                 return usuario;
             }
 
-            Console.WriteLine("? ContraseÒa incorrecta");
             return null;
         }
 
@@ -108,21 +84,21 @@ namespace ITSM.Negocio
                 .ToListAsync();
 
             if (usuarioExistente.Any())
-                throw new Exception($"El nombre de usuario '{usuario.Username}' ya est· en uso.");
+                throw new Exception($"El nombre de usuario '{usuario.Username}' ya est√° en uso.");
 
             var dniExistente = await _contexto.Usuarios
                 .Where(u => u.Dni == usuario.Dni)
                 .ToListAsync();
 
             if (dniExistente.Any())
-                throw new Exception($"El DNI '{usuario.Dni}' ya est· registrado.");
+                throw new Exception($"El DNI '{usuario.Dni}' ya est√° registrado.");
 
             var correoExistente = await _contexto.Usuarios
                 .Where(u => u.Correo == usuario.Correo)
                 .ToListAsync();
 
             if (correoExistente.Any())
-                throw new Exception($"El correo '{usuario.Correo}' ya est· registrado.");
+                throw new Exception($"El correo '{usuario.Correo}' ya est√° registrado.");
 
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordPlano);
             usuario.Estado = 1;
@@ -156,9 +132,9 @@ namespace ITSM.Negocio
             if (usuariosConMismoDni.Any())
                 throw new Exception($"El DNI '{usuario.Dni}' ya pertenece a otra persona.");
 
-            Console.WriteLine($"?? [BACKEND] ActualizarUsuarioAsync - Usuario: {usuarioDb.Username}");
-            Console.WriteLine($"?? [BACKEND] Estado ANTES: {usuarioDb.Estado} | Estado NUEVO: {usuario.Estado}");
-            Console.WriteLine($"?? [BACKEND] FechaBaja ANTES: {usuarioDb.FechaBaja} | FechaBaja NUEVA: {usuario.FechaBaja}");
+            Console.WriteLine($"üìù [BACKEND] ActualizarUsuarioAsync - Usuario: {usuarioDb.Username}");
+            Console.WriteLine($"üìù [BACKEND] Estado ANTES: {usuarioDb.Estado} | Estado NUEVO: {usuario.Estado}");
+            Console.WriteLine($"üìù [BACKEND] FechaBaja ANTES: {usuarioDb.FechaBaja} | FechaBaja NUEVA: {usuario.FechaBaja}");
 
             usuarioDb.Nombres = usuario.Nombres.ToUpper();
             usuarioDb.Apellidos = usuario.Apellidos.ToUpper();
@@ -175,18 +151,18 @@ namespace ITSM.Negocio
                 if (usuario.Estado == 0)
                 {
                     usuarioDb.FechaBaja = DateTime.Now;
-                    Console.WriteLine($"?? [BACKEND] Usuario '{usuarioDb.Username}' DESACTIVADO - FechaBaja: {usuarioDb.FechaBaja}");
+                    Console.WriteLine($"üî¥ [BACKEND] Usuario '{usuarioDb.Username}' DESACTIVADO - FechaBaja: {usuarioDb.FechaBaja}");
                 }
                 else
                 {
                     usuarioDb.FechaBaja = null;
-                    Console.WriteLine($"?? [BACKEND] Usuario '{usuarioDb.Username}' REACTIVADO - FechaBaja: NULL");
+                    Console.WriteLine($"üü¢ [BACKEND] Usuario '{usuarioDb.Username}' REACTIVADO - FechaBaja: NULL");
                 }
             }
 
-            Console.WriteLine($"?? [BACKEND] Guardando cambios en la base de datos...");
+            Console.WriteLine($"üíæ [BACKEND] Guardando cambios en la base de datos...");
             await _contexto.SaveChangesAsync();
-            Console.WriteLine($"? [BACKEND] Usuario actualizado exitosamente");
+            Console.WriteLine($"‚úÖ [BACKEND] Usuario actualizado exitosamente");
         }
 
         public async Task DarDeBajaAsync(int idUsuario)
