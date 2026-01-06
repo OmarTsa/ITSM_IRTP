@@ -1,4 +1,4 @@
-ï»¿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ITSM.Entidades;
 
 namespace ITSM.Datos
@@ -7,29 +7,655 @@ namespace ITSM.Datos
     {
         public ContextoBD(DbContextOptions<ContextoBD> options) : base(options) { }
 
-        // --- SEGURIDAD ---
+        // ===================================================================
+        // SEGURIDAD
+        // ===================================================================
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Rol> Roles { get; set; }
         public DbSet<Area> Areas { get; set; }
+        public DbSet<Permiso> Permisos { get; set; }
+        public DbSet<PermisoRol> PermisosRol { get; set; }
+        public DbSet<IntentoAcceso> IntentosAcceso { get; set; }
+        public DbSet<IntentoLogin> IntentosLogin { get; set; }
 
-        // --- HELPDESK ---
+        // ===================================================================
+        // HELPDESK - TICKETS
+        // ===================================================================
         public DbSet<Ticket> Tickets { get; set; }
-        public DbSet<TicketDetalle> TicketDetalles { get; set; } // Agregado para que compile Negocio
-        public DbSet<EstadoTicket> Estados { get; set; } // Renombrado de 'EstadosTickets' a 'Estados'
+        public DbSet<TicketComentario> TicketComentarios { get; set; }
+        public DbSet<TicketAdjunto> TicketAdjuntos { get; set; }
+        public DbSet<TicketHistorial> TicketHistoriales { get; set; }
+        public DbSet<EstadoTicket> Estados { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
         public DbSet<Prioridad> Prioridades { get; set; }
+        public DbSet<Origen> Origenes { get; set; }
+        public DbSet<NivelValor> NivelesValor { get; set; }
+        public DbSet<MatrizPrioridad> MatricesPrioridad { get; set; }
+        public DbSet<CorrelativoTicket> CorrelativosTicket { get; set; }
+        public DbSet<BaseConocimiento> BaseConocimiento { get; set; }
 
-        // --- INVENTARIO ---
+        // ===================================================================
+        // INVENTARIO - ACTIVOS
+        // ===================================================================
         public DbSet<Activo> Activos { get; set; }
         public DbSet<TipoActivo> TiposActivo { get; set; }
+        public DbSet<Movimiento> Movimientos { get; set; }
+        public DbSet<CatalogoSoftware> CatalogoSoftware { get; set; }
+        public DbSet<Instalacion> Instalaciones { get; set; }
+
+        // ===================================================================
+        // PROYECTOS
+        // ===================================================================
+        public DbSet<Proyecto> Proyectos { get; set; }
+        public DbSet<Hito> Hitos { get; set; }
+        public DbSet<Entregable> Entregables { get; set; }
+
+        public DbSet<EstadoActivo> EstadosActivo { get; set; }
+
+
+        // ===================================================================
+        // CONTROL DE ACCESOS
+        // ===================================================================
+        public DbSet<TipoCuenta> TiposCuenta { get; set; }
+        public DbSet<AccesoUsuario> AccesosUsuario { get; set; }
+
+        // ===================================================================
+        // ADMINISTRACIÓN
+        // ===================================================================
+        public DbSet<Documento> Documentos { get; set; }
+        public DbSet<Locador> Locadores { get; set; }
+
+        // ===================================================================
+        // INCUMPLIMIENTOS
+        // ===================================================================
+        public DbSet<Incumplimiento> Incumplimientos { get; set; }
+
+        // ===================================================================
+        // PRESUPUESTO
+        // ===================================================================
+        public DbSet<Meta> Metas { get; set; }
+        public DbSet<Clasificador> Clasificadores { get; set; }
+        public DbSet<Ejecucion> Ejecuciones { get; set; }
+
+        // ===================================================================
+        // REPORTES
+        // ===================================================================
+        public DbSet<ReporteGuardado> ReportesGuardados { get; set; }
+        public DbSet<HistorialEjecucion> HistorialEjecuciones { get; set; }
+
+        // ===================================================================
+        // SISTEMA
+        // ===================================================================
+        public DbSet<Notificacion> Notificaciones { get; set; }
+        public DbSet<ConfiguracionSistema> Configuraciones { get; set; }
+        public DbSet<AuditoriaLog> AuditoriaLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configuraciones especÃ­ficas de Oracle si son necesarias
+            // ===================================================================
+            // CONFIGURACIÓN DE LLAVES PRIMARIAS
+            // ===================================================================
+
+            // Seguridad
+            modelBuilder.Entity<Usuario>().HasKey(u => u.IdUsuario);
+            modelBuilder.Entity<Rol>().HasKey(r => r.IdRol);
+            modelBuilder.Entity<Area>().HasKey(a => a.IdArea);
+            modelBuilder.Entity<Permiso>().HasKey(p => p.IdPermiso);
+            modelBuilder.Entity<PermisoRol>().HasKey(pr => pr.IdPermisoRol);
+            modelBuilder.Entity<IntentoAcceso>().HasKey(ia => ia.IdIntento);
+            modelBuilder.Entity<IntentoLogin>().HasKey(il => il.Username);
+
+            // Helpdesk
+            modelBuilder.Entity<Ticket>().HasKey(t => t.IdTicket);
+            modelBuilder.Entity<TicketComentario>().HasKey(tc => tc.IdComentario);
+            modelBuilder.Entity<TicketAdjunto>().HasKey(ta => ta.IdAdjunto);
+            modelBuilder.Entity<TicketHistorial>().HasKey(th => th.IdHistorial);
+            modelBuilder.Entity<EstadoTicket>().HasKey(e => e.IdEstado);
+            modelBuilder.Entity<Categoria>().HasKey(c => c.IdCategoria);
+            modelBuilder.Entity<Prioridad>().HasKey(p => p.IdPrioridad);
+            modelBuilder.Entity<Origen>().HasKey(o => o.IdOrigen);
+            modelBuilder.Entity<NivelValor>().HasKey(nv => nv.IdNivel);
+            modelBuilder.Entity<MatrizPrioridad>().HasKey(mp => mp.IdMatriz);
+            modelBuilder.Entity<CorrelativoTicket>().HasKey(ct => ct.Anio);
+            modelBuilder.Entity<BaseConocimiento>().HasKey(bc => bc.IdSolucion);
+
+            // Inventario
+            modelBuilder.Entity<Activo>().HasKey(a => a.IdActivo);
+            modelBuilder.Entity<TipoActivo>().HasKey(t => t.IdTipo);
+            modelBuilder.Entity<Movimiento>().HasKey(m => m.IdMovimiento);
+            modelBuilder.Entity<CatalogoSoftware>().HasKey(cs => cs.IdSoftware);
+            modelBuilder.Entity<Instalacion>().HasKey(i => i.IdInstalacion);
+
+            // Proyectos
+            modelBuilder.Entity<Proyecto>().HasKey(p => p.IdProyecto);
+            modelBuilder.Entity<Hito>().HasKey(h => h.IdHito);
+            modelBuilder.Entity<Entregable>().HasKey(e => e.IdEntregable);
+
+            // Control de Accesos
+            modelBuilder.Entity<TipoCuenta>().HasKey(tc => tc.IdTipoCuenta);
+            modelBuilder.Entity<AccesoUsuario>().HasKey(au => au.IdAcceso);
+
+            // Administración
+            modelBuilder.Entity<Documento>().HasKey(d => d.IdDocumento);
+            modelBuilder.Entity<Locador>().HasKey(l => l.IdContrato);
+
+            // Incumplimientos
+            modelBuilder.Entity<Incumplimiento>().HasKey(i => i.IdIncumplimiento);
+
+            // Presupuesto
+            modelBuilder.Entity<Meta>().HasKey(m => m.IdMeta);
+            modelBuilder.Entity<Clasificador>().HasKey(c => c.IdClasificador);
+            modelBuilder.Entity<Ejecucion>().HasKey(e => e.IdEjecucion);
+
+            // Reportes
+            modelBuilder.Entity<ReporteGuardado>().HasKey(rg => rg.IdReporte);
+            modelBuilder.Entity<HistorialEjecucion>().HasKey(he => he.IdEjecucion);
+
+            // Sistema
+            modelBuilder.Entity<Notificacion>().HasKey(n => n.IdNotificacion);
+            modelBuilder.Entity<ConfiguracionSistema>().HasKey(cs => cs.IdConfig);
+            modelBuilder.Entity<AuditoriaLog>().HasKey(al => al.IdLog);
+
+            // ===================================================================
+            // CONFIGURACIÓN DE RELACIONES (FOREIGN KEYS)
+            // ===================================================================
+
+            // ---------- SEGURIDAD ----------
+
+            // Usuario -> Rol
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Rol)
+                .WithMany()
+                .HasForeignKey(u => u.IdRol)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Usuario -> Area
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Area)
+                .WithMany()
+                .HasForeignKey(u => u.IdArea)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // PermisoRol -> Rol
+            modelBuilder.Entity<PermisoRol>()
+                .HasOne(pr => pr.Rol)
+                .WithMany()
+                .HasForeignKey(pr => pr.IdRol)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // PermisoRol -> Permiso
+            modelBuilder.Entity<PermisoRol>()
+                .HasOne(pr => pr.Permiso)
+                .WithMany()
+                .HasForeignKey(pr => pr.IdPermiso)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ---------- HELPDESK ----------
+
+            // Ticket -> EstadoTicket
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Estado)
+                .WithMany()
+                .HasForeignKey(t => t.IdEstado)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ticket -> Categoria
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Categoria)
+                .WithMany()
+                .HasForeignKey(t => t.IdCategoria)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ticket -> Prioridad
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Prioridad)
+                .WithMany()
+                .HasForeignKey(t => t.IdPrioridad)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ticket -> Usuario (Solicitante)
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Solicitante)
+                .WithMany()
+                .HasForeignKey(t => t.IdSolicitante)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ticket -> Usuario (Especialista)
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Especialista)
+                .WithMany()
+                .HasForeignKey(t => t.IdEspecialista)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Ticket -> Area (AreaSolicitante)
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.AreaSolicitante)
+                .WithMany()
+                .HasForeignKey(t => t.IdAreaSolicitante)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Ticket -> Activo (ActivoAfectado)
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.ActivoAfectado)
+                .WithMany()
+                .HasForeignKey(t => t.IdActivoAfectado)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // TicketComentario -> Ticket
+            modelBuilder.Entity<TicketComentario>()
+                .HasOne(tc => tc.Ticket)
+                .WithMany()
+                .HasForeignKey(tc => tc.IdTicket)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // TicketComentario -> Usuario
+            modelBuilder.Entity<TicketComentario>()
+                .HasOne(tc => tc.Usuario)
+                .WithMany()
+                .HasForeignKey(tc => tc.IdUsuario)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TicketAdjunto -> Ticket
+            modelBuilder.Entity<TicketAdjunto>()
+                .HasOne(ta => ta.Ticket)
+                .WithMany()
+                .HasForeignKey(ta => ta.IdTicket)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // TicketAdjunto -> Usuario (Subida)
+            modelBuilder.Entity<TicketAdjunto>()
+                .HasOne(ta => ta.UsuarioSubida)
+                .WithMany()
+                .HasForeignKey(ta => ta.IdUsuarioSubida)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TicketHistorial -> Ticket
+            modelBuilder.Entity<TicketHistorial>()
+                .HasOne(th => th.Ticket)
+                .WithMany()
+                .HasForeignKey(th => th.IdTicket)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // TicketHistorial -> EstadoAnterior
+            modelBuilder.Entity<TicketHistorial>()
+                .HasOne(th => th.EstadoAnterior)
+                .WithMany()
+                .HasForeignKey(th => th.IdEstadoAnterior)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TicketHistorial -> EstadoNuevo
+            modelBuilder.Entity<TicketHistorial>()
+                .HasOne(th => th.EstadoNuevo)
+                .WithMany()
+                .HasForeignKey(th => th.IdEstadoNuevo)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TicketHistorial -> Usuario (Cambio)
+            modelBuilder.Entity<TicketHistorial>()
+                .HasOne(th => th.UsuarioCambio)
+                .WithMany()
+                .HasForeignKey(th => th.IdUsuarioCambio)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // MatrizPrioridad -> Impacto
+            modelBuilder.Entity<MatrizPrioridad>()
+                .HasOne(mp => mp.Impacto)
+                .WithMany()
+                .HasForeignKey(mp => mp.IdImpacto)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // MatrizPrioridad -> Urgencia
+            modelBuilder.Entity<MatrizPrioridad>()
+                .HasOne(mp => mp.Urgencia)
+                .WithMany()
+                .HasForeignKey(mp => mp.IdUrgencia)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // MatrizPrioridad -> PrioridadResultante
+            modelBuilder.Entity<MatrizPrioridad>()
+                .HasOne(mp => mp.PrioridadResultante)
+                .WithMany()
+                .HasForeignKey(mp => mp.IdPrioridadResultante)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // BaseConocimiento -> Autor
+            modelBuilder.Entity<BaseConocimiento>()
+                .HasOne(bc => bc.Autor)
+                .WithMany()
+                .HasForeignKey(bc => bc.IdAutor)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // BaseConocimiento -> Aprobador
+            modelBuilder.Entity<BaseConocimiento>()
+                .HasOne(bc => bc.Aprobador)
+                .WithMany()
+                .HasForeignKey(bc => bc.IdAprobador)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ---------- INVENTARIO ----------
+
+            // Activo -> TipoActivo
+            modelBuilder.Entity<Activo>()
+                .HasOne(a => a.TipoActivo)
+                .WithMany()
+                .HasForeignKey(a => a.IdTipo)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Activo -> EstadoActivo
+            modelBuilder.Entity<Activo>()
+                .HasOne(a => a.Estado)
+                .WithMany()
+                .HasForeignKey(a => a.IdEstado)
+                .OnDelete(DeleteBehavior.Restrict);
+
+
+            // Activo -> Usuario (UsuarioAsignado)
+            modelBuilder.Entity<Activo>()
+                .HasOne(a => a.UsuarioAsignado)
+                .WithMany()
+                .HasForeignKey(a => a.IdUsuarioAsignado)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Activo -> EstadoTicket (Estado)
+            modelBuilder.Entity<Activo>()
+                .HasOne(a => a.Estado)
+                .WithMany()
+                .HasForeignKey(a => a.IdEstado)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Movimiento -> Activo
+            modelBuilder.Entity<Movimiento>()
+                .HasOne(m => m.Activo)
+                .WithMany()
+                .HasForeignKey(m => m.IdActivo)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Movimiento -> UsuarioOrigen
+            modelBuilder.Entity<Movimiento>()
+                .HasOne(m => m.UsuarioOrigen)
+                .WithMany()
+                .HasForeignKey(m => m.IdUsuarioOrigen)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Movimiento -> UsuarioDestino
+            modelBuilder.Entity<Movimiento>()
+                .HasOne(m => m.UsuarioDestino)
+                .WithMany()
+                .HasForeignKey(m => m.IdUsuarioDestino)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Movimiento -> TecnicoResponsable
+            modelBuilder.Entity<Movimiento>()
+                .HasOne(m => m.TecnicoResponsable)
+                .WithMany()
+                .HasForeignKey(m => m.IdTecnicoResponsable)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Movimiento -> Firmante
+            modelBuilder.Entity<Movimiento>()
+                .HasOne(m => m.Firmante)
+                .WithMany()
+                .HasForeignKey(m => m.IdFirmante)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Instalacion -> Activo
+            modelBuilder.Entity<Instalacion>()
+                .HasOne(i => i.Activo)
+                .WithMany()
+                .HasForeignKey(i => i.IdActivo)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Instalacion -> Software
+            modelBuilder.Entity<Instalacion>()
+                .HasOne(i => i.Software)
+                .WithMany()
+                .HasForeignKey(i => i.IdSoftware)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---------- PROYECTOS ----------
+
+            // Proyecto -> Responsable
+            modelBuilder.Entity<Proyecto>()
+                .HasOne(p => p.Responsable)
+                .WithMany()
+                .HasForeignKey(p => p.IdResponsable)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Proyecto -> Area
+            modelBuilder.Entity<Proyecto>()
+                .HasOne(p => p.Area)
+                .WithMany()
+                .HasForeignKey(p => p.IdArea)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Hito -> Proyecto
+            modelBuilder.Entity<Hito>()
+                .HasOne(h => h.Proyecto)
+                .WithMany()
+                .HasForeignKey(h => h.IdProyecto)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Hito -> Responsable
+            modelBuilder.Entity<Hito>()
+                .HasOne(h => h.Responsable)
+                .WithMany()
+                .HasForeignKey(h => h.IdResponsable)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Entregable -> Proyecto
+            modelBuilder.Entity<Entregable>()
+                .HasOne(e => e.Proyecto)
+                .WithMany()
+                .HasForeignKey(e => e.IdProyecto)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Entregable -> Hito
+            modelBuilder.Entity<Entregable>()
+                .HasOne(e => e.Hito)
+                .WithMany()
+                .HasForeignKey(e => e.IdHito)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Entregable -> Aprobador
+            modelBuilder.Entity<Entregable>()
+                .HasOne(e => e.Aprobador)
+                .WithMany()
+                .HasForeignKey(e => e.IdAprobador)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ---------- CONTROL DE ACCESOS ----------
+
+            // AccesoUsuario -> Usuario
+            modelBuilder.Entity<AccesoUsuario>()
+                .HasOne(au => au.Usuario)
+                .WithMany()
+                .HasForeignKey(au => au.IdUsuario)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // AccesoUsuario -> TipoCuenta
+            modelBuilder.Entity<AccesoUsuario>()
+                .HasOne(au => au.TipoCuenta)
+                .WithMany()
+                .HasForeignKey(au => au.IdTipoCuenta)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---------- ADMINISTRACIÓN ----------
+
+            // Documento -> AreaUsuaria
+            modelBuilder.Entity<Documento>()
+                .HasOne(d => d.AreaUsuaria)
+                .WithMany()
+                .HasForeignKey(d => d.IdAreaUsuaria)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Documento -> ElaboradoPor
+            modelBuilder.Entity<Documento>()
+                .HasOne(d => d.ElaboradoPor)
+                .WithMany()
+                .HasForeignKey(d => d.IdElaboradoBy)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Documento -> ValidadorTecnico
+            modelBuilder.Entity<Documento>()
+                .HasOne(d => d.ValidadorTecnico)
+                .WithMany()
+                .HasForeignKey(d => d.IdValidadorTecnico)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Locador -> Usuario
+            modelBuilder.Entity<Locador>()
+                .HasOne(l => l.UsuarioLocador)
+                .WithMany()
+                .HasForeignKey(l => l.IdLocador)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ---------- INCUMPLIMIENTOS ----------
+
+            // Incumplimiento -> Ticket
+            modelBuilder.Entity<Incumplimiento>()
+                .HasOne(i => i.Ticket)
+                .WithMany()
+                .HasForeignKey(i => i.IdTicket)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Incumplimiento -> Proyecto
+            modelBuilder.Entity<Incumplimiento>()
+                .HasOne(i => i.Proyecto)
+                .WithMany()
+                .HasForeignKey(i => i.IdProyecto)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Incumplimiento -> Responsable
+            modelBuilder.Entity<Incumplimiento>()
+                .HasOne(i => i.Responsable)
+                .WithMany()
+                .HasForeignKey(i => i.IdResponsable)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Incumplimiento -> Area
+            modelBuilder.Entity<Incumplimiento>()
+                .HasOne(i => i.Area)
+                .WithMany()
+                .HasForeignKey(i => i.IdArea)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Incumplimiento -> RegistradoPor
+            modelBuilder.Entity<Incumplimiento>()
+                .HasOne(i => i.RegistradoPor)
+                .WithMany()
+                .HasForeignKey(i => i.IdRegistradoPor)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ---------- PRESUPUESTO ----------
+
+            // Ejecucion -> Meta
+            modelBuilder.Entity<Ejecucion>()
+                .HasOne(e => e.Meta)
+                .WithMany()
+                .HasForeignKey(e => e.IdMeta)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Ejecucion -> Clasificador
+            modelBuilder.Entity<Ejecucion>()
+                .HasOne(e => e.Clasificador)
+                .WithMany()
+                .HasForeignKey(e => e.IdClasificador)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ---------- REPORTES ----------
+
+            // ReporteGuardado -> UsuarioCreador
+            modelBuilder.Entity<ReporteGuardado>()
+                .HasOne(rg => rg.UsuarioCreador)
+                .WithMany()
+                .HasForeignKey(rg => rg.IdUsuarioCreador)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // HistorialEjecucion -> Reporte
+            modelBuilder.Entity<HistorialEjecucion>()
+                .HasOne(he => he.Reporte)
+                .WithMany()
+                .HasForeignKey(he => he.IdReporte)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // HistorialEjecucion -> UsuarioEjecutor
+            modelBuilder.Entity<HistorialEjecucion>()
+                .HasOne(he => he.UsuarioEjecutor)
+                .WithMany()
+                .HasForeignKey(he => he.IdUsuarioEjecutor)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ---------- SISTEMA ----------
+
+            // Notificacion -> UsuarioDestino
+            modelBuilder.Entity<Notificacion>()
+                .HasOne(n => n.UsuarioDestino)
+                .WithMany()
+                .HasForeignKey(n => n.IdUsuarioDestino)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ConfiguracionSistema -> UsuarioModificacion
+            modelBuilder.Entity<ConfiguracionSistema>()
+                .HasOne(cs => cs.UsuarioModificacion)
+                .WithMany()
+                .HasForeignKey(cs => cs.IdUsuarioModificacion)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // AuditoriaLog -> Usuario
+            modelBuilder.Entity<AuditoriaLog>()
+                .HasOne(al => al.Usuario)
+                .WithMany()
+                .HasForeignKey(al => al.IdUsuario)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ===================================================================
+            // CONFIGURACIÓN DE ÍNDICES ÚNICOS
+            // ===================================================================
+
+            modelBuilder.Entity<Usuario>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<Usuario>()
+                .HasIndex(u => u.Correo)
+                .IsUnique();
+
+            modelBuilder.Entity<Usuario>()
+                .HasIndex(u => u.Dni)
+                .IsUnique();
+
+            modelBuilder.Entity<Ticket>()
+                .HasIndex(t => t.CodigoTicket)
+                .IsUnique();
+
+            modelBuilder.Entity<ConfiguracionSistema>()
+                .HasIndex(cs => cs.Clave)
+                .IsUnique();
+
+            // ===================================================================
+            // VALORES POR DEFECTO
+            // ===================================================================
+
             modelBuilder.Entity<Usuario>()
                 .Property(u => u.FechaCreacion)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            modelBuilder.Entity<Ticket>()
+                .Property(t => t.FechaCreacion)
+                .HasDefaultValueSql("SYSDATE");
+
+            modelBuilder.Entity<Activo>()
+                .Property(a => a.FechaRegistro)
+                .HasDefaultValueSql("SYSDATE");
+
+            modelBuilder.Entity<Notificacion>()
+                .Property(n => n.FechaCreacion)
+                .HasDefaultValueSql("SYSDATE");
+
+            modelBuilder.Entity<AuditoriaLog>()
+                .Property(al => al.Fecha)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
         }
     }

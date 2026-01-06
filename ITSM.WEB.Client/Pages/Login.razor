@@ -1,64 +1,66 @@
 ﻿@page "/login"
 @layout ITSM.WEB.Client.Layout.LoginLayout
+@inject IServicioSesion ServicioSesion
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
 @using ITSM.Entidades.DTOs
 @using ITSM.WEB.Client.Servicios
-@inject IServicioSesion _servicioSesion
-@inject NavigationManager _nav
-@inject ISnackbar _snackbar
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="min-height: 100vh;">
-    <MudPaper Elevation="8" Class="pa-8" Style="width: 100%; max-width: 450px; border-radius: 16px;">
-
-        <div class="d-flex flex-column align-center mb-6">
-            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Primary" Class="mb-3" />
-            <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary">
-                <b>ITSM - IRTP</b>
+<div class="login-container">
+    <div class="login-card">
+        <!-- Logo Corporativo OTIC -->
+        <div class="otic-logo-container">
+            <img src="/images/logo-otic.png" alt="SOPORTE OTIC" class="otic-logo" onerror="this.style.display='none'" />
+            <MudText Typo="Typo.h5" Align="Align.Center" Style="color: #B91C2E; font-weight: 700; margin-top: 16px;">
+                Sistema de Gestión ITSM
             </MudText>
-            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
-                Sistema de Gestión de Servicios TI
+            <MudText Typo="Typo.body2" Align="Align.Center" Style="color: #666; margin-top: 8px;">
+                Instituto de Radio y Televisión del Perú
             </MudText>
         </div>
 
+        <MudDivider Class="my-4" />
+
         @if (!string.IsNullOrEmpty(mensajeError))
         {
-            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled">
+            <MudAlert Severity="Severity.Error" Class="mb-4" Variant="Variant.Filled" Dense="true">
                 @mensajeError
             </MudAlert>
         }
 
-        <EditForm Model="@loginModel" OnValidSubmit="IniciarSesion">
-            <DataAnnotationsValidator />
-
+        <MudForm @ref="form">
             <MudTextField @bind-Value="loginModel.Username"
                           Label="Usuario"
                           Variant="Variant.Outlined"
-                          Class="mb-4"
+                          Margin="Margin.Dense"
+                          Required="true"
+                          RequiredError="El usuario es obligatorio"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Person"
-                          Required="true"
-                          RequiredError="El usuario es requerido" />
+                          Class="mb-3" />
 
             <MudTextField @bind-Value="loginModel.Password"
                           Label="Contraseña"
                           Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
                           InputType="InputType.Password"
-                          Class="mb-6"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.VpnKey"
                           Required="true"
-                          RequiredError="La contraseña es requerida" />
+                          RequiredError="La contraseña es obligatoria"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Lock"
+                          Class="mb-4" />
 
-            <MudButton ButtonType="ButtonType.Submit"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       FullWidth="true"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Error"
                        Size="Size.Large"
-                       Disabled="@cargando"
-                       Class="mb-3">
+                       FullWidth="true"
+                       OnClick="IniciarSesion"
+                       Disabled="cargando"
+                       Style="background: linear-gradient(90deg, #B91C2E 0%, #8B1523 100%); height: 50px; font-weight: 600;">
                 @if (cargando)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <span>Iniciando sesión...</span>
+                    <span>Verificando...</span>
                 }
                 else
                 {
@@ -66,55 +68,100 @@
                     <span>Iniciar Sesión</span>
                 }
             </MudButton>
-        </EditForm>
+        </MudForm>
 
         <MudDivider Class="my-4" />
 
-        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+        <MudText Typo="Typo.caption" Align="Align.Center" Style="color: #999;">
             © 2025 IRTP - Todos los derechos reservados
         </MudText>
+    </div>
+</div>
 
-    </MudPaper>
-</MudContainer>
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #B91C2E 0%, #8B1523 100%);
+        padding: 20px;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 450px;
+        border-radius: 16px;
+        padding: 40px;
+        background: white;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .otic-logo-container {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .otic-logo {
+        height: 80px;
+        margin-bottom: 16px;
+        object-fit: contain;
+    }
+</style>
 
 @code {
     private LoginDto loginModel = new();
     private string mensajeError = string.Empty;
     private bool cargando = false;
+    private MudForm form;
 
     private async Task IniciarSesion()
     {
+        await form.Validate();
+
+        if (!form.IsValid)
+        {
+            return;
+        }
+
         cargando = true;
         mensajeError = string.Empty;
 
         try
         {
-            var sesion = await _servicioSesion.IniciarSesion(loginModel);
+            Console.WriteLine($"🔐 Intentando login para: {loginModel.Username}");
+
+            // Usar el ServicioSesion para manejar la autenticación
+            var sesion = await ServicioSesion.IniciarSesion(loginModel);
 
             if (sesion != null)
             {
-                _snackbar.Add("¡Bienvenido al sistema!", Severity.Success);
-                _nav.NavigateTo("/", forceLoad: true);
+                Console.WriteLine($"✅ Login exitoso: {sesion.Username}");
+                Snackbar.Add($"¡Bienvenido {sesion.Nombre}!", Severity.Success);
+                await Task.Delay(500);
+                Nav.NavigateTo("/", forceLoad: true);
             }
             else
             {
                 mensajeError = "Usuario o contraseña incorrectos";
-                _snackbar.Add("Credenciales inválidas", Severity.Error);
+                Snackbar.Add(mensajeError, Severity.Error);
+                Console.WriteLine("❌ Login fallido");
             }
-        }
-        catch (HttpRequestException)
-        {
-            mensajeError = "Error de conexión con el servidor. Por favor, intente más tarde.";
-            _snackbar.Add("Error de conexión", Severity.Error);
         }
         catch (Exception ex)
         {
-            mensajeError = "Ha ocurrido un error inesperado. Por favor, contacte al administrador.";
-            _snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            mensajeError = "Error de conexión con el servidor";
+            Snackbar.Add(mensajeError, Severity.Error);
+            Console.WriteLine($"❌ Excepción en Login: {ex.Message}");
         }
         finally
         {
             cargando = false;
         }
+    }
+
+    protected override void OnInitialized()
+    {
+        loginModel = new LoginDto();
     }
 }

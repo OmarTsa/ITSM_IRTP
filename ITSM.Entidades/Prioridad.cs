@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ITSM.Entidades
 {
-    [Table("PRIORIDADES")]
+    [Table("PRIORIDADES")]  // ✅ CORREGIDO: Ahora apunta a la tabla real de Oracle
     public class Prioridad
     {
         [Key]
@@ -11,11 +11,12 @@ namespace ITSM.Entidades
         public int IdPrioridad { get; set; }
 
         [Column("NOMBRE")]
+        [Required]
         [StringLength(50)]
-        public string Nombre { get; set; } = string.Empty; // Inicializado
+        public string Nombre { get; set; } = string.Empty;
 
         [Column("HORAS_SLA")]
-        public int HorasSla { get; set; }
+        public int? HorasSla { get; set; }
 
         [Column("COLOR")]
         [StringLength(20)]

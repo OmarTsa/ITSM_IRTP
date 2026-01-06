@@ -23,11 +23,7 @@ namespace ITSM.Entidades
         [StringLength(50)]
         public string Nombre { get; set; } = string.Empty;
 
-        [Column("DESCRIPCION")]
-        [StringLength(200)]
-        public string? Descripcion { get; set; }
-
-        [Column("ESTADO")]
-        public int Estado { get; set; } = 1; // 1 = Activo, 0 = Inactivo
+        // NOTA: La tabla ACT_TIPOS_ACTIVO en Oracle solo tiene ID_TIPO y NOMBRE
+        // No tiene columnas DESCRIPCION ni ESTADO
     }
 }

@@ -13,15 +13,15 @@
         <MudContainer MaxWidth="MaxWidth.Large" Style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
             <MudPaper Elevation="8" Class="pa-10" Style="max-width: 800px; border-radius: 20px;">
 
+                <!-- Logo OTIC Centrado -->
                 <div class="text-center mb-6">
-                    <MudIcon Icon="@Icons.Material.Filled.Support"
-                             Size="Size.Large"
-                             Color="Color.Primary"
-                             Style="font-size: 80px;" />
+                    <img src="/images/logo-otic.png"
+                         alt="SOPORTE OTIC"
+                         style="height: 100px; margin-bottom: 16px;" />
                 </div>
 
-                <MudText Typo="Typo.h3" Align="Align.Center" Color="Color.Primary" Class="mb-3">
-                    <b>ITSM - IRTP</b>
+                <MudText Typo="Typo.h3" Align="Align.Center" Style="color: #B91C2E; font-weight: 700;" Class="mb-3">
+                    ITSM - IRTP
                 </MudText>
 
                 <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Secondary" Class="mb-6">
@@ -32,24 +32,24 @@
 
                 <MudGrid>
                     <MudItem xs="12" md="4" Class="text-center pa-4">
-                        <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Size="Size.Large" />
-                        <MudText Typo="Typo.h6" Class="mt-2">Gestión de Tickets</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Assignment" Style="color: #B91C2E; font-size: 60px;" />
+                        <MudText Typo="Typo.h6" Class="mt-2" Style="font-weight: 600;">Gestión de Tickets</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
                             Reporta y gestiona incidencias en tiempo real
                         </MudText>
                     </MudItem>
 
                     <MudItem xs="12" md="4" Class="text-center pa-4">
-                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Large" />
-                        <MudText Typo="Typo.h6" Class="mt-2">Inventario de Activos</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Inventory" Style="color: #B91C2E; font-size: 60px;" />
+                        <MudText Typo="Typo.h6" Class="mt-2" Style="font-weight: 600;">Inventario de Activos</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
                             Control completo de equipos TI
                         </MudText>
                     </MudItem>
 
                     <MudItem xs="12" md="4" Class="text-center pa-4">
-                        <MudIcon Icon="@Icons.Material.Filled.Analytics" Color="Color.Warning" Size="Size.Large" />
-                        <MudText Typo="Typo.h6" Class="mt-2">Reportes y KPIs</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Analytics" Style="color: #B91C2E; font-size: 60px;" />
+                        <MudText Typo="Typo.h6" Class="mt-2" Style="font-weight: 600;">Reportes y KPIs</MudText>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
                             Dashboard con métricas en tiempo real
                         </MudText>
@@ -60,11 +60,10 @@
 
                 <div class="d-flex justify-center">
                     <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
                                Size="Size.Large"
                                Href="/login"
                                StartIcon="@Icons.Material.Filled.Login"
-                               Style="padding: 12px 48px; border-radius: 10px;">
+                               Style="background: linear-gradient(90deg, #B91C2E 0%, #8B1523 100%); padding: 12px 48px; border-radius: 10px; color: white; font-weight: 600;">
                         Iniciar Sesión
                     </MudButton>
                 </div>

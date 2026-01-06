@@ -1,141 +1,378 @@
-ï»¿@page "/helpdesk/nuevo"
+@page "/helpdesk/nuevo"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
-@inject TicketServicio _ticketServicio
+@inject ITicketServicio _ticketServicio
+@inject IInventarioServicio _inventarioServicio
+@inject IUsuarioServicio _usuarioServicio
+@inject IServicioSesion _servicioSesion
 @inject NavigationManager _nav
 @inject ISnackbar Snackbar
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudCard>
-        <MudCardHeader>
-            <CardHeaderContent>
-                <MudText Typo="Typo.h6">Nuevo Ticket de AtenciÃ³n</MudText>
-            </CardHeaderContent>
-        </MudCardHeader>
-        <MudCardContent>
-            <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
-                <DataAnnotationsValidator />
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (cargandoDatos)
+    {
+        <MudCard>
+            <MudCardContent Class="text-center py-5">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.h6" Class="mt-3">Cargando datos del formulario...</MudText>
+            </MudCardContent>
+        </MudCard>
+    }
+    else if (errorCarga)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+            <MudText Typo="Typo.h6">Error al cargar el formulario</MudText>
+            <MudText>@mensajeError</MudText>
+            <MudButton Color="Color.Default" Variant="Variant.Text" Class="mt-2" OnClick="Cancelar">
+                Volver
+            </MudButton>
+        </MudAlert>
+    }
+    else
+    {
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        @(esMesaDeAyuda ? "Registrar Ticket para Usuario" : "Nuevo Ticket de Atención")
+                    </MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <EditForm Model="@nuevoTicket" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
 
-                <MudGrid>
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="nuevoTicket.Titulo"
-                                      Label="TÃ­tulo del Incidente/Requerimiento"
-                                      Required="true"
-                                      Variant="Variant.Outlined" />
-                    </MudItem>
-
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="string"
-                                   Label="Tipo"
-                                   @bind-Value="nuevoTicket.TipoTicket"
-                                   AnchorOrigin="Origin.BottomCenter"
-                                   Variant="Variant.Outlined">
-                            <MudSelectItem Value="@("Incidente")">Incidente (Fallo)</MudSelectItem>
-                            <MudSelectItem Value="@("Requerimiento")">Requerimiento (Solicitud)</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="int"
-                                   Label="CategorÃ­a"
-                                   @bind-Value="nuevoTicket.IdCategoria"
-                                   AnchorOrigin="Origin.BottomCenter"
-                                   Variant="Variant.Outlined">
-                            <MudSelectItem Value="0">-- Seleccione --</MudSelectItem>
-                            @foreach (var cat in listaCategorias)
-                            {
-                                <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
-
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="int"
-                                   Label="Prioridad"
-                                   @bind-Value="nuevoTicket.IdPrioridad"
-                                   AnchorOrigin="Origin.BottomCenter"
-                                   Variant="Variant.Outlined">
-                            <MudSelectItem Value="3">Baja</MudSelectItem>
-                            <MudSelectItem Value="2">Media</MudSelectItem>
-                            <MudSelectItem Value="1">Alta</MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
-
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="nuevoTicket.Descripcion"
-                                      Label="DescripciÃ³n Detallada"
-                                      Lines="5"
-                                      Required="true"
-                                      Variant="Variant.Outlined" />
-                    </MudItem>
-                </MudGrid>
-
-                <div class="d-flex justify-content-end mt-4">
-                    <MudButton Variant="Variant.Text"
-                               Color="Color.Secondary"
-                               OnClick="Cancelar"
-                               Class="me-2">
-                        Cancelar
-                    </MudButton>
-
-                    <MudButton ButtonType="ButtonType.Submit"
-                               Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               Disabled="@cargando">
-                        @if (cargando)
+                    <MudGrid>
+                        @* INFORMACIÓN DEL SOLICITANTE *@
+                        @if (esMesaDeAyuda)
                         {
-                            <MudProgressCircular Class="ms-n1"
-                                                 Size="Size.Small"
-                                                 Indeterminate="true" />
-                            <MudText Class="ms-2">Procesando...</MudText>
+                            @* Mesa de ayuda puede seleccionar el usuario solicitante *@
+                            <MudItem xs="12" md="6">
+                                <MudAutocomplete T="Usuario"
+                                                 Label="Buscar Usuario Solicitante"
+                                                 Value="usuarioSeleccionado" ValueChanged="OnUsuarioSeleccionado"
+                                                 SearchFunc="BuscarUsuarios"
+                                                 ToStringFunc="@(u => u != null ? $"{u.NombreCompleto} ({u.Area?.Nombre ?? "Sin área"})" : string.Empty)"
+                                                 Required="true"
+                                                 Variant="Variant.Outlined"
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentIcon="@Icons.Material.Filled.Person"
+                                                 ResetValueOnEmptyText="true"
+                                                 CoerceText="true"
+                                                 />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="int?"
+                                           Label="Asignar a Técnico/Especialista (Opcional)"
+                                           @bind-Value="nuevoTicket.IdEspecialista"
+                                           AnchorOrigin="Origin.BottomCenter"
+                                           Variant="Variant.Outlined"
+                                           Clearable="true"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Filled.Engineering">
+                                    <MudSelectItem T="int?" Value="null">-- Asignar después --</MudSelectItem>
+                                    @foreach (var tec in listaEspecialistas)
+                                    {
+                                        <MudSelectItem Value="@((int?)tec.IdUsuario)">
+                                            @tec.NombreCompleto - @tec.Rol?.Nombre
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+
+                            @if (usuarioSeleccionado != null)
+                            {
+                                <MudItem xs="12">
+                                    <MudAlert Severity="Severity.Info" Dense="true">
+                                        <MudText Typo="Typo.body2">
+                                            <strong>Área:</strong> @(usuarioSeleccionado.Area?.Nombre ?? "Sin área")
+                                        </MudText>
+                                    </MudAlert>
+                                </MudItem>
+                            }
                         }
                         else
                         {
-                            <MudText>Registrar Ticket</MudText>
+                            @* Usuario normal ve su información *@
+                            <MudItem xs="12">
+                                <MudAlert Severity="Severity.Info" Class="mb-3">
+                                    <MudText Typo="Typo.body2"><strong>Solicitante:</strong> @nombreSolicitante</MudText>
+                                    <MudText Typo="Typo.body2"><strong>Área:</strong> @areaSolicitante</MudText>
+                                </MudAlert>
+                            </MudItem>
                         }
-                    </MudButton>
-                </div>
-            </EditForm>
-        </MudCardContent>
-    </MudCard>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="nuevoTicket.Titulo"
+                                          Label="Título del Incidente/Requerimiento"
+                                          Required="true"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="string"
+                                       Label="Tipo"
+                                       @bind-Value="nuevoTicket.TipoTicket"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       Variant="Variant.Outlined">
+                                <MudSelectItem Value="@("Incidente")">Incidente (Fallo)</MudSelectItem>
+                                <MudSelectItem Value="@("Requerimiento")">Requerimiento (Solicitud)</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="int"
+                                       Label="Categoría"
+                                       @bind-Value="nuevoTicket.IdCategoria"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       Variant="Variant.Outlined"
+                                       Required="true">
+                                <MudSelectItem Value="0">-- Seleccione --</MudSelectItem>
+                                @foreach (var cat in listaCategorias)
+                                {
+                                    <MudSelectItem Value="@cat.IdCategoria">@cat.Nombre</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="4">
+                            <MudSelect T="int"
+                                       Label="Prioridad"
+                                       @bind-Value="nuevoTicket.IdPrioridad"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       Variant="Variant.Outlined">
+                                <MudSelectItem Value="3">Baja</MudSelectItem>
+                                <MudSelectItem Value="2">Media</MudSelectItem>
+                                <MudSelectItem Value="1">Alta</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="int?"
+                                       Label="Activo Afectado (Opcional)"
+                                       @bind-Value="nuevoTicket.IdActivoAfectado"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       Variant="Variant.Outlined"
+                                       Clearable="true">
+                                <MudSelectItem T="int?" Value="null">-- Sin activo --</MudSelectItem>
+                                @foreach (var activo in listaActivos)
+                                {
+                                    <MudSelectItem Value="@((int?)activo.IdActivo)">
+                                        @activo.CodigoPatrimonial - @activo.TipoActivo?.Nombre
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="nuevoTicket.Descripcion"
+                                          Label="Descripción Detallada"
+                                          Lines="5"
+                                          Required="true"
+                                          Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <div class="d-flex justify-content-end mt-4">
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Secondary"
+                                   OnClick="Cancelar"
+                                   Class="me-2">
+                            Cancelar
+                        </MudButton>
+
+                        <MudButton ButtonType="ButtonType.Submit"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Disabled="@cargando">
+                            @if (cargando)
+                            {
+                                <MudProgressCircular Class="ms-n1"
+                                                     Size="Size.Small"
+                                                     Indeterminate="true" />
+                                <MudText Class="ms-2">Procesando...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Registrar Ticket</MudText>
+                            }
+                        </MudButton>
+                    </div>
+                </EditForm>
+            </MudCardContent>
+        </MudCard>
+    }
 </MudContainer>
 
 @code {
     private Ticket nuevoTicket = new();
     private List<Categoria> listaCategorias = new();
+    private List<Activo> listaActivos = new();
+    private List<Usuario> listaEspecialistas = new();
+    private List<Usuario> todosLosUsuarios = new();
+
     private bool cargando;
+    private bool cargandoDatos = true;  // ? NUEVO: Controla el estado de carga inicial
+    private bool errorCarga = false;     // ? NUEVO: Controla si hubo error
+    private string mensajeError = "";    // ? NUEVO: Mensaje de error para mostrar
+    private bool esMesaDeAyuda;
+
+    private string nombreSolicitante = "";  // ? CORREGIDO: Inicializa vacío en vez de "Cargando..."
+    private string areaSolicitante = "";    // ? CORREGIDO: Inicializa vacío en vez de "Cargando..."
+    private Usuario? usuarioSeleccionado;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            cargandoDatos = true;  // ? NUEVO: Activa estado de carga
+            StateHasChanged();     // ? NUEVO: Fuerza renderizado
+
+            // Obtener información del usuario autenticado
+            var sesion = await _servicioSesion.ObtenerSesionActual();
+
+            // ? NUEVO: Validación explícita de sesión
+            if (sesion == null)
+            {
+                errorCarga = true;
+                mensajeError = "No se pudo obtener la sesión del usuario. Por favor, inicia sesión nuevamente.";
+                Console.WriteLine("? [NuevoTicket] Sesión es null");
+                return;
+            }
+
+            if (sesion.IdUsuario <= 0)
+            {
+                errorCarga = true;
+                mensajeError = "Sesión inválida. Por favor, cierra sesión e inicia sesión nuevamente.";
+                Console.WriteLine($"? [NuevoTicket] IdUsuario inválido: {sesion.IdUsuario}");
+                return;
+            }
+
+            Console.WriteLine($"? [NuevoTicket] Sesión válida - Usuario: {sesion.NombreCompleto} (ID: {sesion.IdUsuario})");
+
+            // Verificar si es Mesa de Ayuda (Coordinador o Administrador)
+            esMesaDeAyuda = sesion.Rol == "Coordinador" || sesion.Rol == "Administrador";
+            Console.WriteLine($"?? [NuevoTicket] Es Mesa de Ayuda: {esMesaDeAyuda}");
+
+            if (!esMesaDeAyuda)
+            {
+                // ? CORREGIDO: Usuario normal - autocompletar sus datos
+                nuevoTicket.IdSolicitante = sesion.IdUsuario;
+                nuevoTicket.IdAreaSolicitante = sesion.IdArea;
+                nombreSolicitante = sesion.NombreCompleto ?? "Sin nombre";
+                areaSolicitante = sesion.NombreArea ?? "Sin área asignada";
+
+                Console.WriteLine($"?? [NuevoTicket] Usuario normal: {nombreSolicitante} - {areaSolicitante}");
+            }
+            else
+            {
+                // ? CORREGIDO: Mesa de ayuda - cargar listas
+                todosLosUsuarios = await _usuarioServicio.Listar();
+                listaEspecialistas = (await _usuarioServicio.Listar())
+                    .Where(u => u.Rol?.Nombre == "Técnico" || u.Rol?.Nombre == "Coordinador")
+                    .ToList();
+
+                Console.WriteLine($"?? [NuevoTicket] Cargados {todosLosUsuarios.Count} usuarios, {listaEspecialistas.Count} especialistas");
+            }
+
+            // Cargar datos comunes
             listaCategorias = await _ticketServicio.ListarCategorias();
+            listaActivos = await _inventarioServicio.ListarActivos();
+
+            Console.WriteLine($"?? [NuevoTicket] Cargadas {listaCategorias.Count} categorías, {listaActivos.Count} activos");
 
             // Valores por defecto
             nuevoTicket.FechaCreacion = DateTime.Now;
-            nuevoTicket.IdEstado = 1;      // Abierto
-            nuevoTicket.IdPrioridad = 3;   // Baja
+            nuevoTicket.IdEstado = 1; // Nuevo
+            nuevoTicket.IdPrioridad = 3; // Baja por defecto
+            nuevoTicket.TipoTicket = "Incidente";
 
-            // IdSolicitante lo asigna el backend con el usuario autenticado
+            Console.WriteLine("? [NuevoTicket] Datos cargados exitosamente");
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al cargar datos iniciales: {ex.Message}", Severity.Warning);
+            // ? NUEVO: Manejo robusto de errores
+            errorCarga = true;
+            mensajeError = $"Error al cargar datos iniciales: {ex.Message}";
+            Console.WriteLine($"? [NuevoTicket] Exception: {ex.Message}");
+            Console.WriteLine($"   StackTrace: {ex.StackTrace}");
+            Snackbar.Add(mensajeError, Severity.Error);
+        }
+        finally
+        {
+            // ? NUEVO: Siempre desactiva el estado de carga
+            cargandoDatos = false;
+            StateHasChanged();  // ? NUEVO: Fuerza renderizado final
+        }
+    }
+
+    private async Task<IEnumerable<Usuario>> BuscarUsuarios(string valor, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(valor) || valor.Length < 2)
+            return new List<Usuario>();
+
+        return todosLosUsuarios
+            .Where(u => u.NombreCompleto.Contains(valor, StringComparison.OrdinalIgnoreCase) ||
+                       (u.Dni != null && u.Dni.Contains(valor)))
+            .Take(10);
+    }
+
+    private void OnUsuarioSeleccionado(Usuario? usuario)
+    {
+        usuarioSeleccionado = usuario;
+        if (usuario != null)
+        {
+            nuevoTicket.IdSolicitante = usuario.IdUsuario;
+            nuevoTicket.IdAreaSolicitante = usuario.IdArea;
+            Console.WriteLine($"? [NuevoTicket] Usuario seleccionado: {usuario.NombreCompleto}");
+        }
+        else
+        {
+            nuevoTicket.IdSolicitante = 0;
+            nuevoTicket.IdAreaSolicitante = null;
+            Console.WriteLine("?? [NuevoTicket] Usuario deseleccionado");
         }
     }
 
     private async Task Guardar()
     {
+        // Validaciones
+        if (nuevoTicket.IdCategoria == 0)
+        {
+            Snackbar.Add("Debe seleccionar una categoría", Severity.Warning);
+            return;
+        }
+
+        if (nuevoTicket.IdSolicitante == 0)
+        {
+            Snackbar.Add("Debe seleccionar el usuario solicitante", Severity.Warning);
+            return;
+        }
+
         cargando = true;
         try
         {
-            await _ticketServicio.RegistrarTicket(nuevoTicket);
-            Snackbar.Add("Ticket registrado exitosamente", Severity.Success);
-            _nav.NavigateTo("/helpdesk/mistickets");
+            Console.WriteLine($"?? [NuevoTicket] Guardando ticket...");
+            var ticketCreado = await _ticketServicio.RegistrarTicket(nuevoTicket);
+
+            if (ticketCreado != null && !string.IsNullOrEmpty(ticketCreado.CodigoTicket))
+            {
+                Snackbar.Add($"Ticket {ticketCreado.CodigoTicket} registrado exitosamente", Severity.Success);
+                Console.WriteLine($"? [NuevoTicket] Ticket guardado: {ticketCreado.CodigoTicket}");
+            }
+            else
+            {
+                Snackbar.Add("Ticket registrado exitosamente", Severity.Success);
+                Console.WriteLine("? [NuevoTicket] Ticket guardado (sin código)");
+            }
+
+            _nav.NavigateTo(esMesaDeAyuda ? "/helpdesk/gestion" : "/helpdesk/mistickets");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"? [NuevoTicket] Error al guardar: {ex.Message}");
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
         finally
@@ -146,6 +383,7 @@
 
     private void Cancelar()
     {
-        _nav.NavigateTo("/helpdesk/mistickets");
+        Console.WriteLine("?? [NuevoTicket] Cancelando...");
+        _nav.NavigateTo(esMesaDeAyuda ? "/helpdesk/gestion" : "/helpdesk/mistickets");
     }
 }

@@ -1,0 +1,100 @@
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ITSM.Entidades
+{
+    [Table("INV_ACTIVOS")]
+    public class Activo
+    {
+        [Key]
+        [Column("ID_ACTIVO")]
+        public int IdActivo { get; set; }
+
+        [Column("ID_TIPO_ACTIVO")]
+        public int IdTipoActivo { get; set; }
+
+        // Alias para compatibilidad con código existente
+        [NotMapped]
+        public int IdTipo
+        {
+            get => IdTipoActivo;
+            set => IdTipoActivo = value;
+        }
+
+        [Column("CODIGO_PATRIMONIAL")]
+        [MaxLength(50)]
+        public string? CodigoPatrimonial { get; set; }
+
+        [Column("NOMBRE")]
+        [Required]
+        [MaxLength(200)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [Column("NUMERO_SERIE")]
+        [MaxLength(100)]
+        public string? NumeroSerie { get; set; }
+
+        [Column("MODELO")]
+        [MaxLength(100)]
+        public string? Modelo { get; set; }
+
+        [Column("MARCA")]
+        [MaxLength(100)]
+        public string? Marca { get; set; }
+
+        [Column("PROCESADOR")]
+        [MaxLength(100)]
+        public string? Procesador { get; set; }
+
+        [Column("RAM")]
+        [MaxLength(50)]
+        public string? Ram { get; set; }
+
+        [Column("ALMACENAMIENTO")]
+        [MaxLength(50)]
+        public string? Almacenamiento { get; set; }
+
+        [Column("SISTEMA_OPERATIVO")]
+        [MaxLength(100)]
+        public string? SistemaOperativo { get; set; }
+
+        [Column("DESCRIPCION")]
+        [MaxLength(500)]
+        public string? Descripcion { get; set; }
+
+        [Column("OBSERVACIONES")]
+        [MaxLength(1000)]
+        public string? Observaciones { get; set; }
+
+        [Column("ID_ESTADO")]
+        public int IdEstado { get; set; }
+
+        [Column("FECHA_ADQUISICION")]
+        public DateTime? FechaAdquisicion { get; set; }
+
+        [Column("PRECIO_ADQUISICION")]
+        public decimal? PrecioAdquisicion { get; set; }
+
+        [Column("ID_USUARIO_ASIGNADO")]
+        public int? IdUsuarioAsignado { get; set; }
+
+        [Column("FECHA_ASIGNACION")]
+        public DateTime? FechaAsignacion { get; set; }
+
+        [Column("FECHA_REGISTRO")]
+        public DateTime FechaRegistro { get; set; } = DateTime.Now;
+
+        [Column("ELIMINADO")]
+        public int Eliminado { get; set; } = 0; // 0 = Activo, 1 = Eliminado
+
+        // Navegación
+        [ForeignKey("IdTipoActivo")]
+        public virtual TipoActivo? TipoActivo { get; set; }
+
+        [ForeignKey("IdEstado")]
+        public virtual EstadoTicket? Estado { get; set; }
+
+        [ForeignKey("IdUsuarioAsignado")]
+        public virtual Usuario? UsuarioAsignado { get; set; }
+    }
+}

@@ -1,23 +1,25 @@
-@page "/helpdesk/gestion"
+锘緻page "/helpdesk/gestion"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using MudBlazor
 @inject ITicketServicio _ticketServicio
+@inject IUsuarioServicio _usuarioServicio
 @inject NavigationManager Navigation
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<PageTitle>Gesti髇 de Tickets - ITSM</PageTitle>
+<PageTitle>Gesti贸n de Tickets - ITSM</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
 
     <div class="d-flex justify-space-between align-center mb-4">
         <div>
             <MudText Typo="Typo.h4" Color="Color.Primary">
-                <b>Gesti髇 de Tickets OTIC</b>
+                <b>Gesti贸n de Tickets OTIC</b>
             </MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Panel de administraci髇 de todos los tickets del sistema
+                Panel de administraci贸n de todos los tickets del sistema
             </MudText>
         </div>
         <MudButton Variant="Variant.Filled"
@@ -83,31 +85,38 @@
                 </ToolBarContent>
 
                 <HeaderContent>
-                    <MudTh Style="font-weight: bold;">ID</MudTh>
-                    <MudTh Style="font-weight: bold;">Fecha Creaci髇</MudTh>
+                    <MudTh Style="font-weight: bold;">C贸digo</MudTh>
+                    <MudTh Style="font-weight: bold;">Fecha Creaci贸n</MudTh>
                     <MudTh Style="font-weight: bold;">Solicitante</MudTh>
-                    <MudTh Style="font-weight: bold;">T韙ulo</MudTh>
+                    <MudTh Style="font-weight: bold;">T铆tulo</MudTh>
                     <MudTh Style="font-weight: bold;">Prioridad</MudTh>
                     <MudTh Style="font-weight: bold;">Estado</MudTh>
+                    <MudTh Style="font-weight: bold;">Especialista</MudTh>
                     <MudTh Style="font-weight: bold;">Acciones</MudTh>
                 </HeaderContent>
 
                 <RowTemplate>
-                    <MudTd DataLabel="ID">
+                    <MudTd DataLabel="C贸digo">
                         <MudChip T="string" Size="Size.Small" Color="Color.Default">
-                            #@context.IdTicket
+                            #@context.CodigoTicket
                         </MudChip>
                     </MudTd>
                     <MudTd DataLabel="Fecha">
                         @context.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
                     </MudTd>
                     <MudTd DataLabel="Solicitante">
-                        <div class="d-flex align-center">
-                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
-                            <span>@(context.Solicitante?.NombreCompleto ?? "Sin Solicitante")</span>
+                        <div>
+                            <div class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                                <span><b>@(context.Solicitante?.NombreCompleto ?? "Sin Solicitante")</b></span>
+                            </div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-6">
+                                @context.AreaSolicitanteNombre
+                            </MudText>
                         </div>
                     </MudTd>
-                    <MudTd DataLabel="T韙ulo">
+
+                    <MudTd DataLabel="T铆tulo">
                         <MudText Typo="Typo.body2" Style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             @context.Titulo
                         </MudText>
@@ -128,18 +137,32 @@
                             @context.Estado?.Nombre
                         </MudChip>
                     </MudTd>
+                    <MudTd DataLabel="Especialista">
+                        @if (context.Especialista != null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Filled.Engineering">
+                                @context.Especialista.NombreCompleto
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                Sin asignar
+                            </MudChip>
+                        }
+                    </MudTd>
                     <MudTd DataLabel="Acciones">
-                        <MudTooltip Text="Ver Detalles / Gestionar">
+                        <MudTooltip Text="Ver Detalles">
                             <MudIconButton Icon="@Icons.Material.Filled.Visibility"
                                            Color="Color.Primary"
                                            Size="Size.Small"
                                            OnClick="@(() => IrADetalle(context.IdTicket))" />
                         </MudTooltip>
-                        <MudTooltip Text="Editar Estado">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                        <MudTooltip Text="Asignar Especialista">
+                            <MudIconButton Icon="@Icons.Material.Filled.AssignmentInd"
                                            Color="Color.Info"
                                            Size="Size.Small"
-                                           OnClick="@(() => EditarTicket(context.IdTicket))" />
+                                           OnClick="@(() => AbrirDialogoAsignar(context))" />
                         </MudTooltip>
                     </MudTd>
                 </RowTemplate>
@@ -147,12 +170,12 @@
                 <PagerContent>
                     <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }"
                                    InfoFormat="{first_item}-{last_item} de {all_items}"
-                                   RowsPerPageString="Filas por p醙ina:" />
+                                   RowsPerPageString="Filas por p谩gina:" />
                 </PagerContent>
             </MudTable>
         </MudPaper>
 
-        <!-- Estad韘ticas R醦idas -->
+        <!-- Estad铆sticas R谩pidas -->
         <MudGrid Class="mt-4">
             <MudItem xs="12" sm="3">
                 <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px;">
@@ -186,10 +209,12 @@
     private List<Ticket>? listaTickets;
     private Ticket? ticketSeleccionado;
     private string textoBusqueda = string.Empty;
+    private List<Usuario>? listaEspecialistas;
 
     protected override async Task OnInitializedAsync()
     {
         await CargarTickets();
+        await CargarEspecialistas();
     }
 
     private async Task CargarTickets()
@@ -210,12 +235,40 @@
         }
     }
 
-    private void IrADetalle(int id)
+    private async Task CargarEspecialistas()
     {
-        Navigation.NavigateTo($"/helpdesk/ticket/{id}");
+        try
+        {
+            var todosUsuarios = await _usuarioServicio.Listar();
+            // Filtrar solo especialistas (IdRol == 2 o 3, ajusta seg煤n tu BD)
+            listaEspecialistas = todosUsuarios?.Where(u => u.IdRol == 2 || u.IdRol == 3).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar especialistas: {ex.Message}", Severity.Warning);
+            listaEspecialistas = new List<Usuario>();
+        }
     }
 
-    private void EditarTicket(int id)
+    private async Task AbrirDialogoAsignar(Ticket ticket)
+    {
+        var parametros = new DialogParameters
+        {
+            ["Ticket"] = ticket,
+            ["Especialistas"] = listaEspecialistas
+        };
+
+        var opciones = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialogo = await DialogService.ShowAsync<DialogoAsignarEspecialista>("Asignar Especialista", parametros, opciones);
+        var resultado = await dialogo.Result;
+
+        if (!resultado.Canceled)
+        {
+            await CargarTickets();
+        }
+    }
+
+    private void IrADetalle(int id)
     {
         Navigation.NavigateTo($"/helpdesk/ticket/{id}");
     }
@@ -244,7 +297,7 @@
         if (ticket.Solicitante?.NombreCompleto?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
             return true;
 
-        if (ticket.IdTicket.ToString().Contains(textoBusqueda))
+        if (ticket.CodigoTicket?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
             return true;
 
         return false;

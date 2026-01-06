@@ -79,13 +79,25 @@ namespace ITSM.Negocio
 
         public async Task RegistrarUsuarioAsync(Usuario usuario, string passwordPlano)
         {
-            if (await ExisteUsernameAsync(usuario.Username))
+            var usuarioExistente = await _contexto.Usuarios
+                .Where(u => u.Username == usuario.Username)
+                .ToListAsync();
+
+            if (usuarioExistente.Any())
                 throw new Exception($"El nombre de usuario '{usuario.Username}' ya está en uso.");
 
-            if (await ExisteDniAsync(usuario.Dni))
+            var dniExistente = await _contexto.Usuarios
+                .Where(u => u.Dni == usuario.Dni)
+                .ToListAsync();
+
+            if (dniExistente.Any())
                 throw new Exception($"El DNI '{usuario.Dni}' ya está registrado.");
 
-            if (await ExisteCorreoAsync(usuario.Correo))
+            var correoExistente = await _contexto.Usuarios
+                .Where(u => u.Correo == usuario.Correo)
+                .ToListAsync();
+
+            if (correoExistente.Any())
                 throw new Exception($"El correo '{usuario.Correo}' ya está registrado.");
 
             usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordPlano);
@@ -106,11 +118,23 @@ namespace ITSM.Negocio
             var usuarioDb = await _contexto.Usuarios.FindAsync(usuario.IdUsuario);
             if (usuarioDb == null) throw new Exception("El usuario que intenta editar no existe.");
 
-            if (await _contexto.Usuarios.AnyAsync(u => u.Username == usuario.Username && u.IdUsuario != usuario.IdUsuario))
+            var usuariosConMismoUsername = await _contexto.Usuarios
+                .Where(u => u.Username == usuario.Username && u.IdUsuario != usuario.IdUsuario)
+                .ToListAsync();
+
+            if (usuariosConMismoUsername.Any())
                 throw new Exception($"El usuario '{usuario.Username}' ya pertenece a otra persona.");
 
-            if (await _contexto.Usuarios.AnyAsync(u => u.Dni == usuario.Dni && u.IdUsuario != usuario.IdUsuario))
+            var usuariosConMismoDni = await _contexto.Usuarios
+                .Where(u => u.Dni == usuario.Dni && u.IdUsuario != usuario.IdUsuario)
+                .ToListAsync();
+
+            if (usuariosConMismoDni.Any())
                 throw new Exception($"El DNI '{usuario.Dni}' ya pertenece a otra persona.");
+
+            Console.WriteLine($"📝 [BACKEND] ActualizarUsuarioAsync - Usuario: {usuarioDb.Username}");
+            Console.WriteLine($"📝 [BACKEND] Estado ANTES: {usuarioDb.Estado} | Estado NUEVO: {usuario.Estado}");
+            Console.WriteLine($"📝 [BACKEND] FechaBaja ANTES: {usuarioDb.FechaBaja} | FechaBaja NUEVA: {usuario.FechaBaja}");
 
             usuarioDb.Nombres = usuario.Nombres.ToUpper();
             usuarioDb.Apellidos = usuario.Apellidos.ToUpper();
@@ -125,12 +149,20 @@ namespace ITSM.Negocio
             {
                 usuarioDb.Estado = usuario.Estado;
                 if (usuario.Estado == 0)
+                {
                     usuarioDb.FechaBaja = DateTime.Now;
+                    Console.WriteLine($"🔴 [BACKEND] Usuario '{usuarioDb.Username}' DESACTIVADO - FechaBaja: {usuarioDb.FechaBaja}");
+                }
                 else
+                {
                     usuarioDb.FechaBaja = null;
+                    Console.WriteLine($"🟢 [BACKEND] Usuario '{usuarioDb.Username}' REACTIVADO - FechaBaja: NULL");
+                }
             }
 
+            Console.WriteLine($"💾 [BACKEND] Guardando cambios en la base de datos...");
             await _contexto.SaveChangesAsync();
+            Console.WriteLine($"✅ [BACKEND] Usuario actualizado exitosamente");
         }
 
         public async Task DarDeBajaAsync(int idUsuario)
@@ -145,17 +177,26 @@ namespace ITSM.Negocio
 
         public async Task<bool> ExisteUsernameAsync(string username)
         {
-            return await _contexto.Usuarios.AnyAsync(u => u.Username == username);
+            var usuarios = await _contexto.Usuarios
+                .Where(u => u.Username == username)
+                .ToListAsync();
+            return usuarios.Any();
         }
 
         public async Task<bool> ExisteDniAsync(string dni)
         {
-            return await _contexto.Usuarios.AnyAsync(u => u.Dni == dni);
+            var usuarios = await _contexto.Usuarios
+                .Where(u => u.Dni == dni)
+                .ToListAsync();
+            return usuarios.Any();
         }
 
         public async Task<bool> ExisteCorreoAsync(string correo)
         {
-            return await _contexto.Usuarios.AnyAsync(u => u.Correo == correo);
+            var usuarios = await _contexto.Usuarios
+                .Where(u => u.Correo == correo)
+                .ToListAsync();
+            return usuarios.Any();
         }
 
         public async Task<List<Rol>> ListarRolesActivosAsync()

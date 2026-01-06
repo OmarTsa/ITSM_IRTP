@@ -1,40 +1,74 @@
 ﻿@inherits LayoutComponentBase
 @using ITSM.WEB.Client.Servicios
+@using ITSM.WEB.Client.Shared
 @using Microsoft.AspNetCore.Components.Authorization
-@inject IServicioSesion _servicioSesion
 @inject NavigationManager _nav
+@inject IServiceProvider ServiceProvider
 
-<MudThemeProvider />
+<MudThemeProvider Theme="@OticTheme.Theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="2" Color="Color.Primary" Dense="false">
+    <!-- AppBar con colores corporativos -->
+    <MudAppBar Elevation="2" Class="otic-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu"
                        Color="Color.Inherit"
                        Edge="Edge.Start"
                        OnClick="@DrawerToggle" />
 
-        <MudIcon Icon="@Icons.Material.Filled.Support" Class="mr-2" />
-        <MudText Typo="Typo.h6" Class="ml-3">
-            <b>ITSM - IRTP</b>
+        <!-- Logo con filtro CSS para hacerlo blanco -->
+        <img src="/images/logo-otic.png"
+             alt="SOPORTE OTIC"
+             class="logo-white"
+             style="height: 40px; margin-left: 16px;" />
+
+        <MudText Typo="Typo.h6" Class="ml-3" Style="font-weight: 600;">
+            Sistema ITSM - IRTP
         </MudText>
 
         <MudSpacer />
 
         <AuthorizeView>
             <Authorized>
-                <MudText Typo="Typo.body2" Class="mr-3">
-                    <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-1" />
-                    Hola, <b>@context.User.Identity?.Name</b>
-                </MudText>
-
-                <MudTooltip Text="Cerrar Sesión">
-                    <MudIconButton Icon="@Icons.Material.Filled.Logout"
-                                   Color="Color.Inherit"
-                                   OnClick="CerrarSesion" />
+                <MudTooltip Text="Notificaciones">
+                    <MudBadge Content="3" Color="Color.Warning" Overlap="true" Class="mr-4">
+                        <MudIconButton Icon="@Icons.Material.Filled.Notifications"
+                                       Color="Color.Inherit" />
+                    </MudBadge>
                 </MudTooltip>
+
+                <MudDivider Vertical="true" FlexItem="true" Class="mx-2" Style="height: 40px;" />
+
+                <MudMenu Icon="@Icons.Material.Filled.AccountCircle"
+                         Color="Color.Inherit"
+                         Direction="Direction.Bottom"
+                         OffsetY="true">
+                    <MudMenuItem>
+                        <div class="d-flex flex-column pa-2">
+                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                @context.User.Identity?.Name
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="color: #999;">
+                                @(context.User.IsInRole("ADMINISTRADOR") ? "Administrador" : "Usuario")
+                            </MudText>
+                        </div>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/perfil">
+                        Mi Perfil
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Settings" Href="/configuracion">
+                        Configuración
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout"
+                                 IconColor="Color.Error"
+                                 OnClick="CerrarSesion">
+                        Cerrar Sesión
+                    </MudMenuItem>
+                </MudMenu>
             </Authorized>
             <NotAuthorized>
                 <MudButton Variant="Variant.Text"
@@ -47,31 +81,53 @@
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="@drawerOpen"
+    <!-- Sidebar con branding -->
+    <MudDrawer @bind-Open="_drawerOpen"
                ClipMode="DrawerClipMode.Always"
-               Elevation="4"
-               Variant="@DrawerVariant.Responsive">
+               Elevation="2"
+               Variant="@DrawerVariant.Mini"
+               OpenMiniOnHover="true">
+
+        <!-- Logo en sidebar con fondo rojo -->
+        <div class="sidebar-brand">
+            <img src="/images/logo-otic.png"
+                 alt="OTIC"
+                 class="logo-white"
+                 style="max-width: 120px; height: auto;" />
+        </div>
+
         <NavMenu />
+
+        <!-- Footer del Sidebar -->
+        <div style="position: absolute; bottom: 16px; width: 100%; text-align: center;">
+            <MudText Typo="Typo.caption" Style="color: #999;">
+                v1.0.0 - 2025
+            </MudText>
+        </div>
     </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.False" Class="my-4 pt-4">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
 
 @code {
-    private bool drawerOpen = true;
+    bool _drawerOpen = true;
 
-    private void DrawerToggle()
+    void DrawerToggle()
     {
-        drawerOpen = !drawerOpen;
+        _drawerOpen = !_drawerOpen;
     }
 
     private async Task CerrarSesion()
     {
-        await _servicioSesion.CerrarSesion();
-        _nav.NavigateTo("/login", forceLoad: true);
+        var servicioSesion = ServiceProvider.GetService<IServicioSesion>();
+        if (servicioSesion != null)
+        {
+            await servicioSesion.CerrarSesion();
+        }
+        _nav.NavigateTo("/login", true);
     }
 }

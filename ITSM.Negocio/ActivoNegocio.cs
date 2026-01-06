@@ -25,7 +25,6 @@ namespace ITSM.Negocio
                 .ToListAsync();
         }
 
-        // IMPLEMENTADO: Requerido por ActivoController
         public async Task<List<Activo>> ListarActivosPorUsuarioAsync(int idUsuario)
         {
             return await _context.Activos
@@ -54,6 +53,7 @@ namespace ITSM.Negocio
             }
             else
             {
+                activo.FechaModificacion = DateTime.Now;
                 _context.Activos.Update(activo);
             }
             await _context.SaveChangesAsync();
@@ -73,17 +73,16 @@ namespace ITSM.Negocio
 
         public async Task<List<TipoActivo>> ListarTiposAsync()
         {
+            // CORREGIDO: No filtrar por Estado porque esa columna NO existe
             return await _context.TiposActivo
-                .Where(t => t.Estado == 1)
+                .OrderBy(t => t.Nombre)
                 .ToListAsync();
         }
 
-        // IMPLEMENTADO: Requerido por ActivoController (GestiónTipos.razor)
         public async Task GuardarTipoAsync(TipoActivo tipo)
         {
             if (tipo.IdTipo == 0)
             {
-                tipo.Estado = 1;
                 _context.TiposActivo.Add(tipo);
             }
             else
@@ -93,15 +92,24 @@ namespace ITSM.Negocio
             await _context.SaveChangesAsync();
         }
 
-        // IMPLEMENTADO: Requerido por ActivoController
         public async Task EliminarTipoAsync(int id)
         {
             var tipo = await _context.TiposActivo.FindAsync(id);
             if (tipo != null)
             {
-                tipo.Estado = 0; // Soft delete
+                _context.TiposActivo.Remove(tipo);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        // --- GESTIÓN DE ESTADOS DE ACTIVO ---
+
+        public async Task<List<EstadoActivo>> ListarEstadosAsync()
+        {
+            return await _context.EstadosActivo
+                .Where(e => e.Activo == 1)
+                .OrderBy(e => e.Orden)
+                .ToListAsync();
         }
     }
 }

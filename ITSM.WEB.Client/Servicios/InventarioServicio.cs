@@ -13,6 +13,7 @@ namespace ITSM.WEB.Client.Servicios
         }
 
         // ===== ACTIVOS =====
+
         public async Task<List<Activo>> ListarActivos()
         {
             try
@@ -88,6 +89,7 @@ namespace ITSM.WEB.Client.Servicios
         }
 
         // ===== TIPOS DE ACTIVO =====
+
         public async Task<List<TipoActivo>> ListarTiposActivo()
         {
             try
@@ -144,6 +146,22 @@ namespace ITSM.WEB.Client.Servicios
             {
                 Console.WriteLine($"❌ Error al eliminar tipo: {ex.Message}");
                 throw;
+            }
+        }
+
+        // ===== ESTADOS DE ACTIVO =====
+
+        public async Task<List<EstadoActivo>> ListarEstados()
+        {
+            try
+            {
+                var estados = await _clienteHttp.GetFromJsonAsync<List<EstadoActivo>>("api/activo/estados");
+                return estados ?? new List<EstadoActivo>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al listar estados: {ex.Message}");
+                return new List<EstadoActivo>();
             }
         }
     }

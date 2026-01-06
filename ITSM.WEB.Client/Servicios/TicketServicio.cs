@@ -1,11 +1,11 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using ITSM.Entidades;
 using ITSM.Entidades.DTOs;
 
 namespace ITSM.WEB.Client.Servicios
 {
     /// <summary>
-    /// Servicio para gestión de tickets del sistema ITSM
+    /// Servicio para gesti�n de tickets del sistema ITSM
     /// </summary>
     public class TicketServicio : ITicketServicio
     {
@@ -25,7 +25,7 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al listar tickets: {ex.Message}");
+                Console.WriteLine($"? Error al listar tickets: {ex.Message}");
                 return new List<Ticket>();
             }
         }
@@ -39,7 +39,7 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al listar mis tickets: {ex.Message}");
+                Console.WriteLine($"? Error al listar mis tickets: {ex.Message}");
                 return new List<Ticket>();
             }
         }
@@ -52,22 +52,34 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al obtener ticket: {ex.Message}");
+                Console.WriteLine($"? Error al obtener ticket: {ex.Message}");
                 return null;
             }
         }
 
-        public async Task RegistrarTicket(Ticket ticket)
+        // ? MODIFICADO: Ahora retorna el ticket creado con su c�digo correlativo
+        public async Task<Ticket?> RegistrarTicket(Ticket ticket)
         {
             try
             {
                 var respuesta = await _clienteHttp.PostAsJsonAsync("api/ticket", ticket);
                 respuesta.EnsureSuccessStatusCode();
-                Console.WriteLine("✅ Ticket registrado correctamente");
+
+                // Leer la respuesta del servidor que incluye el ticket completo
+                var resultado = await respuesta.Content.ReadFromJsonAsync<RespuestaApi<Ticket>>();
+
+                if (resultado?.exito == true && resultado.datos != null)
+                {
+                    Console.WriteLine($"? Ticket registrado: {resultado.datos.CodigoTicket}");
+                    return resultado.datos;
+                }
+
+                Console.WriteLine("?? Ticket registrado pero sin datos en la respuesta");
+                return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al registrar ticket: {ex.Message}");
+                Console.WriteLine($"? Error al registrar ticket: {ex.Message}");
                 throw;
             }
         }
@@ -78,11 +90,11 @@ namespace ITSM.WEB.Client.Servicios
             {
                 var respuesta = await _clienteHttp.PutAsJsonAsync($"api/ticket/{ticket.IdTicket}", ticket);
                 respuesta.EnsureSuccessStatusCode();
-                Console.WriteLine("✅ Ticket actualizado correctamente");
+                Console.WriteLine("? Ticket actualizado correctamente");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al actualizar ticket: {ex.Message}");
+                Console.WriteLine($"? Error al actualizar ticket: {ex.Message}");
                 throw;
             }
         }
@@ -93,40 +105,40 @@ namespace ITSM.WEB.Client.Servicios
             {
                 var respuesta = await _clienteHttp.PostAsync($"api/ticket/{idTicket}/asignar/{idEspecialista}", null);
                 respuesta.EnsureSuccessStatusCode();
-                Console.WriteLine("✅ Ticket asignado correctamente");
+                Console.WriteLine("? Ticket asignado correctamente");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al asignar ticket: {ex.Message}");
+                Console.WriteLine($"? Error al asignar ticket: {ex.Message}");
                 throw;
             }
         }
 
-        public async Task<List<TicketDetalle>> ListarDetalles(int idTicket)
+        public async Task<List<TicketComentario>> ListarDetalles(int idTicket)
         {
             try
             {
-                var detalles = await _clienteHttp.GetFromJsonAsync<List<TicketDetalle>>($"api/ticket/{idTicket}/detalle");
-                return detalles ?? new List<TicketDetalle>();
+                var detalles = await _clienteHttp.GetFromJsonAsync<List<TicketComentario>>($"api/ticket/{idTicket}/detalle");
+                return detalles ?? new List<TicketComentario>();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al listar detalles: {ex.Message}");
-                return new List<TicketDetalle>();
+                Console.WriteLine($"? Error al listar detalles: {ex.Message}");
+                return new List<TicketComentario>();
             }
         }
 
-        public async Task AgregarComentario(TicketDetalle detalle)
+        public async Task AgregarComentario(TicketComentario detalle)
         {
             try
             {
                 var respuesta = await _clienteHttp.PostAsJsonAsync($"api/ticket/{detalle.IdTicket}/detalle", detalle);
                 respuesta.EnsureSuccessStatusCode();
-                Console.WriteLine("✅ Comentario agregado correctamente");
+                Console.WriteLine("? Comentario agregado correctamente");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al agregar comentario: {ex.Message}");
+                Console.WriteLine($"? Error al agregar comentario: {ex.Message}");
                 throw;
             }
         }
@@ -140,7 +152,7 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al listar categorías: {ex.Message}");
+                Console.WriteLine($"? Error al listar categor�as: {ex.Message}");
                 return new List<Categoria>();
             }
         }
@@ -154,7 +166,7 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al listar prioridades: {ex.Message}");
+                Console.WriteLine($"? Error al listar prioridades: {ex.Message}");
                 return new List<Prioridad>();
             }
         }
@@ -168,7 +180,7 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al listar estados: {ex.Message}");
+                Console.WriteLine($"? Error al listar estados: {ex.Message}");
                 return new List<EstadoTicket>();
             }
         }
@@ -181,9 +193,17 @@ namespace ITSM.WEB.Client.Servicios
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error al obtener KPI: {ex.Message}");
+                Console.WriteLine($"? Error al obtener KPI: {ex.Message}");
                 return null;
             }
         }
+    }
+
+    // ? NUEVA: Clase para deserializar la respuesta del API
+    public class RespuestaApi<T>
+    {
+        public bool exito { get; set; }
+        public string? mensaje { get; set; }
+        public T? datos { get; set; }
     }
 }

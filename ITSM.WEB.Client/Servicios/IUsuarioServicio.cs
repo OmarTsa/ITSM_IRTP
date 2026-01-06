@@ -15,5 +15,6 @@ namespace ITSM.WEB.Client.Servicios
         Task<bool> Eliminar(int id);
         Task<List<Rol>> ListarRoles();
         Task<List<Area>> ListarAreas();
+        Task<bool> CambiarPassword(int idUsuario, string nuevaPassword); // NUEVO MÉTODO
     }
 }

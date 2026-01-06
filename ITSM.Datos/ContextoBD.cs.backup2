@@ -1,0 +1,205 @@
+﻿using Microsoft.EntityFrameworkCore;
+using ITSM.Entidades;
+
+namespace ITSM.Datos
+{
+    public class ContextoBD : DbContext
+    {
+        public ContextoBD(DbContextOptions<ContextoBD> options) : base(options) { }
+
+        // --- SEGURIDAD ---
+        public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Rol> Roles { get; set; }
+        public DbSet<Area> Areas { get; set; }
+
+        // --- HELPDESK ---
+        public DbSet<Ticket> Tickets { get; set; }
+        public DbSet<TicketDetalle> TicketDetalles { get; set; }
+        public DbSet<EstadoTicket> Estados { get; set; }
+        public DbSet<Categoria> Categorias { get; set; }
+        public DbSet<Prioridad> Prioridades { get; set; }
+
+        // --- INVENTARIO ---
+        public DbSet<Activo> Activos { get; set; }
+        public DbSet<TipoActivo> TiposActivo { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // ===================================================================
+            // CONFIGURACIÓN DE NOMBRES DE TABLAS ORACLE (EXPLÍCITO)
+            // ===================================================================
+            
+            modelBuilder.Entity<Usuario>().ToTable("SEG_USUARIOS");
+            modelBuilder.Entity<Rol>().ToTable("SEG_ROLES");
+            modelBuilder.Entity<Area>().ToTable("SEG_AREAS");
+            
+            modelBuilder.Entity<Ticket>().ToTable("HD_TICKETS");
+            modelBuilder.Entity<TicketDetalle>().ToTable("HD_TICKET_HISTORIAL");
+            modelBuilder.Entity<EstadoTicket>().ToTable("ESTADOS_TICKET");
+            modelBuilder.Entity<Categoria>().ToTable("CATEGORIAS");
+            modelBuilder.Entity<Prioridad>().ToTable("PRIORIDADES");
+            
+            modelBuilder.Entity<Activo>().ToTable("ACT_INVENTARIO");
+            modelBuilder.Entity<TipoActivo>().ToTable("ACT_TIPOS_ACTIVO");
+
+            // ===================================================================
+            // CONFIGURACIÓN DE LLAVES PRIMARIAS
+            // ===================================================================
+            
+            modelBuilder.Entity<Usuario>().HasKey(u => u.IdUsuario);
+            modelBuilder.Entity<Rol>().HasKey(r => r.IdRol);
+            modelBuilder.Entity<Area>().HasKey(a => a.IdArea);
+            modelBuilder.Entity<Ticket>().HasKey(t => t.IdTicket);
+            modelBuilder.Entity<TicketDetalle>().HasKey(td => td.IdHistorial);
+            modelBuilder.Entity<EstadoTicket>().HasKey(e => e.IdEstado);
+            modelBuilder.Entity<Categoria>().HasKey(c => c.IdCategoria);
+            modelBuilder.Entity<Prioridad>().HasKey(p => p.IdPrioridad);
+            modelBuilder.Entity<Activo>().HasKey(a => a.IdActivo);
+            modelBuilder.Entity<TipoActivo>().HasKey(t => t.IdTipo);
+
+            // ===================================================================
+            // CONFIGURACIÓN DE NOMBRES DE COLUMNAS (MAPEO EXPLÍCITO)
+            // ===================================================================
+            
+            // Usuario
+            modelBuilder.Entity<Usuario>().Property(u => u.IdUsuario).HasColumnName("ID_USUARIO");
+            modelBuilder.Entity<Usuario>().Property(u => u.Dni).HasColumnName("DNI").HasMaxLength(8);
+            modelBuilder.Entity<Usuario>().Property(u => u.Nombres).HasColumnName("NOMBRES").HasMaxLength(100).IsRequired();
+            modelBuilder.Entity<Usuario>().Property(u => u.Apellidos).HasColumnName("APELLIDOS").HasMaxLength(100).IsRequired();
+            modelBuilder.Entity<Usuario>().Property(u => u.Correo).HasColumnName("CORREO").HasMaxLength(100).IsRequired();
+            modelBuilder.Entity<Usuario>().Property(u => u.Username).HasColumnName("USERNAME").HasMaxLength(50).IsRequired();
+            modelBuilder.Entity<Usuario>().Property(u => u.PasswordHash).HasColumnName("PASSWORD_HASH").HasMaxLength(100).IsRequired();
+            modelBuilder.Entity<Usuario>().Property(u => u.IdRol).HasColumnName("ID_ROL").IsRequired();
+            modelBuilder.Entity<Usuario>().Property(u => u.IdArea).HasColumnName("ID_AREA");
+            modelBuilder.Entity<Usuario>().Property(u => u.Cargo).HasColumnName("CARGO").HasMaxLength(100);
+            modelBuilder.Entity<Usuario>().Property(u => u.Estado).HasColumnName("ESTADO").HasDefaultValue(1);
+            modelBuilder.Entity<Usuario>().Property(u => u.FechaBaja).HasColumnName("FECHA_BAJA");
+            modelBuilder.Entity<Usuario>().Property(u => u.FechaCreacion).HasColumnName("FECHA_CREACION").HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            // Rol
+            modelBuilder.Entity<Rol>().Property(r => r.IdRol).HasColumnName("ID_ROL");
+            modelBuilder.Entity<Rol>().Property(r => r.Nombre).HasColumnName("NOMBRE").HasMaxLength(50).IsRequired();
+            modelBuilder.Entity<Rol>().Property(r => r.Descripcion).HasColumnName("DESCRIPCION").HasMaxLength(200);
+            modelBuilder.Entity<Rol>().Property(r => r.Estado).HasColumnName("ESTADO").HasDefaultValue(1);
+
+            // Area
+            modelBuilder.Entity<Area>().Property(a => a.IdArea).HasColumnName("ID_AREA");
+            modelBuilder.Entity<Area>().Property(a => a.Nombre).HasColumnName("NOMBRE").HasMaxLength(100).IsRequired();
+            modelBuilder.Entity<Area>().Property(a => a.Siglas).HasColumnName("SIGLAS").HasMaxLength(20);
+
+            // Ticket
+            modelBuilder.Entity<Ticket>().Property(t => t.IdTicket).HasColumnName("ID_TICKET");
+            modelBuilder.Entity<Ticket>().Property(t => t.CodigoTicket).HasColumnName("CODIGO_TICKET").HasMaxLength(20);
+            modelBuilder.Entity<Ticket>().Property(t => t.Titulo).HasColumnName("TITULO").HasMaxLength(200);
+            modelBuilder.Entity<Ticket>().Property(t => t.Descripcion).HasColumnName("DESCRIPCION");
+            modelBuilder.Entity<Ticket>().Property(t => t.TipoTicket).HasColumnName("TIPO_TICKET").HasMaxLength(50).HasDefaultValue("Incidente");
+            modelBuilder.Entity<Ticket>().Property(t => t.FechaCreacion).HasColumnName("FECHA_CREACION").HasDefaultValueSql("SYSDATE");
+            modelBuilder.Entity<Ticket>().Property(t => t.FechaAsignacion).HasColumnName("FECHA_ASIGNACION");
+            modelBuilder.Entity<Ticket>().Property(t => t.FechaCierre).HasColumnName("FECHA_CIERRE");
+            modelBuilder.Entity<Ticket>().Property(t => t.FechaLimite).HasColumnName("FECHA_LIMITE");
+            modelBuilder.Entity<Ticket>().Property(t => t.IdSolicitante).HasColumnName("ID_SOLICITANTE");
+            modelBuilder.Entity<Ticket>().Property(t => t.IdAreaSolicitante).HasColumnName("ID_AREA_SOLICITANTE");
+            modelBuilder.Entity<Ticket>().Property(t => t.IdEspecialista).HasColumnName("ID_ESPECIALISTA");
+            modelBuilder.Entity<Ticket>().Property(t => t.IdCategoria).HasColumnName("ID_CATEGORIA");
+            modelBuilder.Entity<Ticket>().Property(t => t.IdEstado).HasColumnName("ID_ESTADO").HasDefaultValue(1);
+            modelBuilder.Entity<Ticket>().Property(t => t.IdPrioridad).HasColumnName("ID_PRIORIDAD").HasDefaultValue(3);
+            modelBuilder.Entity<Ticket>().Property(t => t.IdImpacto).HasColumnName("ID_IMPACTO").HasDefaultValue(3);
+            modelBuilder.Entity<Ticket>().Property(t => t.IdUrgencia).HasColumnName("ID_URGENCIA").HasDefaultValue(3);
+            modelBuilder.Entity<Ticket>().Property(t => t.IdActivoAfectado).HasColumnName("ID_ACTIVO_AFECTADO");
+            modelBuilder.Entity<Ticket>().Property(t => t.Calificacion).HasColumnName("CALIFICACION");
+            modelBuilder.Entity<Ticket>().Property(t => t.CodigoCierre).HasColumnName("CODIGO_CIERRE").HasMaxLength(50);
+            modelBuilder.Entity<Ticket>().Property(t => t.NotasCierre).HasColumnName("NOTAS_CIERRE").HasMaxLength(500);
+
+            // EstadoTicket
+            modelBuilder.Entity<EstadoTicket>().Property(e => e.IdEstado).HasColumnName("ID_ESTADO");
+            modelBuilder.Entity<EstadoTicket>().Property(e => e.Nombre).HasColumnName("NOMBRE").HasMaxLength(50).IsRequired();
+
+            // Categoria
+            modelBuilder.Entity<Categoria>().Property(c => c.IdCategoria).HasColumnName("ID_CATEGORIA");
+            modelBuilder.Entity<Categoria>().Property(c => c.Nombre).HasColumnName("NOMBRE").HasMaxLength(100).IsRequired();
+            modelBuilder.Entity<Categoria>().Property(c => c.Activo).HasColumnName("ACTIVO").HasDefaultValue(1);
+
+            // Prioridad
+            modelBuilder.Entity<Prioridad>().Property(p => p.IdPrioridad).HasColumnName("ID_PRIORIDAD");
+            modelBuilder.Entity<Prioridad>().Property(p => p.Nombre).HasColumnName("NOMBRE").HasMaxLength(50).IsRequired();
+            modelBuilder.Entity<Prioridad>().Property(p => p.HorasSla).HasColumnName("HORAS_SLA");
+            modelBuilder.Entity<Prioridad>().Property(p => p.Color).HasColumnName("COLOR").HasMaxLength(20);
+
+            // Activo
+            modelBuilder.Entity<Activo>().Property(a => a.IdActivo).HasColumnName("ID_ACTIVO");
+            modelBuilder.Entity<Activo>().Property(a => a.CodigoPatrimonial).HasColumnName("CODIGO_PATRIMONIAL").HasMaxLength(20);
+            modelBuilder.Entity<Activo>().Property(a => a.IdTipo).HasColumnName("ID_TIPO");
+            modelBuilder.Entity<Activo>().Property(a => a.Marca).HasColumnName("MARCA").HasMaxLength(50);
+            modelBuilder.Entity<Activo>().Property(a => a.Modelo).HasColumnName("MODELO").HasMaxLength(50);
+            modelBuilder.Entity<Activo>().Property(a => a.Serie).HasColumnName("SERIE").HasMaxLength(50);
+            modelBuilder.Entity<Activo>().Property(a => a.FechaCompra).HasColumnName("FECHA_COMPRA");
+            modelBuilder.Entity<Activo>().Property(a => a.Condicion).HasColumnName("CONDICION").HasMaxLength(20);
+            modelBuilder.Entity<Activo>().Property(a => a.IdUsuarioAsignado).HasColumnName("ID_USUARIO_ASIGNADO");
+            modelBuilder.Entity<Activo>().Property(a => a.UbicacionFisica).HasColumnName("UBICACION_FISICA").HasMaxLength(100);
+            modelBuilder.Entity<Activo>().Property(a => a.EstadoOperativo).HasColumnName("ESTADO_OPERATIVO").HasMaxLength(20);
+            modelBuilder.Entity<Activo>().Property(a => a.FechaRegistro).HasColumnName("FECHA_REGISTRO").HasDefaultValueSql("SYSDATE");
+            modelBuilder.Entity<Activo>().Property(a => a.Eliminado).HasColumnName("ELIMINADO").HasDefaultValue(0);
+
+            // TipoActivo
+            modelBuilder.Entity<TipoActivo>().Property(t => t.IdTipo).HasColumnName("ID_TIPO");
+            modelBuilder.Entity<TipoActivo>().Property(t => t.Nombre).HasColumnName("NOMBRE").HasMaxLength(50).IsRequired();
+
+            // ===================================================================
+            // CONFIGURACIÓN DE RELACIONES (FOREIGN KEYS)
+            // ===================================================================
+            
+            // Usuario -> Rol
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Rol)
+                .WithMany()
+                .HasForeignKey(u => u.IdRol)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Usuario -> Area
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Area)
+                .WithMany()
+                .HasForeignKey(u => u.IdArea)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Ticket -> EstadoTicket
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Estado)
+                .WithMany()
+                .HasForeignKey(t => t.IdEstado)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ticket -> Categoria
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Categoria)
+                .WithMany()
+                .HasForeignKey(t => t.IdCategoria)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ticket -> Prioridad
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Prioridad)
+                .WithMany()
+                .HasForeignKey(t => t.IdPrioridad)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Activo -> TipoActivo
+            modelBuilder.Entity<Activo>()
+                .HasOne(a => a.TipoActivo)
+                .WithMany()
+                .HasForeignKey(a => a.IdTipo)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ===================================================================
+            // CONFIGURACIÓN DE ÍNDICES ÚNICOS
+            // ===================================================================
+            
+            modelBuilder.Entity<Usuario>().HasIndex(u => u.Username).IsUnique();
+            modelBuilder.Entity<Usuario>().HasIndex(u => u.Correo).IsUnique();
+            modelBuilder.Entity<Usuario>().HasIndex(u => u.Dni).IsUnique();
+            modelBuilder.Entity<Ticket>().HasIndex(t => t.CodigoTicket).IsUnique();
+        }
+    }
+}

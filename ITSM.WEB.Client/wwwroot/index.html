@@ -1,44 +1,37 @@
 ﻿<!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ITSM - IRTP | Sistema de Gestión de Servicios TI</title>
+    <title>Sistema ITSM - IRTP</title>
     <base href="/" />
 
     <!-- MudBlazor CSS -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
 
-    <!-- Custom CSS -->
+    <!-- Custom Theme CSS -->
     <link href="css/app.css" rel="stylesheet" />
+    <link href="css/custom-theme.css" rel="stylesheet" />
+
     <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 
 <body>
     <div id="app">
         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-            <svg width="80" height="80" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="25" cy="25" r="20" fill="none" stroke="#594AE2" stroke-width="4" stroke-dasharray="31.4 31.4" stroke-linecap="round">
-                    <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" />
-                </circle>
-            </svg>
-            <p style="margin-top: 20px; color: #594AE2; font-family: 'Roboto', sans-serif; font-size: 18px; font-weight: 500;">
-                Cargando ITSM...
-            </p>
+            <div class="spinner"></div>
+            <p style="margin-top: 20px; color: #B91C2E; font-weight: 600;">Cargando Sistema ITSM...</p>
         </div>
     </div>
 
     <div id="blazor-error-ui">
-        Un error no controlado ha ocurrido.
+        Se ha producido un error inesperado.
         <a href="" class="reload">Recargar</a>
         <a class="dismiss">🗙</a>
     </div>
 
-    <!-- MudBlazor JS -->
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
-
 </html>

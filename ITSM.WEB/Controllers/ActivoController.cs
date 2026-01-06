@@ -17,10 +17,11 @@ namespace ITSM.WEB.Controllers
             _activoNegocio = activoNegocio;
         }
 
+        // --- ACTIVOS ---
+
         [HttpGet]
         public async Task<IActionResult> Listar()
         {
-            // CORREGIDO: Coincide con ActivoNegocio.cs
             var lista = await _activoNegocio.ListarActivosAsync();
             return Ok(lista);
         }
@@ -54,6 +55,23 @@ namespace ITSM.WEB.Controllers
             }
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Actualizar(int id, [FromBody] Activo activo)
+        {
+            try
+            {
+                if (id != activo.IdActivo)
+                    return BadRequest("ID no coincide");
+
+                await _activoNegocio.GuardarActivoAsync(activo);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Eliminar(int id)
         {
@@ -73,7 +91,6 @@ namespace ITSM.WEB.Controllers
         [HttpGet("tipos")]
         public async Task<IActionResult> ListarTipos()
         {
-            // CORREGIDO: Llamada asíncrona correcta
             var tipos = await _activoNegocio.ListarTiposAsync();
             return Ok(tipos);
         }
@@ -104,6 +121,15 @@ namespace ITSM.WEB.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        // --- ESTADOS DE ACTIVO ---
+
+        [HttpGet("estados")]
+        public async Task<IActionResult> ListarEstados()
+        {
+            var estados = await _activoNegocio.ListarEstadosAsync();
+            return Ok(estados);
         }
     }
 }

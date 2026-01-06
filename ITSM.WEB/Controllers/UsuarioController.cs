@@ -88,5 +88,36 @@ namespace ITSM.WEB.Controllers
             var areas = await _usuarioNegocio.ListarAreasAsync();
             return Ok(areas);
         }
+
+        // NUEVO ENDPOINT: Cambiar contraseña
+        [HttpPost("cambiar-password")]
+        public async Task<IActionResult> CambiarPassword([FromBody] CambiarPasswordRequest request)
+        {
+            try
+            {
+                if (request.IdUsuario <= 0)
+                    return BadRequest("ID de usuario inválido");
+
+                if (string.IsNullOrWhiteSpace(request.NuevaPassword))
+                    return BadRequest("La contraseña no puede estar vacía");
+
+                if (request.NuevaPassword.Length < 6)
+                    return BadRequest("La contraseña debe tener al menos 6 caracteres");
+
+                await _usuarioNegocio.CambiarContrasenaAsync(request.IdUsuario, request.NuevaPassword);
+                return Ok(new { mensaje = "Contraseña actualizada correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+    }
+
+    // Clase auxiliar para el request de cambiar contraseña
+    public class CambiarPasswordRequest
+    {
+        public int IdUsuario { get; set; }
+        public string NuevaPassword { get; set; } = string.Empty;
     }
 }

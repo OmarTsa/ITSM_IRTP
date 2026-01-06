@@ -7,6 +7,10 @@ using MudBlazor.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+// ===== NUEVOS USINGS NECESARIOS =====
+using Blazored.LocalStorage;
+using ITSM.WEB.Client.Servicios;
+using ITSM.WEB.Client.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,10 +26,33 @@ builder.Services.AddResponseCompression(opts =>
 builder.Services.AddDbContext<ContextoBD>(options =>
     options.UseOracle(builder.Configuration.GetConnectionString("OracleConnection")));
 
-// ===== CAPA DE NEGOCIO =====
+// ===== CAPA DE NEGOCIO (Servidor) =====
 builder.Services.AddScoped<UsuarioNegocio>();
 builder.Services.AddScoped<TicketNegocio>();
 builder.Services.AddScoped<ActivoNegocio>();
+builder.Services.AddScoped<ProyectoNegocio>();
+builder.Services.AddScoped<IProyectoServicio, ProyectoServicio>();
+
+
+// ===== SERVICIOS DEL CLIENTE (Para Prerenderizado) =====
+// Estos son necesarios para que MainLayout y otros componentes carguen en el servidor
+builder.Services.AddBlazoredLocalStorage();
+
+// Configuración de HttpClient para el servidor (necesario para los servicios del cliente)
+builder.Services.AddScoped(sp => new HttpClient
+{
+    // Usa la URL base de tu propia API. Si cambias de puerto, ajusta esto.
+    // Durante el prerenderizado, el servidor se llama a sí mismo.
+    BaseAddress = new Uri(builder.Configuration["AppBaseUrl"] ?? "https://localhost:7192")
+});
+
+// Registrar los mismos servicios que tienes en el Cliente
+builder.Services.AddScoped<IServicioSesion, ServicioSesion>();
+builder.Services.AddScoped<ITicketServicio, TicketServicio>();
+builder.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
+builder.Services.AddScoped<IInventarioServicio, InventarioServicio>();
+builder.Services.AddScoped<IDashboardServicio, DashboardServicio>();
+
 
 // ===== AUTENTICACIÓN JWT =====
 var jwtKey = builder.Configuration["Jwt:Key"]!;
@@ -102,5 +129,12 @@ app.MapRazorComponents<App>()
 Console.WriteLine("✅ Servidor ITSM iniciado correctamente");
 Console.WriteLine($"🔐 JWT configurado: Issuer={jwtIssuer}, Audience={jwtAudience}");
 Console.WriteLine($"🌐 CORS habilitado para desarrollo");
+
+// ✅ CONFIGURACIÓN CRÍTICA: Redireccionar rutas desconocidas a index.html
+// Esto permite que Blazor WASM maneje F5 y navegación directa
+app.MapFallbackToFile("index.html");
+
+// ✅ CONFIGURACIÓN CRÍTICA: Redirecciona rutas desconocidas a index.html
+app.MapFallbackToFile("index.html");
 
 app.Run();

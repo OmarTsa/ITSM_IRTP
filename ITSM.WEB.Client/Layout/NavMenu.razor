@@ -50,6 +50,23 @@
 
             <MudDivider Class="my-2" />
 
+            <AuthorizeView Roles="ADMINISTRADOR,JEFE">
+                <Authorized Context="proyectoContext">
+                    <MudNavGroup Title="Proyectos"
+                                 Icon="@Icons.Material.Filled.FolderOpen"
+                                 Expanded="false">
+                        <MudNavLink Href="/proyectos"
+                                    Icon="@Icons.Material.Filled.ViewList">
+                            Ver Proyectos
+                        </MudNavLink>
+                    </MudNavGroup>
+                </Authorized>
+            </AuthorizeView>
+
+
+
+            <MudDivider Class="my-2" />
+
             <AuthorizeView Roles="ADMINISTRADOR">
                 <Authorized Context="adminContext">
                     <MudNavGroup Title="Administración"

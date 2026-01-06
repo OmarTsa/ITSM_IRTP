@@ -1,0 +1,259 @@
+﻿@page "/proyectos"
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@inject IProyectoServicio _proyectoServicio
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "ADMINISTRADOR,JEFE")]
+
+<PageTitle>Gestión de Proyectos - ITSM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+
+    <div class="d-flex justify-space-between align-center mb-4">
+        <div>
+            <MudText Typo="Typo.h4" Color="Color.Primary">
+                <b>Gestión de Proyectos TI</b>
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Control y seguimiento de proyectos institucionales
+            </MudText>
+        </div>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NuevoProyecto">
+            Nuevo Proyecto
+        </MudButton>
+    </div>
+
+    @if (listaProyectos == null)
+    {
+        <div class="d-flex justify-center align-center" style="min-height: 400px;">
+            <div class="text-center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body1" Class="mt-4" Color="Color.Secondary">
+                    Cargando proyectos...
+                </MudText>
+            </div>
+        </div>
+    }
+    else if (listaProyectos.Count == 0)
+    {
+        <MudPaper Elevation="2" Class="pa-8" Style="text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.FolderOpen"
+                     Size="Size.Large"
+                     Color="Color.Secondary"
+                     Style="font-size: 80px; opacity: 0.5;" />
+            <MudText Typo="Typo.h6" Class="mt-4" Color="Color.Secondary">
+                No hay proyectos registrados en el sistema
+            </MudText>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="NuevoProyecto"
+                       Class="mt-4"
+                       StartIcon="@Icons.Material.Filled.Add">
+                Crear Primer Proyecto
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Elevation="4" Style="border-radius: 12px; overflow: hidden;">
+            <MudTable Items="@listaProyectos"
+                      Hover="true"
+                      Striped="true"
+                      Dense="false"
+                      Filter="new Func<Proyecto, bool>(FiltrarProyectos)">
+
+                <ToolBarContent>
+                    <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Class="mr-2" />
+                    <MudText Typo="Typo.h6">Proyectos Registrados</MudText>
+                    <MudSpacer />
+                    <MudTextField @bind-Value="textoBusqueda"
+                                  Placeholder="Buscar proyectos..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0"
+                                  Immediate="true"
+                                  DebounceInterval="300">
+                    </MudTextField>
+                </ToolBarContent>
+
+                <HeaderContent>
+                    <MudTh Style="font-weight: bold;">Nombre</MudTh>
+                    <MudTh Style="font-weight: bold;">Responsable</MudTh>
+                    <MudTh Style="font-weight: bold;">Área</MudTh>
+                    <MudTh Style="font-weight: bold;">Fechas</MudTh>
+                    <MudTh Style="font-weight: bold;">Presupuesto</MudTh>
+                    <MudTh Style="font-weight: bold;">Estado</MudTh>
+                    <MudTh Style="font-weight: bold;">Acciones</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Nombre">
+                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                            @context.Nombre
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @context.Descripcion
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Responsable">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Class="mr-2" />
+                            <span>@(context.Responsable?.NombreCompleto ?? "Sin asignar")</span>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Área">
+                        @(context.Area?.Nombre ?? "Sin área")
+                    </MudTd>
+                    <MudTd DataLabel="Fechas">
+                        <MudText Typo="Typo.caption">
+                            <b>Inicio:</b> @(context.FechaInicio?.ToString("dd/MM/yyyy") ?? "Sin fecha")
+                        </MudText>
+                        <MudText Typo="Typo.caption">
+                            <b>Fin:</b> @(context.FechaFinPrevista?.ToString("dd/MM/yyyy") ?? "Sin fecha")
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Presupuesto">
+                        S/ @(context.PresupuestoAsignado?.ToString("N2") ?? "0.00")
+                    </MudTd>
+                    <MudTd DataLabel="Estado">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@ObtenerColorEstado(context.Estado)"
+                                 Variant="Variant.Filled">
+                            @context.Estado
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Acciones">
+                        <MudTooltip Text="Ver Detalles">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => VerDetalle(context.IdProyecto))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Editar Proyecto">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           Size="Size.Small"
+                                           OnClick="@(() => EditarProyecto(context.IdProyecto))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }"
+                                   InfoFormat="{first_item}-{last_item} de {all_items}"
+                                   RowsPerPageString="Filas por página:" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+
+        <!-- Estadísticas Rápidas -->
+        <MudGrid Class="mt-4">
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">Total de Proyectos</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaProyectos.Count</b></MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">En Planificación</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaProyectos.Count(p => p.Estado == "PLANIFICACION")</b></MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">En Proceso</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaProyectos.Count(p => p.Estado == "EN_PROCESO")</b></MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudPaper Class="pa-4" Style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; border-radius: 10px;">
+                    <MudText Typo="Typo.body2">Completados</MudText>
+                    <MudText Typo="Typo.h4"><b>@listaProyectos.Count(p => p.Estado == "COMPLETADO")</b></MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private List<Proyecto>? listaProyectos;
+    private string textoBusqueda = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarProyectos();
+    }
+
+    private async Task CargarProyectos()
+    {
+        try
+        {
+            listaProyectos = await _proyectoServicio.ListarProyectos();
+
+            if (listaProyectos == null || !listaProyectos.Any())
+            {
+                Snackbar.Add("No hay proyectos para mostrar", Severity.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar proyectos: {ex.Message}", Severity.Error);
+            listaProyectos = new List<Proyecto>();
+        }
+    }
+
+    private void NuevoProyecto()
+    {
+        Snackbar.Add("Funcionalidad en desarrollo", Severity.Info);
+    }
+
+    private void VerDetalle(int idProyecto)
+    {
+        Navigation.NavigateTo($"/proyectos/{idProyecto}");
+    }
+
+    private void EditarProyecto(int idProyecto)
+    {
+        Snackbar.Add("Funcionalidad en desarrollo", Severity.Info);
+    }
+
+    private Color ObtenerColorEstado(string? estado)
+    {
+        return estado?.ToUpper() switch
+        {
+            "PLANIFICACION" => Color.Info,
+            "EN_PROCESO" => Color.Warning,
+            "COMPLETADO" => Color.Success,
+            "PAUSADO" => Color.Default,
+            "CANCELADO" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private bool FiltrarProyectos(Proyecto proyecto)
+    {
+        if (string.IsNullOrWhiteSpace(textoBusqueda))
+            return true;
+
+        if (proyecto.Nombre?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (proyecto.Descripcion?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (proyecto.Responsable?.NombreCompleto?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (proyecto.Area?.Nombre?.Contains(textoBusqueda, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    }
+}

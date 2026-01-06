@@ -1,6 +1,7 @@
 ﻿@page "/admin/usuarios"
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
+@using ITSM.WEB.Client.Components.Dialogs
 @inject IUsuarioServicio _usuarioServicio
 @inject NavigationManager _nav
 @inject ISnackbar Snackbar
@@ -90,7 +91,7 @@
                     <MudTd DataLabel="Usuario">
                         <div class="d-flex align-center">
                             <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-                                @context.Nombres?.Substring(0, 1)
+                                @(context.Nombres?.Substring(0, 1) ?? "?")
                             </MudAvatar>
                             <span><b>@context.Username</b></span>
                         </div>
@@ -124,6 +125,14 @@
                                            Size="Size.Small"
                                            Href="@($"/admin/usuario/{context.IdUsuario}")" />
                         </MudTooltip>
+
+                        <MudTooltip Text="Cambiar Contraseña">
+                            <MudIconButton Icon="@Icons.Material.Filled.Lock"
+                                           Color="Color.Warning"
+                                           Size="Size.Small"
+                                           OnClick="@(() => AbrirDialogoCambiarPassword(context))" />
+                        </MudTooltip>
+
                         @if (context.Estado == 1)
                         {
                             <MudTooltip Text="Desactivar Usuario">
@@ -203,6 +212,32 @@
         return false;
     }
 
+    private async Task AbrirDialogoCambiarPassword(Usuario usuario)
+    {
+        var parametros = new DialogParameters
+        {
+            { "IdUsuario", usuario.IdUsuario },
+            { "NombreUsuario", usuario.NombreCompleto }
+        };
+
+        var opciones = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = false,
+            BackdropClick = false
+        };
+
+        var dialogo = await DialogService.ShowAsync<CambiarPasswordDialog>("Cambiar Contraseña", parametros, opciones);
+        var resultado = await dialogo.Result;
+
+        if (!resultado.Canceled)
+        {
+            // La contraseña se cambió exitosamente
+            // El Snackbar ya se muestra desde el diálogo
+        }
+    }
+
     private async Task CambiarEstado(Usuario usuario, int nuevoEstado)
     {
         var accion = nuevoEstado == 1 ? "activar" : "desactivar";
@@ -215,15 +250,42 @@
         {
             try
             {
+                // ✅ LOG: Estado anterior
+                var estadoAnterior = usuario.Estado;
+                Console.WriteLine($"🔍 [FRONTEND] Usuario: {usuario.Username} | Estado Anterior: {estadoAnterior} | Nuevo Estado: {nuevoEstado}");
+
+                // Cambiar estado
                 usuario.Estado = nuevoEstado;
+                
+                // Actualizar FechaBaja según el estado
+                if (nuevoEstado == 0)
+                {
+                    usuario.FechaBaja = DateTime.Now;
+                    Console.WriteLine($"🔴 [FRONTEND] Usuario '{usuario.Username}' DESACTIVADO - FechaBaja: {usuario.FechaBaja}");
+                }
+                else
+                {
+                    usuario.FechaBaja = null;
+                    Console.WriteLine($"🟢 [FRONTEND] Usuario '{usuario.Username}' REACTIVADO - FechaBaja: NULL");
+                }
+
+                // Enviar al backend
                 await _usuarioServicio.Editar(usuario);
+                
+                Console.WriteLine($"✅ [FRONTEND] Cambio de estado guardado exitosamente en el backend");
+                
                 Snackbar.Add($"Usuario {(nuevoEstado == 1 ? "activado" : "desactivado")} correctamente", Severity.Success);
                 await CargarUsuarios();
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"❌ [FRONTEND] Error al cambiar estado: {ex.Message}");
                 Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             }
+        }
+        else
+        {
+            Console.WriteLine($"❌ [FRONTEND] Usuario canceló el cambio de estado para: {usuario.Username}");
         }
     }
 

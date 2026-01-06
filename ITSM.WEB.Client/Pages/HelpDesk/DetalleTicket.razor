@@ -2,7 +2,7 @@
 @using ITSM.Entidades
 @using ITSM.WEB.Client.Servicios
 @using System.Security.Claims
-@inject TicketServicio _ticketServicio
+@inject ITicketServicio _ticketServicio
 @inject NavigationManager _nav
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthProvider
@@ -17,8 +17,12 @@
         <MudCard>
             <MudCardHeader>
                 <CardHeaderContent>
-                    <MudText Typo="Typo.h5">Ticket #@ticket.IdTicket: @ticket.Titulo</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">Creado el: @ticket.FechaCreacion</MudText>
+                    <MudText Typo="Typo.h5">
+                        Ticket @(ticket.CodigoTicket ?? $"#{ticket.IdTicket}"): @ticket.Titulo
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Creado el: @ticket.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                    </MudText>
                 </CardHeaderContent>
                 <CardHeaderActions>
                     <MudChip T="string" Color="Color.Primary">@ticket.Estado?.Nombre</MudChip>
@@ -28,33 +32,39 @@
             <MudCardContent>
                 <MudGrid>
                     <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Solicitante:</MudText>
+                        <MudText Typo="Typo.subtitle2"><b>Solicitante:</b></MudText>
                         <MudText>@ticket.Solicitante?.NombreCompleto</MudText>
                     </MudItem>
+
                     <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Especialista Asignado:</MudText>
+                        <MudText Typo="Typo.subtitle2"><b>Área Solicitante:</b></MudText>
+                        <MudText>@ticket.AreaSolicitanteNombre</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Especialista Asignado:</b></MudText>
                         <MudText>@(ticket.Especialista?.NombreCompleto ?? "Sin asignar")</MudText>
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudText Typo="Typo.subtitle2">Activo Afectado:</MudText>
+                        <MudText Typo="Typo.subtitle2"><b>Activo Afectado:</b></MudText>
                         <MudText>
                             @(ticket.ActivoAfectado != null
-                                                    ? $"{ticket.ActivoAfectado.TipoActivo?.Nombre} - {ticket.ActivoAfectado.CodigoPatrimonial}"
-                                                    : "Ninguno")
+                                ? $"{ticket.ActivoAfectado.TipoActivo?.Nombre} - {ticket.ActivoAfectado.CodigoPatrimonial}"
+                                : "Ninguno")
                         </MudText>
                     </MudItem>
 
                     <MudItem xs="12">
                         <MudDivider Class="my-3" />
-                        <MudText Typo="Typo.subtitle2">Descripción:</MudText>
+                        <MudText Typo="Typo.subtitle2"><b>Descripción:</b></MudText>
                         <MudText Style="white-space: pre-wrap;">@ticket.Descripcion</MudText>
                     </MudItem>
 
                     <!-- HISTORIAL DE COMENTARIOS -->
                     <MudItem xs="12">
                         <MudDivider Class="my-3" />
-                        <MudText Typo="Typo.subtitle2">Historial de comentarios</MudText>
+                        <MudText Typo="Typo.subtitle2"><b>Historial de comentarios</b></MudText>
 
                         @if (detalles == null)
                         {
@@ -72,10 +82,10 @@
                                     <MudTimelineItem>
                                         <MudPaper Class="pa-2">
                                             <MudText Typo="Typo.caption">
-                                                @det.Usuario?.NombreCompleto (@det.FechaRegistro)
+                                                @det.Usuario?.NombreCompleto (@det.FechaComentario.ToString("dd/MM/yyyy HH:mm"))
                                             </MudText>
                                             <MudText Style="white-space: pre-wrap;">
-                                                @det.Mensaje
+                                                @det.Comentario
                                             </MudText>
                                         </MudPaper>
                                     </MudTimelineItem>
@@ -84,7 +94,7 @@
                         }
 
                         <MudDivider Class="my-3" />
-                        <MudText Typo="Typo.subtitle2">Agregar comentario</MudText>
+                        <MudText Typo="Typo.subtitle2"><b>Agregar comentario</b></MudText>
                         <MudTextField @bind-Value="nuevoComentario"
                                       Lines="3"
                                       FullWidth="true"
@@ -110,7 +120,7 @@
     [Parameter] public int Id { get; set; }
 
     private Ticket? ticket;
-    private List<TicketDetalle>? detalles;
+    private List<TicketComentario>? detalles;
     private string nuevoComentario = string.Empty;
     private int idUsuarioActual;
 
@@ -156,20 +166,22 @@
             return;
         }
 
-        var detalle = new TicketDetalle
+        var comentario = new TicketComentario
         {
             IdTicket = ticket.IdTicket,
             IdUsuario = idUsuarioActual,
-            Mensaje = nuevoComentario,
-            TipoAccion = 1 // Comentario
+            Comentario = nuevoComentario,
+            EsInterno = 0,
+            EsSolucion = 0
         };
 
         try
         {
-            await _ticketServicio.AgregarComentario(detalle);
+            await _ticketServicio.AgregarComentario(comentario);
             nuevoComentario = string.Empty;
 
             detalles = await _ticketServicio.ListarDetalles(ticket.IdTicket);
+            Snackbar.Add("Comentario agregado exitosamente", Severity.Success);
         }
         catch (Exception ex)
         {

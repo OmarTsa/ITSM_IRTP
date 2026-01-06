@@ -1,0 +1,262 @@
+﻿@page "/inventario/nuevo"
+@page "/inventario/editar/{IdActivo:int}"
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@inject IInventarioServicio _inventarioServicio
+@inject IUsuarioServicio _usuarioServicio
+@inject NavigationManager _nav
+@inject ISnackbar Snackbar
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>@(IdActivo == null ? "Nuevo Activo" : "Editar Activo") - ITSM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudCard Elevation="4" Style="border-radius: 12px;">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">
+                    <MudIcon Icon="@Icons.Material.Filled.Inventory" Class="mr-2" />
+                    @(IdActivo == null ? "Registrar Nuevo Activo" : "Editar Activo")
+                </MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+
+        <MudCardContent>
+            <EditForm Model="@activo" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+
+                <MudGrid>
+                    <!-- Información Básica -->
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">
+                            Información Básica
+                        </MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.CodigoPatrimonial"
+                                      Label="Código Patrimonial"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="El código es requerido" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int"
+                                   Label="Tipo de Activo"
+                                   @bind-Value="activo.IdTipoActivo"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            <MudSelectItem Value="0">-- Seleccione --</MudSelectItem>
+                            @foreach (var tipo in listaTipos)
+                            {
+                                <MudSelectItem Value="@tipo.IdTipo">@tipo.Nombre</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <!-- Detalles del Equipo -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">
+                            Detalles del Equipo
+                        </MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.Marca"
+                                      Label="Marca"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.Modelo"
+                                      Label="Modelo"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.NumeroSerie"
+                                      Label="Número de Serie"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int"
+                                   Label="Estado"
+                                   @bind-Value="activo.IdEstado"
+                                   Variant="Variant.Outlined">
+                            <MudSelectItem Value="1">Disponible</MudSelectItem>
+                            <MudSelectItem Value="2">En Uso</MudSelectItem>
+                            <MudSelectItem Value="3">En Mantenimiento</MudSelectItem>
+                            <MudSelectItem Value="4">Fuera de Servicio</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <!-- Especificaciones Técnicas -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">
+                            Especificaciones Técnicas (Opcional)
+                        </MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.Procesador"
+                                      Label="Procesador"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.Ram"
+                                      Label="Memoria RAM"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: 8GB DDR4" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.Almacenamiento"
+                                      Label="Almacenamiento"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: 512GB SSD" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="activo.SistemaOperativo"
+                                      Label="Sistema Operativo"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: Windows 11 Pro" />
+                    </MudItem>
+
+                    <!-- Asignación -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">
+                            Asignación de Usuario
+                        </MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSelect T="int?"
+                                   Label="Usuario Asignado"
+                                   @bind-Value="activo.IdUsuarioAsignado"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true">
+                            <MudSelectItem T="int?" Value="null">Sin Asignar</MudSelectItem>
+                            @foreach (var usuario in listaUsuarios)
+                            {
+                                <MudSelectItem Value="@((int?)usuario.IdUsuario)">
+                                    @usuario.NombreCompleto - @usuario.Area?.Nombre
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <!-- Observaciones -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudTextField @bind-Value="activo.Observaciones"
+                                      Label="Observaciones"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      Placeholder="Información adicional relevante..." />
+                    </MudItem>
+                </MudGrid>
+
+            </EditForm>
+        </MudCardContent>
+
+        <MudCardActions Class="pa-4">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       OnClick="Cancelar"
+                       StartIcon="@Icons.Material.Filled.Cancel">
+                Cancelar
+            </MudButton>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="Guardar"
+                       Disabled="@guardando"
+                       StartIcon="@Icons.Material.Filled.Save">
+                @if (guardando)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Guardando...</span>
+                }
+                else
+                {
+                    <span>Guardar Activo</span>
+                }
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    [Parameter] public int? IdActivo { get; set; }
+
+    private Activo activo = new();
+    private List<TipoActivo> listaTipos = new();
+    private List<Usuario> listaUsuarios = new();
+    private bool guardando = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+
+        if (IdActivo != null)
+        {
+            var activoDb = await _inventarioServicio.ObtenerPorId(IdActivo.Value);
+            if (activoDb != null)
+            {
+                activo = activoDb;
+            }
+        }
+        else
+        {
+            activo.IdEstado = 1; // Estado por defecto: Disponible
+            activo.FechaRegistro = DateTime.Now;
+        }
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            listaTipos = await _inventarioServicio.ListarTipos();
+            listaUsuarios = await _usuarioServicio.Listar();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar datos: {ex.Message}", Severity.Warning);
+        }
+    }
+
+    private async Task Guardar()
+    {
+        guardando = true;
+        try
+        {
+            await _inventarioServicio.GuardarActivo(activo);
+            Snackbar.Add("Activo guardado exitosamente", Severity.Success);
+            _nav.NavigateTo("/inventario");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al guardar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        _nav.NavigateTo("/inventario");
+    }
+}

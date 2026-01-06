@@ -35,23 +35,46 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="activo.CodigoPatrimonial"
-                                      Label="Código Patrimonial"
+                        <MudTextField @bind-Value="activo.Nombre"
+                                      Label="Nombre del Activo"
                                       Variant="Variant.Outlined"
                                       Required="true"
-                                      RequiredError="El código es requerido" />
+                                      RequiredError="El nombre es requerido" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int"
+                        <MudTextField @bind-Value="activo.CodigoPatrimonial"
+                                      Label="Código Patrimonial"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?"
                                    Label="Tipo de Activo"
-                                   @bind-Value="activo.IdTipoActivo"
+                                   @bind-Value="activo.IdTipo"
                                    Variant="Variant.Outlined"
-                                   Required="true">
-                            <MudSelectItem Value="0">-- Seleccione --</MudSelectItem>
+                                   Required="true"
+                                   Clearable="true">
                             @foreach (var tipo in listaTipos)
                             {
-                                <MudSelectItem Value="@tipo.IdTipo">@tipo.Nombre</MudSelectItem>
+                                <MudSelectItem T="int?" Value="@((int?)tipo.IdTipo)">@tipo.Nombre</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?"
+                                   Label="Estado"
+                                   @bind-Value="activo.IdEstado"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            @foreach (var estado in listaEstados)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)estado.IdEstado)">
+                                    <MudChip T="string" Size="Size.Small" Color="@ObtenerColorEstado(estado.Color)">
+                                        @estado.Nombre
+                                    </MudChip>
+                                </MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>
@@ -64,37 +87,36 @@
                         <MudDivider />
                     </MudItem>
 
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="activo.Descripcion"
+                                      Label="Descripción"
+                                      Variant="Variant.Outlined"
+                                      Lines="2" />
+                    </MudItem>
+
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="activo.Marca"
                                       Label="Marca"
-                                      Variant="Variant.Outlined"
-                                      Required="true" />
+                                      Variant="Variant.Outlined" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="activo.Modelo"
                                       Label="Modelo"
-                                      Variant="Variant.Outlined"
-                                      Required="true" />
+                                      Variant="Variant.Outlined" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="activo.NumeroSerie"
                                       Label="Número de Serie"
-                                      Variant="Variant.Outlined"
-                                      Required="true" />
+                                      Variant="Variant.Outlined" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudSelect T="int"
-                                   Label="Estado"
-                                   @bind-Value="activo.IdEstado"
-                                   Variant="Variant.Outlined">
-                            <MudSelectItem Value="1">Disponible</MudSelectItem>
-                            <MudSelectItem Value="2">En Uso</MudSelectItem>
-                            <MudSelectItem Value="3">En Mantenimiento</MudSelectItem>
-                            <MudSelectItem Value="4">Fuera de Servicio</MudSelectItem>
-                        </MudSelect>
+                        <MudTextField @bind-Value="activo.UbicacionFisica"
+                                      Label="Ubicación Física"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: Piso 2, Oficina 201" />
                     </MudItem>
 
                     <!-- Especificaciones Técnicas -->
@@ -108,21 +130,37 @@
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="activo.Procesador"
                                       Label="Procesador"
-                                      Variant="Variant.Outlined" />
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: Intel Core i5-12400" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField @bind-Value="activo.RamGb"
+                                         Label="RAM (GB)"
+                                         Variant="Variant.Outlined"
+                                         Min="1"
+                                         Max="1024" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudNumericField @bind-Value="activo.DiscoGb"
+                                         Label="Disco (GB)"
+                                         Variant="Variant.Outlined"
+                                         Min="1"
+                                         Max="10000" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="activo.Ram"
-                                      Label="Memoria RAM"
-                                      Variant="Variant.Outlined"
-                                      Placeholder="Ej: 8GB DDR4" />
-                    </MudItem>
-
-                    <MudItem xs="12" sm="6">
-                        <MudTextField @bind-Value="activo.Almacenamiento"
-                                      Label="Almacenamiento"
-                                      Variant="Variant.Outlined"
-                                      Placeholder="Ej: 512GB SSD" />
+                        <MudSelect T="string"
+                                   Label="Tipo de Disco"
+                                   @bind-Value="activo.TipoDisco"
+                                   Variant="Variant.Outlined"
+                                   Clearable="true">
+                            <MudSelectItem Value="@("SSD")">SSD</MudSelectItem>
+                            <MudSelectItem Value="@("HDD")">HDD</MudSelectItem>
+                            <MudSelectItem Value="@("NVME")">NVMe</MudSelectItem>
+                            <MudSelectItem Value="@("HIBRIDO")">Híbrido</MudSelectItem>
+                        </MudSelect>
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
@@ -130,6 +168,35 @@
                                       Label="Sistema Operativo"
                                       Variant="Variant.Outlined"
                                       Placeholder="Ej: Windows 11 Pro" />
+                    </MudItem>
+
+                    <!-- Configuración de Red -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">
+                            Configuración de Red
+                        </MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="activo.Hostname"
+                                      Label="Hostname"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: PC-ADMIN-01" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="activo.IpAsignada"
+                                      Label="IP Asignada"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: 192.168.1.100" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="activo.MacAddress"
+                                      Label="MAC Address"
+                                      Variant="Variant.Outlined"
+                                      Placeholder="Ej: 00:1A:2B:3C:4D:5E" />
                     </MudItem>
 
                     <!-- Asignación -->
@@ -146,14 +213,43 @@
                                    @bind-Value="activo.IdUsuarioAsignado"
                                    Variant="Variant.Outlined"
                                    Clearable="true">
-                            <MudSelectItem T="int?" Value="null">Sin Asignar</MudSelectItem>
                             @foreach (var usuario in listaUsuarios)
                             {
-                                <MudSelectItem Value="@((int?)usuario.IdUsuario)">
+                                <MudSelectItem T="int?" Value="@((int?)usuario.IdUsuario)">
                                     @usuario.NombreCompleto - @usuario.Area?.Nombre
                                 </MudSelectItem>
                             }
                         </MudSelect>
+                    </MudItem>
+
+                    <!-- Información Financiera -->
+                    <MudItem xs="12" Class="mt-4">
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-2">
+                            Información Financiera
+                        </MudText>
+                        <MudDivider />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker @bind-Date="activo.FechaAdquisicion"
+                                       Label="Fecha de Adquisición"
+                                       Variant="Variant.Outlined"
+                                       Editable="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField @bind-Value="activo.PrecioAdquisicion"
+                                         Label="Precio de Adquisición"
+                                         Variant="Variant.Outlined"
+                                         Format="N2"
+                                         AdornmentText="S/."
+                                         Adornment="Adornment.Start" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudTextField @bind-Value="activo.Proveedor"
+                                      Label="Proveedor"
+                                      Variant="Variant.Outlined" />
                     </MudItem>
 
                     <!-- Observaciones -->
@@ -201,6 +297,7 @@
 
     private Activo activo = new();
     private List<TipoActivo> listaTipos = new();
+    private List<EstadoActivo> listaEstados = new();
     private List<Usuario> listaUsuarios = new();
     private bool guardando = false;
 
@@ -218,8 +315,11 @@
         }
         else
         {
-            activo.IdEstado = 1; // Estado por defecto: Disponible
+            // Valores por defecto para nuevo activo
+            activo.Nombre = string.Empty;
             activo.FechaRegistro = DateTime.Now;
+            activo.Eliminado = 0;
+            activo.VidaUtilAnios = 6;
         }
     }
 
@@ -228,6 +328,7 @@
         try
         {
             listaTipos = await _inventarioServicio.ListarTipos();
+            listaEstados = await _inventarioServicio.ListarEstados();
             listaUsuarios = await _usuarioServicio.Listar();
         }
         catch (Exception ex)
@@ -258,5 +359,18 @@
     private void Cancelar()
     {
         _nav.NavigateTo("/inventario");
+    }
+
+    private Color ObtenerColorEstado(string colorHex)
+    {
+        return colorHex switch
+        {
+            "#28a745" => Color.Success,
+            "#007bff" => Color.Info,
+            "#ffc107" => Color.Warning,
+            "#dc3545" => Color.Error,
+            "#6c757d" => Color.Default,
+            _ => Color.Primary
+        };
     }
 }

@@ -1,8 +1,10 @@
 ﻿@inject NavigationManager NavManager
+@inject ILogger<RedirectToLogin> Logger
 
 @code {
     protected override void OnInitialized()
     {
+        Logger.LogInformation("Redirigiendo usuario no autenticado a /login");
         NavManager.NavigateTo("/login", forceLoad: false);
     }
 }

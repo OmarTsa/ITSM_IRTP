@@ -17,5 +17,8 @@ namespace ITSM.WEB.Client.Servicios
         Task<List<TipoActivo>> ListarTipos(); // Alias
         Task GuardarTipo(TipoActivo tipo);
         Task EliminarTipo(int idTipo);
+
+        // Estados de Activo
+        Task<List<EstadoActivo>> ListarEstados();
     }
 }

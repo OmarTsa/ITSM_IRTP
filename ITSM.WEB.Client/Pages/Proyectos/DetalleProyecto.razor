@@ -1,0 +1,371 @@
+﻿@page "/proyectos/{Id:int}"
+@using ITSM.Entidades
+@using ITSM.WEB.Client.Servicios
+@inject IProyectoServicio _proyectoServicio
+@inject NavigationManager _nav
+@inject ISnackbar Snackbar
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Detalle de Proyecto - ITSM</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    @if (proyecto == null)
+    {
+        <div class="d-flex justify-center align-center" style="min-height: 400px;">
+            <div class="text-center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body1" Class="mt-4" Color="Color.Secondary">
+                    Cargando detalle del proyecto...
+                </MudText>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- INFORMACIÓN PRINCIPAL -->
+        <MudCard Elevation="3" Class="mb-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h5">
+                        @proyecto.Nombre
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Código: @(proyecto.CodigoProyecto ?? "Sin código") |
+                        Creado el: @proyecto.FechaCreacion.ToString("dd/MM/yyyy")
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudChip T="string"
+                             Color="@ObtenerColorEstado(proyecto.Estado)"
+                             Variant="Variant.Filled">
+                        @proyecto.Estado
+                    </MudChip>
+                </CardHeaderActions>
+            </MudCardHeader>
+
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Tipo de Proyecto:</b></MudText>
+                        <MudText>@(proyecto.TipoProyecto ?? "Sin especificar")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Prioridad:</b></MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@ObtenerColorPrioridad(proyecto.Prioridad)">
+                            @proyecto.Prioridad
+                        </MudChip>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Responsable:</b></MudText>
+                        <MudText>@(proyecto.Responsable?.NombreCompleto ?? "Sin asignar")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Área:</b></MudText>
+                        <MudText>@(proyecto.Area?.Nombre ?? "Sin área")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.subtitle2"><b>Fecha de Inicio:</b></MudText>
+                        <MudText>@(proyecto.FechaInicio?.ToString("dd/MM/yyyy") ?? "Sin fecha")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.subtitle2"><b>Fecha Fin Prevista:</b></MudText>
+                        <MudText>@(proyecto.FechaFinPrevista?.ToString("dd/MM/yyyy") ?? "Sin fecha")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.subtitle2"><b>Fecha Fin Real:</b></MudText>
+                        <MudText>@(proyecto.FechaFinReal?.ToString("dd/MM/yyyy") ?? "No finalizado")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Presupuesto Asignado:</b></MudText>
+                        <MudText>S/ @(proyecto.PresupuestoAsignado?.ToString("N2") ?? "0.00")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Presupuesto Ejecutado:</b></MudText>
+                        <MudText>S/ @proyecto.PresupuestoEjecutado.ToString("N2")</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudText Typo="Typo.subtitle2"><b>Porcentaje de Avance:</b></MudText>
+                        <MudProgressLinear Color="Color.Primary"
+                                           Value="@((double)proyecto.PorcentajeAvance)"
+                                           Size="Size.Large"
+                                           Class="my-2">
+                            <MudText Typo="Typo.body2">@proyecto.PorcentajeAvance.ToString("N2")%</MudText>
+                        </MudProgressLinear>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudText Typo="Typo.subtitle2"><b>Estratégico:</b></MudText>
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(proyecto.EsEstrategico == 1 ? Color.Success : Color.Default)">
+                            @(proyecto.EsEstrategico == 1 ? "SÍ" : "NO")
+                        </MudChip>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudText Typo="Typo.subtitle2"><b>Alineado PGD:</b></MudText>
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(proyecto.AlineadoPgd == 1 ? Color.Success : Color.Default)">
+                            @(proyecto.AlineadoPgd == 1 ? "SÍ" : "NO")
+                        </MudChip>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudDivider Class="my-3" />
+                        <MudText Typo="Typo.subtitle2"><b>Descripción:</b></MudText>
+                        <MudText Style="white-space: pre-wrap;">@proyecto.Descripcion</MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+
+            <MudCardActions>
+                <MudButton OnClick="Volver" Variant="Variant.Text">Volver</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="EditarProyecto">
+                    Editar Proyecto
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+
+        <!-- HITOS DEL PROYECTO -->
+        <MudCard Elevation="3" Class="mb-4">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Flag" /> Hitos del Proyecto
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudButton Size="Size.Small"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="NuevoHito">
+                        Agregar Hito
+                    </MudButton>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (hitos == null)
+                {
+                    <MudText>Cargando hitos...</MudText>
+                }
+                else if (!hitos.Any())
+                {
+                    <MudAlert Severity="Severity.Info">No hay hitos registrados para este proyecto.</MudAlert>
+                }
+                else
+                {
+                    <MudTimeline TimelineOrientation="TimelineOrientation.Vertical">
+                        @foreach (var hito in hitos)
+                        {
+                            <MudTimelineItem Color="@ObtenerColorEstadoHito(hito.Estado)" Size="Size.Small">
+                                <ItemContent>
+                                    <MudPaper Class="pa-3 mb-2" Elevation="2">
+                                        <div class="d-flex justify-space-between align-center">
+                                            <div>
+                                                <MudText Typo="Typo.h6">@hito.NombreHito</MudText>
+                                                <MudText Typo="Typo.body2">@hito.Descripcion</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    <b>Fecha prevista:</b> @(hito.FechaPrevista?.ToString("dd/MM/yyyy") ?? "Sin fecha")
+                                                </MudText>
+                                                @if (hito.FechaCompletado.HasValue)
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="Color.Success">
+                                                        <b>Completado:</b> @hito.FechaCompletado.Value.ToString("dd/MM/yyyy")
+                                                    </MudText>
+                                                }
+                                                @if (hito.Responsable != null)
+                                                {
+                                                    <MudText Typo="Typo.caption">
+                                                        <b>Responsable:</b> @hito.Responsable.NombreCompleto
+                                                    </MudText>
+                                                }
+                                            </div>
+                                            <MudChip T="string" Size="Size.Small" Color="@ObtenerColorEstadoHito(hito.Estado)">
+                                                @hito.Estado
+                                            </MudChip>
+                                        </div>
+                                    </MudPaper>
+                                </ItemContent>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+            </MudCardContent>
+        </MudCard>
+
+        <!-- ENTREGABLES -->
+        <MudCard Elevation="3">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">
+                        <MudIcon Icon="@Icons.Material.Filled.Assignment" /> Entregables
+                    </MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudButton Size="Size.Small"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="NuevoEntregable">
+                        Agregar Entregable
+                    </MudButton>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (entregables == null)
+                {
+                    <MudText>Cargando entregables...</MudText>
+                }
+                else if (!entregables.Any())
+                {
+                    <MudAlert Severity="Severity.Info">No hay entregables registrados para este proyecto.</MudAlert>
+                }
+                else
+                {
+                    <MudTable Items="@entregables" Dense="true" Hover="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Nombre</MudTh>
+                            <MudTh>Descripción</MudTh>
+                            <MudTh>Fecha Prevista</MudTh>
+                            <MudTh>Fecha Real</MudTh>
+                            <MudTh>Estado</MudTh>
+                            <MudTh>Aprobado</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Nombre">@context.NombreEntregable</MudTd>
+                            <MudTd DataLabel="Descripción">@context.Descripcion</MudTd>
+                            <MudTd DataLabel="Fecha Prevista">
+                                @(context.FechaEntregaPrevista?.ToString("dd/MM/yyyy") ?? "Sin fecha")
+                            </MudTd>
+                            <MudTd DataLabel="Fecha Real">
+                                @(context.FechaEntregaReal?.ToString("dd/MM/yyyy") ?? "Pendiente")
+                            </MudTd>
+                            <MudTd DataLabel="Estado">
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@ObtenerColorEstadoEntregable(context.Estado)">
+                                    @context.Estado
+                                </MudChip>
+                            </MudTd>
+                            <MudTd DataLabel="Aprobado">
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@(context.Aprobado == 1 ? Color.Success : Color.Warning)">
+                                    @(context.Aprobado == 1 ? "SÍ" : "NO")
+                                </MudChip>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudCardContent>
+        </MudCard>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Proyecto? proyecto;
+    private List<Hito>? hitos;
+    private List<Entregable>? entregables;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            proyecto = await _proyectoServicio.ObtenerProyecto(Id);
+
+            if (proyecto != null)
+            {
+                hitos = await _proyectoServicio.ListarHitos(Id);
+                entregables = await _proyectoServicio.ListarEntregables(Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar proyecto: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Volver()
+    {
+        _nav.NavigateTo("/proyectos");
+    }
+
+    private void EditarProyecto()
+    {
+        Snackbar.Add("Funcionalidad en desarrollo", Severity.Info);
+    }
+
+    private void NuevoHito()
+    {
+        Snackbar.Add("Funcionalidad en desarrollo", Severity.Info);
+    }
+
+    private void NuevoEntregable()
+    {
+        Snackbar.Add("Funcionalidad en desarrollo", Severity.Info);
+    }
+
+    private Color ObtenerColorEstado(string? estado)
+    {
+        return estado?.ToUpper() switch
+        {
+            "PLANIFICACION" => Color.Info,
+            "EN_PROCESO" => Color.Warning,
+            "COMPLETADO" => Color.Success,
+            "PAUSADO" => Color.Default,
+            "CANCELADO" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private Color ObtenerColorPrioridad(string? prioridad)
+    {
+        return prioridad?.ToUpper() switch
+        {
+            "ALTA" => Color.Error,
+            "MEDIA" => Color.Warning,
+            "BAJA" => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private Color ObtenerColorEstadoHito(string? estado)
+    {
+        return estado?.ToUpper() switch
+        {
+            "PENDIENTE" => Color.Warning,
+            "EN_PROCESO" => Color.Info,
+            "COMPLETADO" => Color.Success,
+            "ATRASADO" => Color.Error,
+            _ => Color.Default
+        };
+    }
+
+    private Color ObtenerColorEstadoEntregable(string? estado)
+    {
+        return estado?.ToUpper() switch
+        {
+            "PENDIENTE" => Color.Warning,
+            "EN_REVISION" => Color.Info,
+            "APROBADO" => Color.Success,
+            "RECHAZADO" => Color.Error,
+            _ => Color.Default
+        };
+    }
+}

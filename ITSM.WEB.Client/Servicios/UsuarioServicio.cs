@@ -132,5 +132,28 @@ namespace ITSM.WEB.Client.Servicios
                 return new List<Area>();
             }
         }
+
+        // NUEVO MÉTODO: Cambiar contraseña
+        public async Task<bool> CambiarPassword(int idUsuario, string nuevaPassword)
+        {
+            try
+            {
+                var datos = new { IdUsuario = idUsuario, NuevaPassword = nuevaPassword };
+                var respuesta = await _clienteHttp.PostAsJsonAsync("api/usuario/cambiar-password", datos);
+                var exitoso = respuesta.IsSuccessStatusCode;
+
+                if (exitoso)
+                    Console.WriteLine("✅ Contraseña cambiada correctamente");
+                else
+                    Console.WriteLine($"❌ Error al cambiar contraseña: {respuesta.StatusCode}");
+
+                return exitoso;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Excepción al cambiar contraseña: {ex.Message}");
+                return false;
+            }
+        }
     }
 }

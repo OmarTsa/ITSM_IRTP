@@ -11,6 +11,11 @@ namespace ITSM.Entidades
         [Column("ID_TICKET")]
         public int IdTicket { get; set; }
 
+        // ⭐ NUEVO: Código correlativo único generado por BD
+        [Column("CODIGO_TICKET")]
+        [StringLength(20)]
+        public string? CodigoTicket { get; set; }
+
         [Column("TITULO")]
         [Required(ErrorMessage = "El título es obligatorio")]
         [StringLength(200)]
@@ -52,6 +57,13 @@ namespace ITSM.Entidades
         [ForeignKey("IdActivoAfectado")]
         public virtual Activo? ActivoAfectado { get; set; }
 
+        // ⭐ NUEVO: Trazabilidad de área del solicitante
+        [Column("ID_AREA_SOLICITANTE")]
+        public int? IdAreaSolicitante { get; set; }
+
+        [ForeignKey("IdAreaSolicitante")]
+        public virtual Area? AreaSolicitante { get; set; }
+
         // --- CLASIFICACIÓN ---
         [Column("TIPO_TICKET")]
         public string TipoTicket { get; set; } = "Incidente";
@@ -66,13 +78,13 @@ namespace ITSM.Entidades
         public int IdEstado { get; set; } = 1;
 
         [ForeignKey("IdEstado")]
-        public virtual EstadoTicket? Estado { get; set; } // OJO: Esto faltaba
+        public virtual EstadoTicket? Estado { get; set; }
 
         [Column("ID_PRIORIDAD")]
         public int IdPrioridad { get; set; } = 3;
 
         [ForeignKey("IdPrioridad")]
-        public virtual Prioridad? Prioridad { get; set; } // OJO: Esto faltaba
+        public virtual Prioridad? Prioridad { get; set; }
 
         [Column("ID_URGENCIA")]
         public int IdUrgencia { get; set; } = 3;
@@ -93,5 +105,18 @@ namespace ITSM.Entidades
 
         [Column("CALIFICACION")]
         public int? Calificacion { get; set; }
+
+        // ⭐ PROPIEDADES CALCULADAS PARA REPORTES (no mapeadas a BD)
+        [NotMapped]
+        public string CodigoPatrimonialBien => ActivoAfectado?.CodigoPatrimonial ?? "N/A";
+
+        [NotMapped]
+        public string NombreCompletoSolicitante => Solicitante != null
+            ? $"{Solicitante.Nombres} {Solicitante.Apellidos}"
+            : "Sin asignar";
+
+        [NotMapped]
+        public string AreaSolicitanteNombre => AreaSolicitante?.Nombre ??
+                                                Solicitante?.Area?.Nombre ?? "N/A";
     }
 }

@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Blazored.LocalStorage;
 using ITSM.WEB.Client.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Text.Json;
 
 namespace ITSM.WEB.Client.Servicios
 {
@@ -125,6 +126,24 @@ namespace ITSM.WEB.Client.Servicios
                 }
 
                 return sesion;
+            }
+            catch (JsonException ex)
+            {
+                // ⚠️ DATOS CORRUPTOS EN LOCALSTORAGE - LIMPIEZA AUTOMÁTICA
+                Console.WriteLine($"⚠️ JSON corrupto detectado en localStorage: {ex.Message}");
+                Console.WriteLine($"🧹 Limpiando datos corruptos automáticamente...");
+
+                try
+                {
+                    await _almacenamientoLocal.RemoveItemAsync(CLAVE_SESION);
+                    Console.WriteLine("✅ LocalStorage limpio. Por favor, inicia sesión nuevamente.");
+                }
+                catch
+                {
+                    Console.WriteLine("⚠️ No se pudo limpiar localStorage automáticamente");
+                }
+
+                return null;
             }
             catch (Exception ex)
             {

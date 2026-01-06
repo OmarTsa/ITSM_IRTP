@@ -12,14 +12,10 @@ namespace ITSM.Entidades
 
         [Column("NOMBRE")]
         [Required]
-        [StringLength(100)]
-        public string Nombre { get; set; } = string.Empty; // Inicializado
-
-        [Column("TIPO")]
-        [StringLength(20)]
-        public string? Tipo { get; set; }
+        [StringLength(200)]
+        public string Nombre { get; set; } = string.Empty;
 
         [Column("ACTIVO")]
-        public int Activo { get; set; } = 1;
+        public int? Activo { get; set; }
     }
 }

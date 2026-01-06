@@ -90,10 +90,16 @@ namespace ITSM.WEB.Controllers
 
             return new SesionDto
             {
+                IdUsuario = usuario.IdUsuario,  // ⭐ CORREGIDO: Agregar IdUsuario
                 Nombre = $"{usuario.Nombres} {usuario.Apellidos}",
                 Username = usuario.Username,
                 Rol = usuario.Rol?.Nombre ?? string.Empty,
-                Token = tokenString
+                Token = tokenString,
+                
+                // Propiedades adicionales para trazabilidad
+                NombreCompleto = $"{usuario.Nombres} {usuario.Apellidos}",
+                IdArea = usuario.IdArea,
+                NombreArea = usuario.Area?.Nombre
             };
         }
 

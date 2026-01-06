@@ -22,11 +22,14 @@ namespace ITSM.Negocio
         {
             return await _context.Tickets
                 .Include(t => t.Solicitante)
+                    .ThenInclude(s => s.Area)
                 .Include(t => t.Especialista)
                 .Include(t => t.Prioridad)
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.ActivoAfectado)
+                    .ThenInclude(a => a.TipoActivo)
+                .Include(t => t.AreaSolicitante)
                 .OrderByDescending(t => t.FechaCreacion)
                 .ToListAsync();
         }
@@ -38,6 +41,7 @@ namespace ITSM.Negocio
                 .Include(t => t.Categoria)
                 .Include(t => t.Estado)
                 .Include(t => t.ActivoAfectado)
+                .Include(t => t.AreaSolicitante)
                 .Where(t => t.IdSolicitante == idUsuario)
                 .OrderByDescending(t => t.FechaCreacion)
                 .ToListAsync();
@@ -47,26 +51,48 @@ namespace ITSM.Negocio
         {
             return await _context.Tickets
                 .Include(t => t.Solicitante)
+                    .ThenInclude(s => s.Area)
                 .Include(t => t.Especialista)
                 .Include(t => t.ActivoAfectado)
                     .ThenInclude(a => a.TipoActivo)
                 .Include(t => t.Categoria)
                 .Include(t => t.Prioridad)
                 .Include(t => t.Estado)
+                .Include(t => t.AreaSolicitante)
                 .FirstOrDefaultAsync(t => t.IdTicket == idTicket);
         }
 
-        public async Task RegistrarTicketAsync(Ticket ticket)
+        public async Task<Ticket> RegistrarTicketAsync(Ticket ticket)
         {
-            Usuario? usuario = await _context.Usuarios.FindAsync(ticket.IdSolicitante);
+            Usuario? usuario = await _context.Usuarios
+                .Include(u => u.Area)
+                .FirstOrDefaultAsync(u => u.IdUsuario == ticket.IdSolicitante);
+
             if (usuario == null || usuario.Estado != 1)
                 throw new Exception("El solicitante no existe o está inactivo.");
 
+            if (ticket.IdAreaSolicitante == null && usuario.IdArea > 0)
+            {
+                ticket.IdAreaSolicitante = usuario.IdArea;
+            }
+
+            if (ticket.IdActivoAfectado.HasValue)
+            {
+                var activo = await _context.Activos
+                    .FirstOrDefaultAsync(a => a.IdActivo == ticket.IdActivoAfectado);
+
+                if (activo == null)
+                    throw new Exception("El activo especificado no existe.");
+            }
+
             ticket.FechaCreacion = DateTime.Now;
-            ticket.IdEstado = 1; // Abierto
+            ticket.IdEstado = 1;
 
             _context.Tickets.Add(ticket);
             await _context.SaveChangesAsync();
+
+            var ticketCreado = await ObtenerTicketPorIdAsync(ticket.IdTicket);
+            return ticketCreado ?? ticket;
         }
 
         public async Task ActualizarTicketAsync(Ticket ticket)
@@ -84,8 +110,9 @@ namespace ITSM.Negocio
             ticketDb.IdPrioridad = ticket.IdPrioridad;
             ticketDb.NotasCierre = ticket.NotasCierre;
             ticketDb.IdActivoAfectado = ticket.IdActivoAfectado;
+            ticketDb.IdAreaSolicitante = ticket.IdAreaSolicitante;
 
-            const int ESTADO_CERRADO = 4; // ajusta al ID real de "Cerrado/Resuelto"
+            const int ESTADO_CERRADO = 4;
 
             if (estadoNuevo == ESTADO_CERRADO)
             {
@@ -95,16 +122,10 @@ namespace ITSM.Negocio
                 if (ticketDb.IdSolicitante == 0)
                     throw new Exception("No se puede cerrar el ticket sin solicitante.");
 
-                // Si quieres obligar activo afectado, descomenta:
-                // if (ticketDb.IdActivoAfectado == null)
-                //     throw new Exception("Debe vincular un activo afectado antes de cerrar el ticket.");
-
                 ticketDb.FechaCierre ??= DateTime.Now;
             }
 
             await _context.SaveChangesAsync();
-
-            // Aquí se puede registrar en HD_TICKET_HISTORIAL más adelante
         }
 
         public async Task AsignarTicketAsync(int idTicket, int idEspecialista)
@@ -113,29 +134,29 @@ namespace ITSM.Negocio
             if (ticket == null) throw new Exception("Ticket no encontrado");
 
             ticket.IdEspecialista = idEspecialista;
-            ticket.IdEstado = 2; // En Proceso
+            ticket.IdEstado = 2;
             ticket.FechaAsignacion = DateTime.Now;
 
             await _context.SaveChangesAsync();
         }
 
         // ----------------------------
-        // DETALLES (COMENTARIOS)
+        // COMENTARIOS
         // ----------------------------
 
-        public async Task AgregarComentarioAsync(TicketDetalle detalle)
+        public async Task AgregarComentarioAsync(TicketComentario comentario)
         {
-            detalle.FechaRegistro = DateTime.Now;
-            _context.TicketDetalles.Add(detalle);
+            comentario.FechaComentario = DateTime.Now;
+            _context.TicketComentarios.Add(comentario);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<TicketDetalle>> ListarDetallesTicketAsync(int idTicket)
+        public async Task<List<TicketComentario>> ListarDetallesTicketAsync(int idTicket)
         {
-            return await _context.TicketDetalles
-                .Include(d => d.Usuario)
-                .Where(d => d.IdTicket == idTicket)
-                .OrderBy(d => d.FechaRegistro)
+            return await _context.TicketComentarios
+                .Include(c => c.Usuario)
+                .Where(c => c.IdTicket == idTicket && c.Eliminado == 0)
+                .OrderBy(c => c.FechaComentario)
                 .ToListAsync();
         }
 
@@ -157,7 +178,6 @@ namespace ITSM.Negocio
 
         public async Task<List<EstadoTicket>> ListarEstadosAsync()
         {
-            // Ajustado al DbSet real en ContextoBD (Estados)
             return await _context.Estados.ToListAsync();
         }
 
